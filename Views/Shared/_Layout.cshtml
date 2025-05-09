@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - EMMS</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
+    @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="container-fluid h-full w-full" style="height: 100vh;">
+        <div class="row flex-nowrap" style="height: 100vh;">
+            <div class="col-auto px-0 py-0 h-full" style="height: 100vh;">
+                <div id="sidebar" class="collapse collapse-horizontal">
+                    <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
+                        <div class="container-fluid justify-content-start">
+                            <a class="align-items-center float-start py-1" href="#">
+                                <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="me-2">
+                                <span class="navbar-brand mb-0 h1" style="color: white;">EMMS</span>
+                            </a>
+                        </div>
+                    </nav>
+                    <div id="sidebar-nav" class="list-group border-0 rounded-0 rounded-0 text-sm-start" style="border: none;">
+                        <a asp-controller="Home" asp-action="Index" class="@ViewData["active"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span> </a>
+                        <a asp-controller="AssetManagement" asp-action="Index" class="@ViewData["asset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-box-open"></i> <span>Asset Management</span></a>
+                        <a style="color:black" href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
+                            <i class="fa-solid fa-arrows-turn-to-dots"></i> <span>Asset Movement</span>
+                        </a>
+                        <div style="border:solid; border-color:gray;" id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="moveAsset" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Move Asset</span></a>
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Receive Asset</span></a>
+                        </div>
+                        <a style="color:black" href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
+                            <i class="fa-solid fa-toolbox"></i> <span>Job Management</span>
+                        </a>
+                        <div style="border:solid; border-color:gray;" id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="workRequest" class="@ViewData["workRequest"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Work Request</span></a>
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Create Job</span></a>
+                        </div>
+
+                        <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-bell"></i> <span>Notifications</span></a>
+                    </div>
+                </div>
+            </div>
+            <main class="col px-0 py-0 mb-5">
+                <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
+                    <div class="container-fluid d-flex items-center">
+                        <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                            <i class="fa-solid fa-bars"></i>
+                        </a>
+                        <div class="d-flex align-items-center">
+                            <a href="#" id="notificationBell" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
+                                <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
+                            </a>
+                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                                <i class="fa-solid fa-gear"></i>
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+                <!-- Notification popover template (hidden) -->
+                <div id="notificationTemplate" style="display: none;">
+                    <div class="notification-header">
+                        <h6 class="notification-title">Notifications</h6>
+                        <span class="mark-all-read" id="markAllRead">Mark all as read</span>
+                    </div>
+                    <div class="notification-body">
+                        <ul class="notification-list" id="notificationList">
+                            <!-- Notifications will be populated here -->
+							@await Component.InvokeAsync("BellNotifications")
+                        </ul>
+                        <div class="empty-notifications d-none" id="emptyNotifications">
+                            <i class="fas fa-bell-slash fa-2x mb-3"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    </div>
+                    <div class="notification-footer">
+                        <a asp-controller="Notification" asp-action="Index">View all notifications</a>
+                    </div>
+                </div>
+
+                <div class="container-fluid p-4 mb-2">
+                    @RenderBody()
+                </div>
+
+               
+            </main>
+        </div>
+    </div>
+
+    <div class="footer border-top-1" style="background-color:#F5F5F5">
+        <div class="d-flex justify-content-between align-items-center">
+            <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
+            <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
+            <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/notification.js" asp-append-version="true"></script>
+    <script>
+        // if screen onresize is below 700 hide side bar by default
+        document.addEventListener("DOMContentLoaded", function () {
+            const sidebar = document.getElementById("sidebar");
+
+            function toggleSidebar() {
+                if (window.innerWidth < 769) {
+                    sidebar.classList.remove("show"); // Hide the sidebar
+                } else {
+                    sidebar.classList.add("show"); // Show the sidebar
+                }
+            }
+
+            // Run on page load
+            toggleSidebar();
+
+            // Run on window resize
+            window.addEventListener("resize", toggleSidebar);
+        });
+
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,29 @@
+﻿@model List<EMMS.Models.Notification>
+
+@{
+}
+<div class="notification-body">
+	<ul class="notification-list" id="notificationList">
+		@foreach (var item in Model)
+		{
+			<li class="notification-item">
+				<div class="notification-icon @item.type.ToLower()">
+					<i class="@item.icon"></i>
+				</div>
+				<div class="notification-content">
+					<p class="notification-message">@item.message</p>
+					<span class="notification-time">@item.time</span>
+				</div>
+				<div class="notification-actions">
+					<a class="notification-action mark-read" title="view">
+						<i class="fas fa-eye"></i>
+					</a>
+				</div>
+			</li>
+		}
+	</ul>
+	<div class="empty-notifications d-none" id="emptyNotifications">
+		<i class="fas fa-bell-slash fa-2x mb-3"></i>
+		<p>No notifications yet</p>
+	</div>
+</div>

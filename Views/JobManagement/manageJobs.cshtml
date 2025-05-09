@@ -1,0 +1,239 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Manage Jobs";
+    ViewData["manageJob"] = "active";
+    ViewData["JobManagement"] = "active";
+}
+
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Job Management</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Work Requests -->
+        <div class="card">
+            <div class="card-header">
+                Work Requests
+            </div>
+            <div class="card-body">
+
+                <div class="table-wrapper">
+                    <table class="table fixed-table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Asset ID</th>
+                                <th>Date</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>AS-001</td>
+                                <td>29 Apr 2025</td>
+                                <td>Faulty</td>
+                                <td>Lorem ipsum dolor sit...</td>
+                                <td>Pending</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                        Create Job
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                        Cancel
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>AS-001</td>
+                                <td>29 Apr 2025</td>
+                                <td>Faulty</td>
+                                <td>Lorem ipsum dolor sit...</td>
+                                <td>Pending (External)</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                        Create Job
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                        Cancel
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <p style="font-size: smaller;">Showing 1–10 out of 20</p>
+                    <nav aria-label="Pagination">
+                        <ul class="pagination pagination-sm">
+                            <li class="page-item disabled"><a class="page-link">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jobs -->
+        <div class="card mt-2">
+            <div class="card-header">Job History</div>
+            <div class="card-body">
+                <div class="table-wrapper">
+                    <table class="table fixed-table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Asset ID</th>
+                                <th>Date</th>
+                                <th>Report</th>
+                                <th>AssignedTo</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>AS-001</td>
+                                <td>29 Apr 2025</td>
+                                <td>Electrical Fault</td>
+                                <td>User</td>
+                                <td>In-Progress</td>
+                                <td>
+                                    <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>AS-001</td>
+                                <td>29 Apr 2025</td>
+                                <td>Electrical Fault</td>
+                                <td>User</td>
+                                <td>In-Progress(External)</td>
+                                <td>
+                                    <a asp-controller="JobManagement" asp-action="externaljobCard" class="btn btn-sm btn-info me-1" title="View">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p style="font-size: smaller;">Showing 1–10 out of 20</p>
+                    <nav aria-label="Pagination">
+                        <ul class="pagination pagination-sm">
+                            <li class="page-item disabled"><a class="page-link">Previous</a></li>
+                            <li class="page-item"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Job Card Modal -->
+<div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Create Job</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-6">
+                            <label for="jobDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="jobDate" required>
+                        </div>
+                        <!-- Asset Name / Tag -->
+                        <div class="col-md-6">
+                            <label for="assetTag" class="form-label">Asset Name / Tag</label>
+                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
+                            <!-- Populate dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <!-- Fault Report -->
+                        <div class="col-md-6">
+                            <label for="faultreport" class="form-label">Fault Report</label>
+                            <select class="form-select" id="faultreport" required>
+                                <option selected disabled>Select Title</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="assignedTo" class="form-label">Assigned To</label>
+                            <select class="form-select" id="assignedTo" required>
+                                <option selected disabled>Select BioMed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Start Job</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Cancel Work Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-6">
+                            <label for="rejectedDate" class="form-label required-field">Date Canceled</label>
+                            <input type="date" class="form-control" id="movementDate" required>
+                        </div>
+
+                        <!-- Reason -->
+                        <div class="col-md-6">
+                            <label for="reason" class="form-label required-field">Reason</label>
+                            <select class="form-select" id="reason" required>
+                                <option selected disabled>Select Reason</option>
+                                <option value="outofscope">Out of Scope</option>
+                                <option value="external">External Work</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

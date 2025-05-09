@@ -1,0 +1,214 @@
+﻿@model EMMS.Models.Asset
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+
+    ViewData["Title"] = "A123456";
+    ViewData["asset"] = "active";
+}
+<script>
+    const assetDetail = @Html.Raw(Json.Serialize(Model));
+</script>
+
+
+<!-- Asset Detail Section -->
+<div class="card mb-2">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Asset Detail</span>
+        <button style="font-size: small;" class="btn btn-secondary" title="Printer" onclick="printAssetDetail()">
+            <i class="fa-solid fa-print"></i> Print
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Id)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Category</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Category)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Sub Category</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.SubCategory)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.ItemName)</dd>
+                </dl>
+            </div>
+            <div class="col-md-4">
+                <dl class="row">
+
+                    <dt class="col-sm-6 border p-1 m-0">Department</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Department)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Manufacturer</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Manufacturer)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.SerialNumber)</dd>
+
+
+                    <dt class="col-sm-6 border p-1 m-0">Model</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Model)</dd>
+
+                </dl>
+            </div>
+            <div class="col-md-4">
+                <dl class="row">
+
+                    <dt class="col-sm-6 border p-1 m-0">Placement</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@(Html.DisplayFor(model => model.Placement))</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Donated</dt>
+                    <dd class="col-sm-6 border p-1 m-0">Yes</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Vendor</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Vendor)</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Service Provider</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.ServiceProvider)</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-1 m-0">Quanity</dt>
+                    <dd class="col-sm-6 border p-1 m-0">1</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
+                    <dd class="col-sm-6 border p-1 m-0">29 Apr 2025</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Status</dt>
+                    <dd class="col-sm-6 border p-1 m-0">New</dd>
+
+                </dl>
+            </div>
+            <div class="col-md-4">
+                <dl class="row">
+
+                    <dt class="col-sm-6 border p-1 m-0">Lifespan</dt>
+                    <dd class="col-sm-6 border p-1 m-0">5 years</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Cost</dt>
+                    <dd class="col-sm-6 border p-1 m-0">E100000</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
+                    <dd class="col-sm-6 border p-1 m-0">1234567890</dd>
+
+                </dl>
+            </div>
+            <div class="col-md-4">
+                <dl class="row">
+
+                    <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
+                    <dd class="col-sm-6 border p-1 m-0">Lobamba Clinic</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
+                    <dd class="col-sm-6 border p-1 m-0">Working</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Condition</dt>
+                    <dd class="col-sm-6 border p-1 m-0">Good</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service History Section -->
+<div class="card mb-2">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Service History</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type of Service</th>
+                        <th>Details</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Maintenance (Planned Preventative)</td>
+                        <td>Replaced faulty components and performed calibration.</td>
+                        <td>
+
+                            <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
+                                <i class="fa fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>2025-03-15</td>
+                        <td>Repair (Corrective)</td>
+                        <td>Fixed power supply issue.</td>
+                        <td>
+
+                            <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
+                                <i class="fa fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Movement/Assignment History Section -->
+<div class="card mb-2">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Movement/Assignment History</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Detail</th>
+                        <th>Recieved By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Moved - ICU</td>
+                        <td>User A</td>
+                    </tr>
+
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Recieved - Lobamba</td>
+                        <td>User A</td>
+                    </tr>
+
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Recieved - Lobamba</td>
+                        <td>User A</td>
+                    </tr>
+
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Recieved - Lobamba</td>
+                        <td>User A</td>
+                    </tr>
+
+                    <tr>
+                        <td>2025-04-01</td>
+                        <td>Recieved - Lobamba</td>
+                        <td>User A</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

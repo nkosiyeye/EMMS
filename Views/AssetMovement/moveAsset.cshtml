@@ -1,0 +1,186 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Move Assets";
+    ViewData["moveAsset"] = "active";
+    ViewData["JobMovement"] = "active";
+}
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Movement History</span>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
+                <i class="fa fa-plus me-1"></i> Move Asset
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
+
+        <div class="table-wrapper">
+            <table class="table fixed-table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Asset ID</th>
+                        <th>Location</th>
+                        <th>Since</th>
+                        <th>Functional Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>AS-001</td><td>Lobamba Clinic</td><td>29 Apr 2025</td><td>Working</td>
+                        <td>
+                            <a class="btn btn-sm btn-primary me-1" title="Edit">
+                                <i class="fa fa-edit"></i>
+                            </a>
+
+                            <a class="btn btn-sm btn-danger me-1" title="View">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </td>
+                        </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination pagination-sm">
+                <li class="page-item disabled"><a class="page-link">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="#">1</a></li>
+                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Assets Registration</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+
+                        <!-- Date -->
+                        <div class="col-md-6">
+                            <label for="movementDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="movementDate" required>
+                        </div>
+                        <!-- Asset Name / Tag -->
+                        <div class="col-md-6">
+                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
+                            <select class="form-select" id="assetTag" required>
+                                <option selected disabled>Select Asset</option>
+                                <option value="asset1">CT-Scanner - AS-002</option>
+                                <option value="asset2">Patient Monitor - AS-001</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <!-- Movement Type -->
+                        <div class="col-md-6">
+                            <label for="movementType" class="form-label required-field">Movement Type</label>
+                            <select class="form-select" id="movementType" required onchange="toggleLocationFields()">
+                                <option selected disabled>Select Movement Type</option>
+                                <option value="facility">To Another Facility</option>
+                                <option value="service_point">To a Service Point</option>
+                            </select>
+                        </div>
+                        <!-- Facility Location -->
+                        <div class="col-md-6" id="facilityField">
+                            <label for="location" class="form-label required-field">Facility</label>
+                            <select class="form-select" id="location">
+                                <option selected disabled>Select Facility</option>
+                                <option value="facility1">Mbabane Hospital</option>
+                                <option value="facility2">Siteki Clinic</option>
+                            </select>
+                        </div>
+
+                        <!-- Service Point -->
+                        <div class="col-md-6 d-none" id="servicePointField">
+                            <label for="servicePoint" class="form-label required-field">Service Point</label>
+                            <select class="form-select" id="servicePoint">
+                                <option selected disabled>Select Service Point</option>
+                                <option value="sp1">OPD</option>
+                                <option value="sp2">Pharmacy</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+
+                        <!-- Reason -->
+                        <div class="col-md-6">
+                            <label for="reason" class="form-label required-field">Reason</label>
+                            <select class="form-select" id="reason" required>
+                                <option selected disabled>Select Reason</option>
+                                <option value="down_repair">Current equipment down, needs repair</option>
+                                <option value="no_longer_used">No longer use it</option>
+                                <option value="initial_deployment">Initial deployment</option>
+                                <option value="decommisioned">Decommisioned</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Functional Status -->
+                        <div class="col-md-6">
+                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
+                            <select class="form-select" id="functionalStatus" required>
+                                <option selected disabled>Select Status</option>
+                                <option value="working">Working</option>
+                                <option value="faulty">Faulty</option>
+                                <option value="decommisioned">Decommisioned</option>
+                                <option value="not_tested">Not Tested</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Approval -->
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="donatedCheck">
+                                <label class="form-check-label fw-bold" for="donatedCheck">
+                                    Approved?
+                                </label>
+                                <div class="form-text text-muted">
+                                    Was this asset Approved for Transfer?
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Submit Movement</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+    <script>
+             function toggleLocationFields() {
+                const movementType = document.getElementById("movementType").value;
+                const facilityField = document.getElementById("facilityField");
+                const servicePointField = document.getElementById("servicePointField");
+
+                if (movementType === "facility") {
+                    facilityField.classList.remove("d-none");
+                servicePointField.classList.add("d-none");
+                } else if (movementType === "service_point") {
+                    facilityField.classList.add("d-none");
+                servicePointField.classList.remove("d-none");
+                }
+        }
+    </script>
+</div>

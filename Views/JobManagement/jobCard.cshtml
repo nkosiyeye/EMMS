@@ -1,0 +1,209 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Job";
+    ViewData["JobManagement"] = "active";
+}
+
+<!-- Asset Detail Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Work Request</span>
+        <a class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal">
+            Close Request
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-2 m-0">Asset ID</dt>
+                    <dd class="col-sm-6 border p-2 m-0">A123456</dd>
+
+                </dl>
+            </div>
+            <div class="col-md-3">
+                <dl class="row">
+
+                    <dt class="col-sm-6 border p-2 m-0">Date</dt>
+                    <dd class="col-sm-6 border p-2 m-0">29 Apr 2025</dd>
+                </dl>
+            </div>
+
+            <div class="col-md-3">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-2 m-0">Title</dt>
+                    <dd class="col-sm-6 border p-2 m-0">Faulty</dd>
+                </dl>
+            </div>
+            <div class="col-md-3">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-2 m-0">Requested By</dt>
+                    <dd class="col-sm-6 border p-2 m-0">User A</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9">
+                <dl class="row">
+                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
+                    <dd class="col-sm-9 border p-2 m-0">Lorem ipsum dolor...</dd>
+                </dl>
+            </div>
+            <div class="col-md-3">
+                <dl class="row">
+                    <dt class="col-sm-6 border p-2 m-0">Outcome</dt>
+                    <dd class="col-sm-6 border p-2 m-0">-</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service History Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Job Card</span>
+    </div>
+    <div class="card-body">
+        <form>
+            <!-- Job Card Details -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="jobCardNumber" class="form-label">Job Card Number</label>
+                    <input type="text" class="form-control" id="jobCardNumber" placeholder="Unique Identifier" readonly>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="dateIssued" class="form-label">Date Issued</label>
+                    <input type="date" class="form-control" id="dateIssued" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label for="status" class="form-label required-field">Status</label>
+                    <select id="status" class="form-select">
+                        <option>In-Progress</option>
+                        <option>Completed</option>
+                        <option>Close</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" placeholder="Name" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label for="assignedTo" class="form-label">Assigned To</label>
+                    <input type="text" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label for="status" class="form-label required-field">Type Of Job</label>
+                    <select id="status" class="form-select">
+                        <option>Repair</option>
+                        <option>Upgrade</option>
+                        <option>Maintenance</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="materialsRequired" class="form-label">Comments</label>
+                    <textarea class="form-control" id="materialsRequired" rows="3" placeholder=""></textarea>
+                </div>
+            </div>
+
+            <!-- Time Log -->
+            <div class="mb-3">
+                <p><strong>Work Done</strong></p>
+                <div class="mb-2">
+                    <form action="">
+                        <div class="row">
+                            <div class="col-md-2">
+                                <input type="date" class="form-control col-md-3" id="dateCompleted">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control col-md-3" placeholder="Details">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control col-md-3" placeholder="Hours">
+                            </div>
+
+                            <div class="col-md-3">
+                                <input type="text" class="form-control col-md-3" placeholder="Comments">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fa fa-plus me-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Details</th>
+                            <th>Hours</th>
+                            <th>Comment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>29 Apr 2025</td>
+                            <td>service</td>
+                            <td>3</td>
+                            <td>Lorem, ipsum dolor sit amet consectetur...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex">
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary">Update Job Card</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-6">
+                            <label for="rejectedDate" class="form-label required-field">Date Rejected</label>
+                            <input type="date" class="form-control" id="movementDate" required>
+                        </div>
+
+
+                        <!-- Outcome -->
+                        <div class="col-md-6">
+                            <label for="outcome" class="form-label required-field">Outcome</label>
+                            <select class="form-select" id="outcome" required>
+                                <option selected disabled>Select Outcome</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="not-resolved">not Resolved</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Recieve</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,199 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Recieve Assets";
+    ViewData["recieveAsset"] = "active";
+    ViewData["JobMovement"] = "active";
+}
+
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Asset pending receipt</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
+
+        <div class="table-wrapper">
+            <table class="table fixed-table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Asset ID</th>
+                        <th>From</th>
+                        <th>Date Sent</th>
+                        <th>Functional Status</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>AS-001</td>
+                        <td>Lobamba Clinic</td>
+                        <td>29 Apr 2025</td>
+                        <td>Working</td>
+                        <td>Initial Deployment</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal">
+                                Recieve
+                            </button>
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                Reject
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination pagination-sm">
+                <li class="page-item disabled"><a class="page-link">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="#">1</a></li>
+                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Asset receipt history</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
+
+        <div class="table-wrapper">
+            <table class="table fixed-table table-striped table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Asset ID</th>
+                        <th>From</th>
+                        <th>Date Recieved</th>
+                        <th>Functional Status</th>
+                        <th>Recieved By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>AS-001</td>
+                        <td>Lobamba Clinic</td>
+                        <td>29 Apr 2025</td>
+                        <td>Working</td>
+                        <td>User A</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination pagination-sm">
+                <li class="page-item disabled"><a class="page-link">Previous</a></li>
+                <li class="page-item"><a class="page-link" href="#">1</a></li>
+                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+
+<!-- Recieve Modal -->
+<div class="modal fade" id="recieveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Confirm Receiption Form</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-4">
+                            <label for="recieveDate" class="form-label required-field">Date Recieve</label>
+                            <input type="date" class="form-control" id="movementDate" required>
+                        </div>
+                        <!-- Asset Name / Tag -->
+                        <div class="col-md-4">
+                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
+                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
+                        </div>
+
+
+                        <!-- Functional Status -->
+                        <div class="col-md-4">
+                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
+                            <select class="form-select" id="functionalStatus" required>
+                                <option selected disabled>Select Status</option>
+                                <option value="working">Working</option>
+                                <option value="faulty">Faulty</option>
+                                <option value="not_tested">Not Tested</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Recieve</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Confirm Rejection Form</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-4">
+                            <label for="rejectedDate" class="form-label required-field">Date Rejected</label>
+                            <input type="date" class="form-control" id="movementDate" required>
+                        </div>
+                        <!-- Asset Name / Tag -->
+                        <div class="col-md-4">
+                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
+                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
+                            <!-- Populate dynamically -->
+                        </div>
+
+
+                        <!-- Reason -->
+                        <div class="col-md-4">
+                            <label for="reason" class="form-label required-field">Reason</label>
+                            <select class="form-select" id="reason" required>
+                                <option selected disabled>Select Reason</option>
+                                <option value="faulty">Faulty</option>
+                                <option value="wrong-specification">Wrong Specification</option>
+                                <option value="old">OLD</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Recieve</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

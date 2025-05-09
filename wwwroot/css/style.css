@@ -1,0 +1,284 @@
+/* ===========================
+   Global Styles
+=========================== */
+body {
+    font-family: 'Roboto', sans-serif;
+    width: 100vw;
+    height: 100vh;
+    overflow-y: hidden; /* Prevent vertical scrolling on body */
+}
+
+.container-fluid {
+    height: 100%; /* Ensure the container takes full height */
+}
+
+footer {
+    flex-shrink: 0;
+    height: fit-content;
+}
+main{
+    overflow-y: auto;
+    background:whitesmoke;
+}
+
+/* ===========================
+   Navigation Styles
+=========================== */
+nav.navbar {
+    position: sticky !important; /* Make the navbar sticky */
+    top: 0 !important; /* Stick to the top of the viewport */
+    background-color: #153D77 !important; /* Dark blue background */
+    color: white; /* White text color */
+}
+
+    nav.navbar a {
+        text-decoration: none; /* Remove underline from links */
+    }
+
+a.menu-toggle {
+    color: white !important;
+    font-size: larger;
+    padding: 0 !important;
+    border: none !important;
+}
+.list-group-item a[b-n2pq3b41xv] {
+    color: black !important;
+}
+a.active {
+    color: white !important;
+    background-color: #153D77 !important;
+}
+
+.nav-item.active {
+    color: white !important;
+    background-color: #2563EB !important;
+    padding: 2px 5px; /* Add padding: top-bottom 10px, left-right 15px */
+    border-radius: 5px; /* Optional: Rounded edges for better appearance */
+}
+
+    .nav-item.active a {
+        color: white !important; /* Ensure the link text is also white */
+        text-decoration: none; /* Remove underline from links */
+    }
+
+/* ===========================
+   Dropdown Styles
+=========================== */
+.dropdown-toggle::after {
+    display: none;
+    margin-left: .255em;
+    vertical-align: .255em;
+    content: "";
+    border-top: .3em solid;
+    border-right: .3em solid transparent;
+    border-bottom: 0;
+    border-left: .3em solid transparent;
+}
+
+.dropup .dropdown-menu {
+    bottom: 100%; /* Position the menu above the button */
+    top: auto; /* Disable the default top positioning */
+}
+
+/* ===========================
+   Table Styles
+=========================== */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive {
+    overflow-y: inherit !important;
+}
+
+.fixed-table {
+    border-collapse: collapse;
+    border: 1px solid #dee2e6;
+}
+
+th {
+    white-space: nowrap;
+    font-size: 0.75rem;
+    font-weight:bold;
+    padding: 4px 6px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+td {
+    white-space: nowrap;
+    font-size: small;
+    padding: 4px 6px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+
+.fixed-table td.btn {
+    font-size: xx-small;
+}
+
+/* ===========================
+   Forms and Cards
+=========================== */
+p.card-text {
+    font-size: x-small;
+}
+
+.card .card-header {
+    font-weight: bold;
+    font-size: small;
+    padding: 5px 10px;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+dt {
+    font-weight: bold;
+    font-size: small;
+}
+
+dd {
+    font-size: small;
+}
+
+label {
+    font-weight: bold;
+    font-size: small;
+}
+
+.form-select {
+    font-size: 0.8rem !important;
+}
+
+select option {
+    font-size: 0.7rem;
+}
+
+input::placeholder {
+    font-size: 0.8rem;
+}
+
+.form-control {
+    font-size: 0.8rem !important;
+}
+
+textarea::placeholder {
+    font-size: 0.8rem;
+}
+
+/* ===========================
+   Sticker Styles
+=========================== */
+.sticker {
+    width: 3.5in; /* Standard sticker width */
+    height: 2in; /* Standard sticker height */
+    border: 1px solid black;
+    padding: 15px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sticker-header {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.sticker-details {
+    margin-top: 5px;
+}
+
+    .sticker-details p {
+        margin: 2px 0;
+    }
+
+.qr-code {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+    .qr-code img {
+        width: 100px;
+        height: 100px;
+    }
+
+/* ===========================
+   Media Queries
+=========================== */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    .sticker {
+        page-break-after: always;
+    }
+}
+
+/*@media (max-width: 767px) {
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    #sidebar {
+        display: hide !important; 
+    }
+}
+
+@media (min-width: 767px) {
+    .table-responsive {
+        overflow: inherit !important;
+    }
+}*/
+
+/* ===========================
+   Miscellaneous Styles
+=========================== */
+button.btn-primary:hover {
+    background-color: #2563EB !important; /* Darker shade on hover */
+}
+
+a {
+    text-decoration: none; /* Remove underline from links */
+    transition: color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+    a:hover {
+        color: #2563EB; /* Change color on hover */
+    }
+
+.required-field::after {
+    content: "*";
+    color: red;
+}
+
+.menu-toggle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+    .menu-toggle:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+.list-group-item {
+    font-weight: 500; /* Make the text bold */
+    font-size: 0.9rem; /* Set the font size to medium */
+}
+
+h5{
+    font-size:0.9rem;
+    font-weight:bold;
+}

@@ -1,0 +1,6 @@
+﻿@model List<EMMS.Models.Notification>
+
+<script>
+    // Pass notifications from C# to JavaScript
+    const notificationsData = @Html.Raw(Json.Serialize(Model));
+</script>
