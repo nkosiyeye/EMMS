@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.RecieveAsset;
 @{
     ViewData["Title"] = "Recieve Assets";
     ViewData["recieveAsset"] = "active";
@@ -115,34 +113,39 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form asp-action="ReceiveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
-                        <!-- Date -->
-                        <div class="col-md-4">
-                            <label for="recieveDate" class="form-label required-field">Date Recieve</label>
-                            <input type="date" class="form-control" id="movementDate" required>
+                        <div class="col-md-6">
+                            <label asp-for="AssetId" class="form-label"></label>
+                            <input asp-for="AssetId" class="form-control" />
                         </div>
-                        <!-- Asset Name / Tag -->
-                        <div class="col-md-4">
-                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
-                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
-                        </div>
-
-
-                        <!-- Functional Status -->
-                        <div class="col-md-4">
-                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
-                            <select class="form-select" id="functionalStatus" required>
-                                <option selected disabled>Select Status</option>
-                                <option value="working">Working</option>
-                                <option value="faulty">Faulty</option>
-                                <option value="not_tested">Not Tested</option>
-                            </select>
+                        <div class="col-md-6">
+                            <label asp-for="DateReceived" class="form-label"></label>
+                            <input asp-for="DateReceived" class="form-control" type="date" />
                         </div>
                     </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Recieve</button>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Condition" class="form-label"></label>
+                            <select asp-for="Condition" class="form-select">
+                                <option selected disabled>Select Condition</option>
+                                <option value="New">New</option>
+                                <option value="Used">Used</option>
+                                <option value="Damaged">Damaged</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ReceivedBy" class="form-label"></label>
+                            <input asp-for="ReceivedBy" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="Remarks" class="form-label"></label>
+                            <textarea asp-for="Remarks" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
             </div>
             <div class="modal-footer">

@@ -103,18 +103,20 @@
                             <tr>
                                 <td>
                                     <input type="checkbox" class="asset-checkbox"
-                                           value='@Html.Raw(Json.Serialize(new { asset.Id, asset.SerialNumber, asset.Model }))'>
+                                           value='@Html.Raw(Json.Serialize(new { asset.AssetId, asset.SerialNumber, asset.Model }))'>
                                 </td>
-                                <td width="10%">@asset.Id</td>
+                                <td width="10%">@asset.AssetId</td>
                                 <td width="10%">@asset.Category</td>
                                 <td width="10%">@asset.SubCategory</td>
-                                <td width="10%">@(asset.Placement ? "Yes" : "No")</td>
+                                <td width="10%">@(asset.IsPlacement ? "Yes" : "No")</td>
                                 <td width="10%">@asset.Vendor</td>
                                 <td width="10%">@asset.ServiceProvider</td>
-                                <td width="5%">@asset.Date.ToShortDateString()</td>
+                                <td width="5%">@asset.ProcurementDate.ToShortDateString()</td>
                                 <td width="10%">@asset.Status</td>
-                                <td width="10%">@asset.Location</td>
-                                <td width="10%">@asset.FunctionalStatus</td>
+                                <td width="10%">Lobamba</td>
+                                <td width="10%">Working</td>
+                                @* <td width="10%">@asset.Location</td> // from movement history todo?
+                                <td width="10%">@asset.FunctionalStatus</td> *@
                                 <td width="5%">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -127,7 +129,7 @@
                                                 </button>
                                             </li>
                                             <li>
-                                                <a asp-action="detail" asp-route-id="@asset.Id" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
+                                                <a asp-action="detail" asp-route-id="@asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
                                                     <i class="fa fa-eye"></i> view asset
                                                 </a>
                                             </li>
@@ -137,7 +139,7 @@
                                                         title="Move"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#moveModal"
-                                                        data-asset-id="@asset.Id">
+                                                        data-asset-id="@asset.AssetId">
                                                     <i class="fa fa-arrows-alt"></i> move asset
                                                 </button>
                                             </li>
@@ -147,7 +149,7 @@
                                                         title="work request"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#requestModal"
-                                                        data-asset-id="@asset.Id">
+                                                        data-asset-id="@asset.AssetId">
                                                     <i class="fa-solid fa-toolbox"></i> work request
                                                 </button>
 

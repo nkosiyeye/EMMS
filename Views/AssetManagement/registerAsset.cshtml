@@ -1,38 +1,36 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.Asset;
 @{
 
     ViewData["Title"] = "Register Asset";
     ViewData["asset"] = "active";
-    var assetTag = ViewData["assetTag"];//"EMMSASSET" + DateTime.Now.ToString("yyyyMMddHHmmss");
+    //var assetTag = ViewData["assetTag"];//"EMMSASSET" + DateTime.Now.ToString("yyyyMMddHHmmss");
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Register Asset</span>
         </div>
     <div class="card-body">
-        <form class="bg-white">
+        <form class="bg-white" asp-action="RegisterAsset" asp-controller="AssetManagement" method="post">
             <h5 class="mb-3 mt-3">General Information</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="asset-tag" class="form-label required-field">Asset Tag</label>
-                    <input type="text" id="asset-tag" class="form-control" value="@assetTag" readonly>
+                    <label asp-for="AssetId" class="form-label required-field">Asset Tag</label>
+                    <input asp-for="AssetId" type="text" id="asset-tag" class="form-control" value="@Model.AssetId" readonly>
                 </div>
 
                 <div class="col-md-6">
-                    <label for="category" class="form-label required-field">Category</label>
-                    <select id="category" class="form-select">
-                        <option>Select Category</option>
-                        <option>Medical</option>
-                        <option>Non-Medical</option>
+                    <label asp-for="Category" class="form-label required-field">Category</label>
+                    <select asp-for="Category" id="category" class="form-select">
+                        <option selected disabled>Select Category</option>
+                        <option value="Medical">Medical</option>
+                        <option value="Non-Medical">Non-Medical</option>
                     </select>
                 </div>
             </div>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="subcategory" class="form-label required-field">SubCategory</label>
-                    <select id="subcategory" class="form-select">
+                    <label asp-for="SubCategory" for="subcategory" class="form-label required-field">SubCategory</label>
+                    <select asp-for="SubCategory" id="subcategory" class="form-select">
                         <option>Select SubCategory</option>
                         <option>Ct-Scanner</option>
                         <option>Centrifuge</option>
@@ -46,15 +44,15 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <label for="item-name" class="form-label required-field">Item Name</label>
-                    <input type="text" id="item-name" class="form-control">
+                    <label asp-for="ItemName" for="item-name" class="form-label required-field">Item Name</label>
+                    <input asp-for="ItemName" type="text" id="item-name" class="form-control">
                 </div>
             </div>
             <h5 class="mb-3 mt-3">Technical Details</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="department" class="form-label required-field">Department</label>
-                    <select id="department" class="form-select">
+                    <label asp-for="Department" for="department" class="form-label required-field">Department</label>
+                    <select asp-for="Department" id="department" class="form-select">
                         <option>Select Department</option>
                         <option>Lab</option>
                         <option>Radiology</option>
@@ -67,8 +65,8 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label for="manufacturer" class="form-label required-field">Manufacturer</label>
-                    <select id="manufacturer" class="form-select">
+                    <label asp-for="Manufacturer" for="manufacturer" class="form-label required-field">Manufacturer</label>
+                    <select asp-for="Manufacturer" id="manufacturer" class="form-select">
                         <option>Select Manufacturer</option>
                         <option>GE</option>
                         <option>Philips</option>
@@ -83,14 +81,14 @@
             <div class="row mb-3">
 
                 <div class="col-md-6">
-                    <label for="serial-number" class="form-label required-field">Serial Number</label>
-                    <input type="text" id="serial-number" class="form-control">
+                    <label asp-for="SerialNumber" for="serial-number" class="form-label required-field">Serial Number</label>
+                    <input asp-for="SerialNumber" type="text" id="serial-number" class="form-control">
                 </div>
 
 
                 <div class="col-md-6">
-                    <label for="model" class="form-label required-field">Model</label>
-                    <input type="text" id="model" class="form-control">
+                    <label asp-for="Model" for="model" class="form-label required-field">Model</label>
+                    <input asp-for="Model" type="text" id="model" class="form-control">
                 </div>
             </div>
 
@@ -100,8 +98,9 @@
                 <div class="col-md-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
-                            <input input type="checkbox" class="form-check-input" id="placement-checkbox" onchange="checkPlacement(this)">
-                            <label class="form-check-label fw-bold" for="placementCheck">
+                            <input asp-for="IsPlacement" type="checkbox" class="form-check-input" id="placement-checkbox" onchange="checkPlacement(this)">
+                            <input type="hidden" value="false" id="IsPlacement" name="IsPlacement">
+                            <label asp-for="IsPlacement" class="form-check-label fw-bold" for="placementCheck">
                                 Placement
                             </label>
                             <div class="form-text text-muted">
@@ -110,12 +109,12 @@
                         </div>
                         <div class="row mb-1 d-none" id="duration-field-container">
                             <div class="col-md-6">
-                                <label for="start-field" class="form-label required-field">Start</label>
-                                <input type="date" id="start-field" placeholder="Duration" class="form-control">
+                                <label asp-for="PlacementStartDate" for="start-field" class="form-label required-field">Start</label>
+                                <input asp-for="PlacementStartDate" type="date" id="start-field" placeholder="Duration" class="form-control">
                             </div>
                             <div class="col-md-6">
-                                <label for="end-field" class="form-label required-field">End</label>
-                                <input type="date" id="end-field" placeholder="Duration" class="form-control">
+                                <label asp-for ="PlacementEndDate" for="end-field" class="form-label required-field">End</label>
+                                <input asp-for="PlacementEndDate" type="date" id="end-field" placeholder="Duration" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -124,8 +123,8 @@
                 <div class="col-md-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="donatedCheck">
-                            <label class="form-check-label fw-bold" for="donatedCheck">
+                            <input asp-for="IsDonated" class="form-check-input" type="checkbox" id="donatedCheck">
+                            <label asp-for="IsDonated" class="form-check-label fw-bold" for="donatedCheck">
                                 Donated
                             </label>
                             <div class="form-text text-muted text-sm" style="font-size:small;">
@@ -138,8 +137,8 @@
                 <div class="col-md-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
-                            <input input type="checkbox" class="form-check-input" id="serviceable-checkbox" onchange="checkServiceable(this)">
-                            <label class="form-check-label fw-bold" for="serviceableCheck">
+                            <input asp-for="IsServiceable" input type="checkbox" class="form-check-input" id="serviceable-checkbox" onchange="checkServiceable(this)">
+                            <label asp-for="IsServiceable" class="form-check-label fw-bold" for="serviceableCheck">
                                 Serviceable?
                             </label>
                             <div class="form-text text-muted">
@@ -148,15 +147,15 @@
                         </div>
                         <div class="row d-none" id="service-field-container">
                             <div class="col-md-6" id="duration(period)-field-container">
-                                <label for="period" class="form-label required-field" id="period">Period</label>
-                                <select id="period" class="form-select" aria-placeholder="interval(period)">
+                                <label asp-for="ServicePeriod" for="period" class="form-label required-field" id="period">Period</label>
+                                <select asp-for="ServicePeriod" id="period" class="form-select" aria-placeholder="interval(period)">
                                     <option>years</option>
                                     <option>months</option>
                                 </select>
                             </div>
                             <div class="col-md-6" id="interval-field-container">
-                                <label for="interval" class="form-label required-field" id="interval">Interval</label>
-                                <input type="text" id="interval" placeholder="e.g every 6 months" class="form-control">
+                                <label asp-for="ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval</label>
+                                <input asp-for="ServiceInterval" type="text" id="interval" placeholder="e.g every 6 months" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -165,8 +164,8 @@
             <h5 class="mb-3 mt-3">Procurement & Status</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label for="vendor" class="form-label required-field">Vendor</label>
-                    <select id="vendor" class="form-select">
+                    <label asp-for="Vendor" for="vendor" class="form-label required-field">Vendor</label>
+                    <select asp-for="Vendor" id="vendor" class="form-select">
                         <option>Select Vendor</option>
                         <option>MOH</option>
                         <option>PERPFAR</option>
@@ -175,8 +174,8 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label for="service-provider" class="form-label required-field">Service Provider</label>
-                    <select id="service-provider" class="form-select">
+                    <label asp-for="ServiceProvider" for="service-provider" class="form-label required-field">Service Provider</label>
+                    <select asp-for="ServiceProvider" id="service-provider" class="form-select">
                         <option>Select Service Provider</option>
                         <option>ASD</option>
                         <option>AVOMA</option>
@@ -187,8 +186,8 @@
 
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label for="status" class="form-label required-field">Status</label>
-                    <select id="status" class="form-select" onchange="checkStatus(this)">
+                    <label asp-for="Status" for="status" class="form-label required-field">Status</label>
+                    <select asp-for="Status" id="status" class="form-select" onchange="checkStatus(this)">
                         <option>New</option>
                         <option>Used</option>
                         <option>Refurbished</option>
@@ -196,38 +195,38 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
-                    <input type="date" id="procurement-date" class="form-control">
+                    <label asp-for="ProcurementDate" for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
+                    <input asp-for="ProcurementDate" type="date" id="procurement-date" class="form-control">
                 </div>
                 <div class="col-md-4">
-                    <label for="cost" class="form-label required-field" id="cost">Cost</label>
-                    <input type="text" id="cost" class="form-control">
+                    <label asp-for="Cost" for="cost" class="form-label required-field" id="cost">Cost</label>
+                    <input asp-for="Cost" type="text" id="cost" class="form-control">
                 </div>
             </div>
 
             <div class="row mb-3">
                 <div class="col-md-3">
-                    <label for="unit-of-measure" class="form-label">Unit of Measure</label>
-                    <select id="unit-of-measure" class="form-select">
+                    <label asp-for="UnitOfMeasure" for="unit-of-measure" class="form-label">Unit of Measure</label>
+                    <select asp-for="UnitOfMeasure" id="unit-of-measure" class="form-select">
                         <option>N/A</option>
                         <option>Unit</option>
                         <option>Piece</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="quantity" class="form-label">Quantity</label>
-                    <input type="number" id="quantity" class="form-control">
+                    <label asp-for="Quantity" for="quantity" class="form-label">Quantity</label>
+                    <input asp-for="Quantity" type="number" id="quantity" class="form-control">
                 </div>
                 <div class="col-md-3">
-                    <label for="lifespan" class="form-label required-field" id="lifespan-id">Lifespan(Period)</label>
-                    <select id="lifespan" class="form-select">
+                    <label asp-for="LifespanPeriod" for="lifespan" class="form-label required-field" id="lifespan-id">Lifespan(Period)</label>
+                    <select asp-for="LifespanPeriod" id="lifespan" class="form-select">
                         <option>years</option>
                         <option>months</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="quantitylifespan" class="form-label required-field" id="quantitylifespan">Lifespan</label>
-                    <input type="number" id="quantity2" class="form-control">
+                    <label asp-for="LifespanQuantity" for="quantitylifespan" class="form-label required-field" id="quantitylifespan">Lifespan</label>
+                    <input asp-for="LifespanQuantity" type="number" id="quantity2" class="form-control">
                 </div>
             </div>
 

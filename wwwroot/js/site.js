@@ -87,13 +87,14 @@ function printSelectedStickers() {
 }
 
 function printAssetDetail() {
+    console.log(assetDetail);
 
 
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Print Asset ${assetDetail.id}</title>
+                        <title>Print Asset ${assetDetail.assetId}</title>
                         <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
                         <style>
                     </head>
@@ -104,7 +105,7 @@ function printAssetDetail() {
                                 <div class="col-md-4">
                                     <dl class="row">
                                         <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.id}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetId}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Category</dt>
                                         <dd class="col-sm-6 border p-1 m-0">${assetDetail.category}</dd>
@@ -138,7 +139,7 @@ function printAssetDetail() {
                                     <dl class="row">
 
                                         <dt class="col-sm-6 border p-1 m-0">Placement</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.placement}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.isPlacement}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Donated</dt>
                                         <dd class="col-sm-6 border p-1 m-0">Yes</dd>
@@ -202,11 +203,6 @@ function printAssetDetail() {
     printWindow.print();
     printWindow.onafterprint = () => printWindow.close();
     console.log(assetDetail);
-    //${
-    //    assetDetail.map(asset =>
-    //)
-    //}
-
 }
 
 
