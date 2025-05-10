@@ -51,7 +51,10 @@ namespace EMMS.Controllers
             UnitOfMeasure = "Unit",
             Quantity = 1,
             LifespanPeriod = "years",
-            LifespanQuantity = 5
+            LifespanQuantity = 5,
+            IsServiceable = true,
+            ServiceInterval = "6",
+            ServicePeriod = "months"
         },
         new Asset
         {

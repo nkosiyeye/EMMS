@@ -16,6 +16,10 @@ namespace EMMS.Models
         [Display(Name = "Movement Type")]
         public string MovementType { get; set; }
 
+        [Required]
+        [Display(Name = "From")]
+        public string From { get; set; }
+
         [Display(Name = "Facility")]
         public string Facility { get; set; }
 
@@ -32,6 +36,22 @@ namespace EMMS.Models
 
         [Display(Name = "Approved")]
         public bool IsApproved { get; set; }
+
+        [Required]
+        [Display(Name = "Date Received")]
+        public DateTime? DateReceived { get; set; }
+
+        [Required]
+        [Display(Name = "Condition")]
+        public string? Condition { get; set; }
+
+        [Required]
+        [Display(Name = "Received By")]
+        public string? ReceivedBy { get; set; }
+
+        [Display(Name = "Remarks")]
+        public string? Remarks { get; set; }
+
     }
 }
 

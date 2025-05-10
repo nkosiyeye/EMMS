@@ -4,6 +4,127 @@
 // Write your JavaScript code.
 
 
+
+function printAssetDetail() {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Asset ${assetDetail.assetId}</title>
+                        <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
+                    </head>
+                    <body>
+
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <dl class="row">
+                                        <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetId}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Category</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.category}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Sub Category</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.subCategory}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.itemName}</dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-4">
+                                    <dl class="row">
+
+                                        <dt class="col-sm-6 border p-1 m-0">Department</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.department}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Manufacturer</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.manufacturer}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
+
+
+                                        <dt class="col-sm-6 border p-1 m-0">Model</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.model}</dd>
+
+                                    </dl>
+                                </div>
+                                <div class="col-md-4">
+                                    <dl class="row">
+
+                                        <dt class="col-sm-6 border p-1 m-0">Placement</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">
+                                         ${
+                                            assetDetail.isPlacement
+                                                ? `Yes ${new Date(assetDetail.placementStartDate).toLocaleDateString()} to ${new Date(assetDetail.placementEndDate).toLocaleDateString()}`
+                                                : "No"
+                                         }
+                                        </dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Donated</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">Yes</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Vendor</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.vendor}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Service Provider</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serviceProvider}</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <dl class="row">
+                                        <dt class="col-sm-6 border p-1 m-0">Quanity</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.quantity}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${new Date(assetDetail.procurementDate).toLocaleDateString()}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Status</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.status}</dd>
+
+                                    </dl>
+                                </div>
+                                <div class="col-md-4">
+                                    <dl class="row">
+
+                                        <dt class="col-sm-6 border p-1 m-0">Lifespan</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.lifespanQuantity} ${assetDetail.lifespanPeriod}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Cost</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.cost}</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
+
+                                    </dl>
+                                </div>
+                                <div class="col-md-4">
+                                    <dl class="row">
+
+                                        <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">Lobamba Clinic</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">Working</dd>
+
+                                        <dt class="col-sm-6 border p-1 m-0">Condition</dt>
+                                        <dd class="col-sm-6 border p-1 m-0">Good</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+            `);
+
+    printWindow.document.close();
+    printWindow.print();
+    printWindow.onafterprint = () => printWindow.close();
+    console.log(assetDetail);
+}
 function printSelectedStickers() {
     const selectedAssets = Array.from(document.querySelectorAll('.asset-checkbox:checked'))
         .map(checkbox => JSON.parse(checkbox.value));
@@ -84,125 +205,6 @@ function printSelectedStickers() {
     printWindow.document.close();
     //printWindow.print();
    // printWindow.onafterprint = () => printWindow.close();
-}
-
-function printAssetDetail() {
-    console.log(assetDetail);
-
-
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Print Asset ${assetDetail.assetId}</title>
-                        <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
-                        <style>
-                    </head>
-                    <body>
-
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <dl class="row">
-                                        <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetId}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.category}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Sub Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.subCategory}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.itemName}</dd>
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
-
-                                        <dt class="col-sm-6 border p-1 m-0">Department</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.department}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Manufacturer</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.manufacturer}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
-
-
-                                        <dt class="col-sm-6 border p-1 m-0">Model</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.model}</dd>
-
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
-
-                                        <dt class="col-sm-6 border p-1 m-0">Placement</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.isPlacement}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Donated</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Yes</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Vendor</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.vendor}</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Service Provider</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serviceProvider}</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <dl class="row">
-                                        <dt class="col-sm-6 border p-1 m-0">Quanity</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">1</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">29 Apr 2025</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">New</dd>
-
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
-
-                                        <dt class="col-sm-6 border p-1 m-0">Lifespan</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">5 years</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Cost</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">E100000</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">1234567890</dd>
-
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
-
-                                        <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Lobamba Clinic</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Working</dd>
-
-                                        <dt class="col-sm-6 border p-1 m-0">Condition</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Good</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </body>
-                </html>
-            `);
-
-    printWindow.document.close();
-    printWindow.print();
-    printWindow.onafterprint = () => printWindow.close();
-    console.log(assetDetail);
 }
 
 

@@ -21,6 +21,7 @@ main{
     background:whitesmoke;
 }
 
+
 /* ===========================
    Navigation Styles
 =========================== */
@@ -60,6 +61,11 @@ a.active {
         color: white !important; /* Ensure the link text is also white */
         text-decoration: none; /* Remove underline from links */
     }
+.disabled-link {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
 
 /* ===========================
    Dropdown Styles
