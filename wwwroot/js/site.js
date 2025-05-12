@@ -142,10 +142,9 @@ function printSelectedStickers() {
                         <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
                         <style>
                            .sticker {
-                                    width: 3.5in; /* Standard sticker width */
-                                    height: 2in; /* Standard sticker height */
-                                    border: 1px solid black;
-                                    padding: 15px;
+                                    width: 2.63in; /* Standard sticker width */
+                                    height: 0.90in; /* Standard sticker height */
+                                    padding: 1px;
                                     font-family: Arial, sans-serif;
                                     font-size: 12px;
                                     display: flex;
@@ -207,7 +206,46 @@ function printSelectedStickers() {
    // printWindow.onafterprint = () => printWindow.close();
 }
 
+function fnExcelReport() {
+    var tab_text = "<table border='2px'><tr bgcolor='#87AFC6'>";
+    var tab = document.getElementById('assetTable'); // id of table
 
+    // Loop through each row of the table
+    for (var j = 0; j < tab.rows.length; j++) {
+        tab_text += "<tr>";
+
+        // Loop through each cell in the row, excluding the last cell
+        for (var k = 0; k < tab.rows[j].cells.length - 1; k++) {
+            tab_text += tab.rows[j].cells[k].outerHTML;
+        }
+
+        tab_text += "</tr>";
+    }
+
+    tab_text += "</table>";
+
+    // Remove unwanted elements like links, images, and input fields
+    tab_text = tab_text.replace(/<A[^>]*>|<\/A>/g, ""); // Remove links
+    tab_text = tab_text.replace(/<img[^>]*>/gi, ""); // Remove images
+    tab_text = tab_text.replace(/<input[^>]*>|<\/input>/gi, ""); // Remove input fields
+
+    var msie = window.navigator.userAgent.indexOf("MSIE ");
+
+    // If Internet Explorer
+    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {
+        txtArea1.document.open("txt/html", "replace");
+        txtArea1.document.write(tab_text);
+        txtArea1.document.close();
+        txtArea1.focus();
+
+        sa = txtArea1.document.execCommand("SaveAs", true, "ExportedData.xls");
+    } else {
+        // For other browsers
+        sa = window.open('data:application/vnd.ms-excel,' + encodeURIComponent(tab_text));
+    }
+
+    return sa;
+}
        
       
 

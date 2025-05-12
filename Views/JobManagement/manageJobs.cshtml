@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.JobViewModel
 @{
     ViewData["Title"] = "Manage Jobs";
     ViewData["manageJob"] = "active";
@@ -35,51 +33,36 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>AS-001</td>
-                                <td>29 Apr 2025</td>
-                                <td>Faulty</td>
-                                <td>Lorem ipsum dolor sit...</td>
-                                <td>Pending</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
-                                        Create Job
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                        Cancel
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>AS-001</td>
-                                <td>29 Apr 2025</td>
-                                <td>Faulty</td>
-                                <td>Lorem ipsum dolor sit...</td>
-                                <td>Pending (External)</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
-                                        Create Job
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                        Cancel
-                                    </button>
-                                </td>
-                            </tr>
+                            @foreach (var request in Model.WorkRequests)
+                            {
+                                <tr>
+                                    <td>@request.AssetId</td>
+                                    <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@request.Title</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                        {
+                                            <span>@request.Description.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                        }
+                                        else
+                                        {
+                                            <span>@request.Description</span>
+                                        }
+                                    </td>
+									<td>@request.Status</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                            Create Job
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                            Cancel
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-
-                    <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-                    <nav aria-label="Pagination">
-                        <ul class="pagination pagination-sm">
-                            <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                            <li class="page-item"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
         </div>
@@ -120,6 +103,7 @@
                                 <td>Electrical Fault</td>
                                 <td>User</td>
                                 <td>In-Progress(External)</td>
+                                @* <td>@request.Status @(request.IsExternalProvider ? "(ExternalProvider)" : "")</td> *@
                                 <td>
                                     <a asp-controller="JobManagement" asp-action="externaljobCard" class="btn btn-sm btn-info me-1" title="View">
                                         <i class="fa fa-eye"></i>
@@ -167,9 +151,7 @@
                         <!-- Asset Name / Tag -->
                         <div class="col-md-6">
                             <label for="assetTag" class="form-label">Asset Name / Tag</label>
-                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
-                            <!-- Populate dynamically -->
-                            </select>
+                            <input type="text" value="AS-001" class="form-control" id="assetTag" required readonly>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -188,6 +170,33 @@
                         </div>
                     </div>
 
+
+                    <div class="row col-md-12 mb-2">
+                        <div class="border rounded p-3">
+                            <div class="form-check">
+                                <input asp-for="Job.IsExternalProvider" class="form-check-input" type="checkbox" id="externalCheck" onchange="checkExternal(this)">
+                                <label asp-for="Job.IsExternalProvider" class="form-check-label fw-bold" for="externalCheck">
+                                    External
+                                </label>
+                                <div class="form-text text-muted">
+                                    is this request attended by an external service provider?
+                                </div>
+                            </div>
+
+                            <div class="col-md-8 d-none" id="external-field-container">
+                                <label asp-for="Job.ExternalProvider" class="form-label required-field"></label>
+                                <select asp-for="Job.ExternalProvider" class="form-select selectpicker col-md-6" id="assetSelect"
+                                        data-live-search="true" title="Select ExternalProvider">
+                                    <option value="a">AVOMA</option>
+                                    <option value="p">Philips</option>
+                                    <!-- Add more options as needed -->
+                                </select>
+                                @* <span asp-validation-for="MoveAsset.AssetId" class="text-danger"></span> *@
+                            </div>
+                        </div>
+                    </div>
+
+
                     <!-- Submit Button -->
                     <button type="submit" class="btn btn-primary">Start Job</button>
                 </form>
@@ -197,6 +206,16 @@
             </div>
         </div>
     </div>
+    <script>
+        function checkExternal(checkbox) {
+              const externalField = document.getElementById('external-field-container');
+              if (checkbox.checked) {
+                  externalField.classList.remove('d-none');
+              } else {
+                  externalField.classList.add('d-none');
+              }
+          }
+    </script>
 </div>
 
 <!-- Reject Modal -->
@@ -228,7 +247,7 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="submit" class="btn btn-primary">Reject</button>
                 </form>
             </div>
             <div class="modal-footer">

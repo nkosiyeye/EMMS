@@ -24,6 +24,8 @@
                         <th>Location</th>
                         <th>Since</th>
                         <th>Functional Status</th>
+                        <th>Approved</th>
+                        <th>Recieved</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -36,12 +38,33 @@
                             <td>@movement.MovementDate</td>
                             <td>@movement.FunctionalStatus</td>
                             <td>
-                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue ? "disabled-link" : "")" title="Edit">
+                                @if (!movement.IsApproved)
+                                {
+                                    <form asp-action="ApproveMovement" asp-controller="AssetMovement" method="post" style="display:inline;">
+                                        <input type="hidden" name="assetId" value="@movement.MovementId" />
+                                        <input type="hidden" name="movementDate" value="@movement.MovementDate.ToString("o")" />
+                                        <button type="submit" class="btn btn-sm btn-primary me-1" title="Approve">
+                                            Approve
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span>Yes</span>
+                                }
+                            </td>
+                            <td>@(movement.DateReceived.HasValue ? "Yes":"No")</td>
+
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(movement.DateReceived.HasValue ? "hidden" : "")>
                                     <i class="fa fa-edit"></i>
                                 </a>
 
-                                <a class="btn btn-sm btn-danger me-1 @(movement.DateReceived.HasValue ? "disabled-link" : "")" title="View">
+                                <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
                                     <i class="fa fa-trash"></i>
+                                </a>
+                                <a class="btn btn-sm btn-secondary me-1" title="Gate Pass" @(movement.IsApproved ? "" : "hidden")>
+                                    <i class="fa fa-print"></i>
                                 </a>
                             </td>
                         </tr>
@@ -81,7 +104,7 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Assets Registration</h1>
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Asset Movement</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -93,11 +116,13 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.AssetId" class="form-select">
-                                <option selected disabled>Select Asset</option>
-                                <option value="asset1">CT-Scanner - AS-002</option>
-                                <option value="asset2">Patient Monitor - AS-001</option>
+                            <select asp-for="MoveAsset.AssetId" class="form-select selectpicker col-md-6" id="assetSelect"
+                                    data-live-search="true" title="Select Asset">
+                                <option value="AS-002">AS-002</option>
+                                <option value="AS-001">AS-001</option>
+                                <!-- Add more options as needed -->
                             </select>
+                            @* <span asp-validation-for="MoveAsset.AssetId" class="text-danger"></span> *@
                         </div>
                     </div>
                     <div class="row mb-3">

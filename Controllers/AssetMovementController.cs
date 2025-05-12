@@ -46,7 +46,7 @@ namespace EMMS.Controllers
             ServicePoint = null,
             Reason = "Initial deployment",
             FunctionalStatus = "Working",
-            IsApproved = true,
+            IsApproved = false,
             DateReceived = null,
             Condition = null,
             ReceivedBy = null,
@@ -79,10 +79,10 @@ namespace EMMS.Controllers
             Reason = "No longer use it",
             FunctionalStatus = "Decommissioned",
             IsApproved = true,
-            DateReceived = DateTime.Now.AddDays(-29),
-            Condition = "Decommissioned",
-            ReceivedBy = "User C",
-            Remarks = "Asset transferred to Siteki Clinic for storage."
+            DateReceived = null,
+            Condition = null,
+            ReceivedBy = null,
+            Remarks = null
         },
         new MoveAsset
         {
@@ -110,7 +110,7 @@ namespace EMMS.Controllers
             ServicePoint = null,
             Reason = "Decommissioned",
             FunctionalStatus = "Decommissioned",
-            IsApproved = false,
+            IsApproved = true,
             DateReceived = DateTime.Now.AddDays(-49),
             Condition = "Decommissioned",
             ReceivedBy = "User E",
