@@ -1,10 +1,9 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.MoveAssetViewModel;
 @{
     ViewData["Title"] = "Recieve Assets";
     ViewData["recieveAsset"] = "active";
     ViewData["JobMovement"] = "active";
+    var pagination = (Pagination)ViewData["Pagination"];
 }
 
 
@@ -15,8 +14,6 @@
         </div>
     </div>
     <div class="card-body">
-        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-
         <div class="table-wrapper">
             <table class="table fixed-table table-striped table-bordered table-hover">
                 <thead>
@@ -30,34 +27,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>AS-001</td>
-                        <td>Lobamba Clinic</td>
-                        <td>29 Apr 2025</td>
-                        <td>Working</td>
-                        <td>Initial Deployment</td>
-                        <td>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal">
-                                Recieve
-                            </button>
-                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                                Reject
-                            </button>
-                        </td>
-                    </tr>
+					@foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived == null))
+					{
+						<tr>
+							<td>@reciveAsset.AssetId</td>
+							<td>@reciveAsset.From</td>
+							<td>@reciveAsset.MovementDate.ToString("dd MMM yyyy")</td>
+							<td>@reciveAsset.FunctionalStatus</td>
+							<td>@reciveAsset.Reason</td>
+							<td>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal"
+                                        data-asset-id="@reciveAsset.AssetId">
+									Recieve
+								</button>
+								<button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
+									Reject
+								</button>
+							</td>
+						</tr>
+					}
                 </tbody>
             </table>
         </div>
-
-        <nav aria-label="Pagination">
-            <ul class="pagination pagination-sm">
-                <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                <li class="page-item"><a class="page-link" href="#">1</a></li>
-                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">Next</a></li>
-            </ul>
-        </nav>
     </div>
 </div>
 
@@ -82,26 +73,40 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>AS-001</td>
-                        <td>Lobamba Clinic</td>
-                        <td>29 Apr 2025</td>
-                        <td>Working</td>
-                        <td>User A</td>
-                    </tr>
+                    @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived != null))
+                    {
+                        <tr>
+                            <td>@reciveAsset.AssetId</td>
+                            <td>@reciveAsset.From</td>
+                            <td>@reciveAsset.DateReceived!.Value.ToString("dd MMM yyyy")</td>
+                            <td>@reciveAsset.FunctionalStatus</td>
+                            <td>@reciveAsset.ReceivedBy</td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
-
-        <nav aria-label="Pagination">
-            <ul class="pagination pagination-sm">
-                <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                <li class="page-item"><a class="page-link" href="#">1</a></li>
-                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">Next</a></li>
-            </ul>
-        </nav>
+        <div class="d-flex justify-content-between align-content-center">
+            <p style="font-size: smaller;">
+                Showing @Model.MoveAssets.Count() out of @pagination.TotalItemCount
+            </p>
+            <nav aria-label="Pagination">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("recieveAsset", new { page = pagination.CurrentPage - 1 })">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= pagination.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("recieveAsset", new { page = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("recieveAsset", new { page = pagination.CurrentPage + 1 })">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
 
@@ -115,34 +120,39 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form asp-action="ReceiveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
-                        <!-- Date -->
-                        <div class="col-md-4">
-                            <label for="recieveDate" class="form-label required-field">Date Recieve</label>
-                            <input type="date" class="form-control" id="movementDate" required>
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.AssetId" class="form-label"></label>
+                            <input asp-for="MoveAsset.AssetId" id="assetId" class="form-control" readonly/>
                         </div>
-                        <!-- Asset Name / Tag -->
-                        <div class="col-md-4">
-                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
-                            <input type="text" value="Patient Monitor - AS-001" class="form-control" id="assetTag" required readonly>
-                        </div>
-
-
-                        <!-- Functional Status -->
-                        <div class="col-md-4">
-                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
-                            <select class="form-select" id="functionalStatus" required>
-                                <option selected disabled>Select Status</option>
-                                <option value="working">Working</option>
-                                <option value="faulty">Faulty</option>
-                                <option value="not_tested">Not Tested</option>
-                            </select>
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.DateReceived" class="form-label"></label>
+                            <input asp-for="MoveAsset.DateReceived" class="form-control" type="date" />
                         </div>
                     </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Recieve</button>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.Condition" class="form-label"></label>
+                            <select asp-for="MoveAsset.Condition" class="form-select">
+                                <option selected disabled>Select Condition</option>
+                                <option value="New">New</option>
+                                <option value="Used">Used</option>
+                                <option value="Damaged">Damaged</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.ReceivedBy" class="form-label"></label>
+                            <input asp-for="MoveAsset.ReceivedBy" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="MoveAsset.Remarks" class="form-label"></label>
+                            <textarea asp-for="MoveAsset.Remarks" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
             </div>
             <div class="modal-footer">
@@ -150,6 +160,27 @@
             </div>
         </div>
     </div>
+
+    <script>
+
+                document.addEventListener("DOMContentLoaded", function () {
+            // Get the modal and the asset tag input field
+            const Modal = document.getElementById("recieveModal");
+            const assetTagInput = document.getElementById("assetId");
+
+            // Listen for when the modal is shown
+            Modal.addEventListener("show.bs.modal", function (event) {
+                // Get the button that triggered the modal
+                const button = event.relatedTarget;
+
+                // Extract the asset ID from the data-asset-id attribute
+                const assetId = button.getAttribute("data-asset-id");
+
+                // Populate the Asset Tag field in the modal
+                assetTagInput.value = assetId;
+            });
+        });
+    </script>
 </div>
 <!-- Reject Modal -->
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -196,4 +227,5 @@
             </div>
         </div>
     </div>
+
 </div>

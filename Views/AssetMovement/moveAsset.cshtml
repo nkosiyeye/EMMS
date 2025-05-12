@@ -1,10 +1,9 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.MoveAssetViewModel;
 @{
     ViewData["Title"] = "Move Assets";
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
+    var pagination = (Pagination)ViewData["Pagination"];
 }
 
 <div class="card mb-12">
@@ -17,8 +16,6 @@
         </div>
     </div>
     <div class="card-body">
-        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-
         <div class="table-wrapper">
             <table class="table fixed-table table-striped table-bordered table-hover">
                 <thead>
@@ -31,30 +28,50 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td>AS-001</td><td>Lobamba Clinic</td><td>29 Apr 2025</td><td>Working</td>
-                        <td>
-                            <a class="btn btn-sm btn-primary me-1" title="Edit">
-                                <i class="fa fa-edit"></i>
-                            </a>
+                    @foreach (var movement in Model.MoveAssets)
+                    {
+                        <tr>
+                            <td>@movement.AssetId</td>
+                            <td>@movement.Facility @movement.ServicePoint</td>
+                            <td>@movement.MovementDate</td>
+                            <td>@movement.FunctionalStatus</td>
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue ? "disabled-link" : "")" title="Edit">
+                                    <i class="fa fa-edit"></i>
+                                </a>
 
-                            <a class="btn btn-sm btn-danger me-1" title="View">
-                                <i class="fa fa-trash"></i>
-                            </a>
-                        </td>
+                                <a class="btn btn-sm btn-danger me-1 @(movement.DateReceived.HasValue ? "disabled-link" : "")" title="View">
+                                    <i class="fa fa-trash"></i>
+                                </a>
+                            </td>
                         </tr>
+                    }
                 </tbody>
             </table>
         </div>
 
-        <nav aria-label="Pagination">
-            <ul class="pagination pagination-sm">
-                <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                <li class="page-item"><a class="page-link" href="#">1</a></li>
-                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">Next</a></li>
-            </ul>
-        </nav>
+
+        <div class="d-flex justify-content-between align-content-center">
+            <p style="font-size: smaller;">
+                Showing @Model.MoveAssets.Count() out of @pagination.TotalItemCount
+            </p>
+            <nav aria-label="Pagination">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("moveAsset", new { page = pagination.CurrentPage - 1 })">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= pagination.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("moveAsset", new { page = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("moveAsset", new { page = pagination.CurrentPage + 1 })">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
 
@@ -68,18 +85,15 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form asp-action="MoveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
-
-                        <!-- Date -->
                         <div class="col-md-6">
-                            <label for="movementDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="movementDate" required>
+                            <label asp-for="MoveAsset.MovementDate" class="form-label required-field"></label>
+                            <input asp-for="MoveAsset.MovementDate" class="form-control" type="date" />
                         </div>
-                        <!-- Asset Name / Tag -->
                         <div class="col-md-6">
-                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
-                            <select class="form-select" id="assetTag" required>
+                            <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.AssetId" class="form-select">
                                 <option selected disabled>Select Asset</option>
                                 <option value="asset1">CT-Scanner - AS-002</option>
                                 <option value="asset2">Patient Monitor - AS-001</option>
@@ -87,29 +101,25 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                        <!-- Movement Type -->
                         <div class="col-md-6">
-                            <label for="movementType" class="form-label required-field">Movement Type</label>
-                            <select class="form-select" id="movementType" required onchange="toggleLocationFields()">
+                            <label asp-for="MoveAsset.MovementType" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.MovementType" id="movementType" class="form-select" onchange="toggleLocationFields()">
                                 <option selected disabled>Select Movement Type</option>
                                 <option value="facility">To Another Facility</option>
                                 <option value="service_point">To a Service Point</option>
                             </select>
                         </div>
-                        <!-- Facility Location -->
                         <div class="col-md-6" id="facilityField">
-                            <label for="location" class="form-label required-field">Facility</label>
-                            <select class="form-select" id="location">
+                            <label asp-for="MoveAsset.Facility" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.Facility" class="form-select">
                                 <option selected disabled>Select Facility</option>
                                 <option value="facility1">Mbabane Hospital</option>
                                 <option value="facility2">Siteki Clinic</option>
                             </select>
                         </div>
-
-                        <!-- Service Point -->
                         <div class="col-md-6 d-none" id="servicePointField">
-                            <label for="servicePoint" class="form-label required-field">Service Point</label>
-                            <select class="form-select" id="servicePoint">
+                            <label asp-for="MoveAsset.ServicePoint" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.ServicePoint" class="form-select">
                                 <option selected disabled>Select Service Point</option>
                                 <option value="sp1">OPD</option>
                                 <option value="sp2">Pharmacy</option>
@@ -117,11 +127,9 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-
-                        <!-- Reason -->
                         <div class="col-md-6">
-                            <label for="reason" class="form-label required-field">Reason</label>
-                            <select class="form-select" id="reason" required>
+                            <label asp-for="MoveAsset.Reason" class="form-label"></label>
+                            <select asp-for="MoveAsset.Reason" class="form-select">
                                 <option selected disabled>Select Reason</option>
                                 <option value="down_repair">Current equipment down, needs repair</option>
                                 <option value="no_longer_used">No longer use it</option>
@@ -130,11 +138,9 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-
-                        <!-- Functional Status -->
                         <div class="col-md-6">
-                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
-                            <select class="form-select" id="functionalStatus" required>
+                            <label asp-for="MoveAsset.FunctionalStatus" class="form-label"></label>
+                            <select asp-for="MoveAsset.FunctionalStatus" class="form-select">
                                 <option selected disabled>Select Status</option>
                                 <option value="working">Working</option>
                                 <option value="faulty">Faulty</option>
@@ -143,23 +149,17 @@
                             </select>
                         </div>
                     </div>
-
-                    <!-- Approval -->
                     <div class="col-md-6 mb-3">
                         <div class="border rounded p-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="donatedCheck">
-                                <label class="form-check-label fw-bold" for="donatedCheck">
-                                    Approved?
-                                </label>
+                                <input asp-for="MoveAsset.IsApproved" class="form-check-input" type="checkbox" />
+                                <label asp-for="MoveAsset.IsApproved" class="form-check-label fw-bold"></label>
                                 <div class="form-text text-muted">
                                     Was this asset Approved for Transfer?
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Submit Button -->
                     <button type="submit" class="btn btn-primary">Submit Movement</button>
                 </form>
             </div>
