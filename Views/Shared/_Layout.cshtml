@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - EMMS</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /><!-- Bootstrap-Select CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap-selectpicker/css/bootstrap-select.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
     @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
@@ -100,7 +101,8 @@
         </div>
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
+    <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script>
@@ -123,7 +125,37 @@
             window.addEventListener("resize", toggleSidebar);
         });
 
+                document.addEventListener("DOMContentLoaded", function () {
+            const descriptionModal = document.getElementById("descriptionModal");
+            const fullDescription = document.getElementById("fullDescription");
+
+            descriptionModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget; // Button that triggered the modal
+                const description = button.getAttribute("data-description"); // Extract info from data-* attributes
+                fullDescription.textContent = description; // Update the modal's content
+            });
+        });
+                $(function () {
+            $('.selectpicker').selectpicker();
+        });
+
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="descriptionModalLabel">Full Description</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

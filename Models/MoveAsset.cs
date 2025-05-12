@@ -4,6 +4,10 @@ namespace EMMS.Models
 {
     public class MoveAsset
     {
+        [Key]
+        [Display(Name = "Movement ID")]
+        public string MovementId { get; set; }
+
         [Required]
         [Display(Name = "Movement Date")]
         public DateTime MovementDate { get; set; }

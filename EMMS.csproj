@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\lib\bootstrap-select\**" />
+    <Content Remove="wwwroot\lib\bootstrap-select\**" />
+    <EmbeddedResource Remove="wwwroot\lib\bootstrap-select\**" />
+    <None Remove="wwwroot\lib\bootstrap-select\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bootstrap-select" Version="1.13.18" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.15" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.15" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.15" />

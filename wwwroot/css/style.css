@@ -156,6 +156,17 @@ label {
 
 .form-select {
     font-size: 0.8rem !important;
+    
+}
+.form-select .btn{
+    padding: 0px !important;
+    font-size:0.8rem !important;
+}
+.selectpicker {
+    font-size: 0.8rem !important;
+}
+.bootstrap-select > .dropdown-toggle.bs-placeholder, .bootstrap-select > .dropdown-toggle.bs-placeholder:active, .bootstrap-select > .dropdown-toggle.bs-placeholder:focus, .bootstrap-select > .dropdown-toggle.bs-placeholder:hover{
+    background-color: transparent !important;
 }
 
 select option {

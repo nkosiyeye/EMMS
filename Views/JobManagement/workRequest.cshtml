@@ -1,10 +1,9 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.Models.WorkRequestViewModel
 @{
     ViewData["Title"] = "Move Assets";
     ViewData["workRequest"] = "active";
     ViewData["JobManagement"] = "active";
+    var pagination = (Pagination)ViewData["Pagination"];
 }
 
 <div class="card mb-12">
@@ -33,62 +32,66 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>AS-001</td>
-                        <td>29 Apr 2025</td>
-                        <td>Working</td>
-                        <td>Lorem ipsum dolor...</td>
-                        <td>Pending</td>
-                        <td>-</td>
-                        <td>
-                            <a class="btn btn-sm btn-primary me-1" title="Edit">
-                                <i class="fa fa-edit"></i>
-                            </a>
 
-                            <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
-                                <i class="fa fa-eye"></i>
-                            </a>
+                    @foreach (var request in @Model.WorkRequests)
+                    {
+                        <tr>
+                            <td>@request.AssetId</td>
+                            <td>@request.RequestDate</td>
+                            <td>@request.Title</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                {
+                                    <span>@request.Description.Substring(0, 20)...</span>
+                                    <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                }
+                                else
+                                {
+                                    <span>@request.Description</span>
+                                }
+                            </td>
+                            <td>@request.Status</td>
+                            <td>@request.Outcome</td>
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.Outcome != null ? "hidden" : "")>
+                                    <i class="fa fa-edit"></i>
+                                </a>
 
-                            <a class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal">
-                                Close Request
-                            </a>
-                         </td>
-                    </tr>
-                    <tr>
-                        <td>AS-001</td>
-                        <td>29 Apr 2025</td>
-                        <td>Working</td>
-                        <td>Lorem ipsum dolor...</td>
-                        <td>Pending(External)</td>
-                        <td>-</td>
-                        <td>
-                            <a class="btn btn-sm btn-primary me-1" title="Edit">
-                                <i class="fa fa-edit"></i>
-                            </a>
+                                <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
+                                    <i class="fa fa-eye"></i>
+                                </a>
 
-
-                            <a asp-controller="JobManagement" asp-action="externaljobCard" class="btn btn-sm btn-info me-1" title="View">
-                                <i class="fa fa-eye"></i>
-                            </a>
-
-                            <a class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal">
-                                Close Request
-                            </a>
-                        </td>
-                    </tr>
+                                <button class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal" @(request.Outcome != null ? "hidden" : "")>
+                                    Close Request
+                                </button>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
 
-        <nav aria-label="Pagination">
-            <ul class="pagination pagination-sm">
-                <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                <li class="page-item"><a class="page-link" href="#">1</a></li>
-                <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">Next</a></li>
-            </ul>
-        </nav>
+        <div class="d-flex justify-content-between align-content-center">
+            <p style="font-size: smaller;">
+                Showing @Model.WorkRequests.Count() out of @pagination.TotalItemCount
+            </p>
+            <nav aria-label="Pagination">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("workRequest", new { page = pagination.CurrentPage - 1 })">Previous</a>
+                    </li>
+                    @for (int i = 1; i <= pagination.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("workRequest", new { page = i })">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" href="@Url.Action("workRequest", new { page = pagination.CurrentPage + 1 })">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
 <!-- Request Modal -->
@@ -105,14 +108,14 @@
 
                         <!-- Date -->
                         <div class="col-md-4">
-                            <label for="requestDate" class="form-label required-field">Request Date</label>
-                            <input type="date" class="form-control" id="requestDate" required>
+                            <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
+                            <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
                         </div>
 
                         <!-- Asset Name / Tag -->
                         <div class="col-md-4">
-                            <label for="assetTag" class="form-label required-field">Asset Name / Tag</label>
-                            <select class="form-select" id="assetTag" required>
+                            <label asp-for="WorkRequest.AssetId" for="assetTag" class="form-label required-field">Asset Name / Tag</label>
+                            <select asp-for="WorkRequest.AssetId" class="form-select" id="assetTag" required>
                                 <option selected disabled>Select Asset</option>
                                 <option value="asset1">CT-Scanner - AS-002</option>
                                 <option value="asset2">Patient Monitor - AS-001</option>
@@ -121,32 +124,18 @@
 
                         <!-- Title -->
                         <div class="col-md-4">
-                            <label for="title" class="form-label required-field">Title</label>
-                            <select class="form-select" id="title" required>
+                            <label asp-for="WorkRequest.Title" for="title" class="form-label required-field">Title</label>
+                            <select asp-for="WorkRequest.Title" class="form-select" id="title" required>
                                 <option selected disabled>Select Title</option>
-                                <option selected disabled>Electrical Fault</option>
-                                <option selected disabled>Maintenance</option>
+                                <option value="Fault">Electrical Fault</option>
+                                <option value="Maintenance">Maintenance</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="col-md-12 mb-2">
-                        <label for="faultDescription" class="form-label required-field">Fault Description</label>
-                        <textarea class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the problem"></textarea>
-                    </div>
-
-                    <div class="col-md-6 mb-2">
-                        <div class="border rounded p-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="externalCheck">
-                                <label class="form-check-label fw-bold" for="externalCheck">
-                                    External
-                                </label>
-                                <div class="form-text text-muted">
-                                    is this asset maintained by an external service provider?
-                                </div>
-                            </div>
-                        </div>
+                        <label asp-for="WorkRequest.Description" for="faultDescription" class="form-label required-field">Fault Description</label>
+                        <textarea asp-for="WorkRequest.Description" class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the problem"></textarea>
                     </div>
 
                     <!-- Submit Button -->
@@ -173,7 +162,7 @@
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-6">
-                            <label for="rejectedDate" class="form-label required-field">Date Rejected</label>
+                            <label for="rejectedDate" class="form-label required-field">Date Closed</label>
                             <input type="date" class="form-control" id="movementDate" required>
                         </div>
 
@@ -191,7 +180,7 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Recieve</button>
+                    <button type="submit" class="btn btn-primary">Close</button>
                 </form>
             </div>
             <div class="modal-footer">
