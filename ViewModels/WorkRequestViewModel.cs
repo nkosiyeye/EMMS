@@ -1,0 +1,21 @@
+﻿using EMMS.Models;
+using EMMS.Models.Entities;
+
+namespace EMMS.ViewModels
+{
+    public class WorkRequestViewModel
+    {
+        public IEnumerable<WorkRequest>? WorkRequests { get; set; }
+        public string? AssetTag { get; set; }
+        public WorkRequest? WorkRequest { get; set; }
+       
+        public AssetIndexViewModel? AssetIndex { get; set; }
+        public IEnumerable<Asset>? Assets { get; set; }
+
+        public IEnumerable<LookupItem>? FaultReports { get; set; }
+
+        public IEnumerable<LookupItem>? WorkStatuses { get; set; }
+
+        public IEnumerable<LookupItem>? Outcomes { get; set; }
+    }
+}

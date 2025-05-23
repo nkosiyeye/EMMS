@@ -1,171 +1,183 @@
-﻿using EMMS.Models;
+﻿using EMMS.Data;
+using EMMS.Data.Migrations;
+using EMMS.Data.Repository;
+using EMMS.Models;
+using EMMS.Models.Entities;
+using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
     public class AssetMovementController : Controller
     {
-        [HttpGet]
-        public IActionResult moveAsset(int page = 1, int pageSize = 10)
+        private readonly ApplicationDbContext _context;
+        public AssetMovementController(ApplicationDbContext context)
         {
+            _context = context;
+        }
+        public async Task<MoveAssetViewModel> Data(MoveAsset? movemodel = null)
+        {
+            if (movemodel is null)
+            {
+                movemodel = new MoveAsset();
+            }
+            var _repo = new AssetMovementRepo(_context);
+            var assets = await new AssetManagement(_context).assetViewModel();
 
-            var all = GetAssetMovement();
-
-            // Calculate total items and apply pagination
-            int totalItems = all.Count();
-            var paginated = all
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            // Create the pagination model
-            var pagination = new Pagination(totalItems, page, pageSize);
-
-            // Pass data to the view
-            ViewData["Pagination"] = pagination;
-            ViewData["PageSize"] = pageSize;
+            var all = await _repo.GetAssetMovement();
             MoveAssetViewModel paginatedMovement = new MoveAssetViewModel
             {
-                MoveAssets = paginated,
-                MoveAsset = new MoveAsset()
+                MoveAssets = all,
+                MoveAsset = movemodel,
+                AssetIndex = assets,
+                Conditions = await _repo.GetConditions()
             };
-            return View(paginatedMovement);
-        }
-        private List<MoveAsset> GetAssetMovement()
-        {
-            return new List<MoveAsset>
-    {
-        new MoveAsset
-        {
-            MovementDate = DateTime.Now.AddDays(-10),
-            AssetId = "AS-001",
-            MovementType = "To Another Facility",
-            From = "Lobamba Clinic",
-            Facility = "Mbabane Hospital",
-            ServicePoint = null,
-            Reason = "Initial deployment",
-            FunctionalStatus = "Working",
-            IsApproved = false,
-            DateReceived = null,
-            Condition = null,
-            ReceivedBy = null,
-            Remarks = null
-        },
-        new MoveAsset
-        {
-            MovementDate = DateTime.Now.AddDays(-20),
-            AssetId = "AS-002",
-            MovementType = "To a Service Point",
-            From = "Mbabane Hospital",
-            Facility = null,
-            ServicePoint = "Radiology",
-            Reason = "Current equipment down, needs repair",
-            FunctionalStatus = "Faulty",
-            IsApproved = false,
-            DateReceived = null,
-            Condition = null,
-            ReceivedBy = null,
-            Remarks = null
-        },
-        new MoveAsset
-        {
-            MovementDate = DateTime.Now.AddDays(-30),
-            AssetId = "AS-003",
-            MovementType = "To Another Facility",
-            From = "Manzini Hospital",
-            Facility = "Siteki Clinic",
-            ServicePoint = null,
-            Reason = "No longer use it",
-            FunctionalStatus = "Decommissioned",
-            IsApproved = true,
-            DateReceived = null,
-            Condition = null,
-            ReceivedBy = null,
-            Remarks = null
-        },
-        new MoveAsset
-        {
-            MovementDate = DateTime.Now.AddDays(-40),
-            AssetId = "AS-004",
-            MovementType = "To a Service Point",
-            From = "Siteki Clinic",
-            Facility = null,
-            ServicePoint = "ICU",
-            Reason = "Initial deployment",
-            FunctionalStatus = "Working",
-            IsApproved = true,
-            DateReceived = DateTime.Now.AddDays(-39),
-            Condition = "Good",
-            ReceivedBy = "User D",
-            Remarks = "Asset deployed to ICU for patient monitoring."
-        },
-        new MoveAsset
-        {
-            MovementDate = DateTime.Now.AddDays(-50),
-            AssetId = "AS-005",
-            MovementType = "To Another Facility",
-            From = "ICU",
-            Facility = "Manzini Hospital",
-            ServicePoint = null,
-            Reason = "Decommissioned",
-            FunctionalStatus = "Decommissioned",
-            IsApproved = true,
-            DateReceived = DateTime.Now.AddDays(-49),
-            Condition = "Decommissioned",
-            ReceivedBy = "User E",
-            Remarks = "Asset moved to Manzini Hospital for decommissioning."
-        }
-    };
+
+            return paginatedMovement;
+
         }
 
-        [HttpPost]
-        public IActionResult MoveAsset(MoveAssetViewModel model)
+        [HttpGet]
+        public async Task<IActionResult> Index()
         {
-            
-                Debug.WriteLine(model.MoveAsset.MovementType);
-                GetAssetMovement().Add(model.MoveAsset);
-                return RedirectToAction("moveAsset");           
-
-
+            var model = await Data();
             return View(model);
         }
 
-        public IActionResult recieveAsset(int page = 1, int pageSize = 10)
+        [HttpGet]
+        public async Task<IActionResult> moveAsset(Guid id)
         {
-
-            var all = GetAssetMovement();
-
-            // Calculate total items and apply pagination
-            int totalItems = all.Count();
-            var paginated = all
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            // Create the pagination model
-            var pagination = new Pagination(totalItems, page, pageSize);
-
-            // Pass data to the view
-            ViewData["Pagination"] = pagination;
-            ViewData["PageSize"] = pageSize;
-            MoveAssetViewModel paginatedMovement = new MoveAssetViewModel
+            var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
+            var _repo = new AssetMovementRepo(_context);
+            var moveAsset = new MoveAsset()
             {
-                MoveAssets = paginated,
-                MoveAsset = new MoveAsset()
+                AssetId = id,
+
             };
-            return View(paginatedMovement);
+            var moveAssetViewModel = new MoveRequestViewModel()
+            {
+                AssetTag = _arepo.AssetTagNumber,
+                MoveAsset = moveAsset,
+
+                MovementTypes = await _repo.GetMovementTypes(),
+                Facilities = await _repo.GetFacilities(),
+                ServicePoints = await _repo.GetServicePoints(),
+                Reasons = await _repo.GetReasons(),
+                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
+
+            };
+
+
+            return View(moveAssetViewModel);
         }
+
+
         [HttpPost]
-        public IActionResult ReceiveAsset(MoveAssetViewModel model)
+        public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
         {
-            
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
-                return RedirectToAction("recieveAsset");
+                var assetMovement = asmove.MoveAsset;
+                assetMovement.FromId = 2;//Update with logged in facility;
+
+                //Debug.WriteLine("assetId"+assetMovement.AssetId);
+                //assetMovement.IsApproved = false;
+                assetMovement.DateCreated = DateTime.Now;
+                assetMovement.RowState = RowStatus.Active;
+                assetMovement.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                _context.Add(assetMovement);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            return RedirectToAction(nameof(moveAsset));
+        }
+        [HttpGet]
+        public async Task<IActionResult> recieveAsset(int page = 1, int pageSize = 10)
+        {
+
+            
+            return View(await Data());
+        }
+        
+        [HttpPost]
+        public async Task<IActionResult> ReceiveAsset(MoveAssetViewModel model)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
+
+            if (ModelState.IsValid)
+            { 
+                var movement = _context.AssetMovement
+                    .FirstOrDefault(m => m.MovementId == model.MoveAsset.MovementId); 
+
+                if (movement == null)
+                {
+                    ModelState.AddModelError("", "Asset movement not found.");
+                    return View("recieveAsset", model);
+                }
+
+                // Update movement properties
+                movement.DateReceived = model.MoveAsset.DateReceived;
+                movement.Condition = model.MoveAsset.Condition;
+                movement.ReceivedBy = model.MoveAsset.ReceivedBy;
+                movement.Remarks = model.MoveAsset.Remarks;
+
+                _context.Update(movement);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(recieveAsset));
             }
 
-            return View(model);
+            return View("recieveAsset",Data(movemodel:model.MoveAsset).Result);
         }
+        public async Task<IActionResult> approveMovement(Guid id)
+        {
+            Debug.WriteLine(id);
+
+             
+                var movement = _context.AssetMovement
+                    .FirstOrDefault(m => m.MovementId == id); 
+
+                if (movement == null)
+                {
+                Debug.WriteLine(movement.MovementId);
+                    //ModelState.AddModelError("", "Asset movement not found.");
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Update movement properties
+                movement.IsApproved = true;
+                movement.ApprovedBy = Guid.NewGuid();
+                _context.Update(movement);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            
+        }
+        [HttpGet]
+        public async Task<IActionResult> GatePass(Guid id)
+        {
+            
+            var movement = await _context.AssetMovement
+                .Include(m => m.Asset)
+                .Include(m => m.Facility)
+                .Include(m => m.From)
+                .Include(m => m.ServicePoint)
+                .Include(m => m.FunctionalStatus)
+                .FirstOrDefaultAsync(m => m.MovementId == id);
+
+            if (movement == null)
+                return NotFound();
+
+            return View("GatePass", movement);
+        }
+
+
     }
 }

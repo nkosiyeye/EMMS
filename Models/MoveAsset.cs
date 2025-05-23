@@ -1,61 +1,95 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Domain;
+using EMMS.Models.Entities;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class MoveAsset
+    public class MoveAsset : BaseEntity
     {
         [Key]
         [Display(Name = "Movement ID")]
-        public string MovementId { get; set; }
+        public Guid MovementId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Movement Date is required")]
         [Display(Name = "Movement Date")]
         public DateTime MovementDate { get; set; }
 
         [Required]
-        [Display(Name = "Asset Tag")]
-        public string AssetId { get; set; }
+        [Display(Name = "Asset Id")]
+        public Guid AssetId { get; set; }
+        [ForeignKey(nameof(AssetId))]
+        public virtual Asset? Asset { get; set; }
 
-        [Required]
+        // Movement Type
+        [Required(ErrorMessage = "Movement Type is required")]
         [Display(Name = "Movement Type")]
-        public string MovementType { get; set; }
+        public int MovementTypeId { get; set; }
+        [ForeignKey(nameof(MovementTypeId))]
+        public virtual LookupItem? MovementType { get; set; }
 
+        // From
         [Required]
         [Display(Name = "From")]
-        public string From { get; set; }
+        public int FromId { get; set; }
+        [ForeignKey(nameof(FromId))]
+        public virtual Facility? From { get; set; }
 
+        //[Required(ErrorMessage = "Request Date is required")]
         [Display(Name = "Facility")]
-        public string Facility { get; set; }
+        public int? FacilityId { get; set; }
+        [ForeignKey(nameof(FacilityId))]
+        public virtual Facility? Facility { get; set; }
 
+        // Service Point
         [Display(Name = "Service Point")]
-        public string ServicePoint { get; set; }
+        public int? ServicePointId { get; set; }
+        [ForeignKey(nameof(ServicePointId))]
+        public virtual LookupItem? ServicePoint { get; set; }
 
-        [Required]
+        // Reason
+        [Required(ErrorMessage = "Reason is required")]
         [Display(Name = "Reason")]
-        public string Reason { get; set; }
+        public int ReasonId { get; set; }
+        [ForeignKey(nameof(ReasonId))]
+        public virtual LookupItem? Reason { get; set; }
 
-        [Required]
+        // Functional Status
+        [Required(ErrorMessage = "Functional Status is required")]
         [Display(Name = "Functional Status")]
-        public string FunctionalStatus { get; set; }
+        public int FunctionalStatusId { get; set; }
+        [ForeignKey(nameof(FunctionalStatusId))]
+        public virtual LookupItem? FunctionalStatus { get; set; }
 
         [Display(Name = "Approved")]
         public bool IsApproved { get; set; }
 
-        [Required]
+        [Display(Name = "Approved By")]
+        public Guid? ApprovedBy { get; set; }
+
+        
         [Display(Name = "Date Received")]
         public DateTime? DateReceived { get; set; }
 
-        [Required]
+        // Condition
         [Display(Name = "Condition")]
-        public string? Condition { get; set; }
+        public int? ConditionId { get; set; }
+        [ForeignKey(nameof(ConditionId))]
+        public virtual LookupItem? Condition { get; set; }
 
-        [Required]
+        
         [Display(Name = "Received By")]
-        public string? ReceivedBy { get; set; }
+        public Guid? ReceivedBy { get; set; }
 
         [Display(Name = "Remarks")]
         public string? Remarks { get; set; }
 
+        public Guid? CreatedBy { get; set; }
+        public DateTime? DateCreated { get; set; }
+        public Guid? ModifiedBy { get; set; }
+        public DateTime? DateModified { get; set; }
+        public RowStatus RowState { get; set; }
     }
 }
 

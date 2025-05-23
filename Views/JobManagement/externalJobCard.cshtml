@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model EMMS.ViewModels.JobViewModel;
 @{
     ViewData["Title"] = "Job";
     ViewData["JobManagement"] = "active";
@@ -19,7 +17,7 @@
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Asset ID</dt>
-                    <dd class="col-sm-6 border p-2 m-0">A123456</dd>
+                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Asset.AssetTagNumber</dd>
 
                 </dl>
             </div>
@@ -27,20 +25,20 @@
                 <dl class="row">
 
                     <dt class="col-sm-6 border p-2 m-0">Date</dt>
-                    <dd class="col-sm-6 border p-2 m-0">29 Apr 2025</dd>
+                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
                 </dl>
             </div>
 
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Title</dt>
-                    <dd class="col-sm-6 border p-2 m-0">Faulty</dd>
+                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest!.FaultReport!.Name</dd>
                 </dl>
             </div>
             <div class="col-md-3">
                 <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Requested By</dt>
-                    <dd class="col-sm-6 border p-2 m-0">User A</dd>
+                    <dt class="col-sm-6 border p-2 m-0">Company</dt>
+                    <dd class="col-sm-6 border p-2 m-0">@(Model.Job.ExternalProvider?.Name ?? "-")</dd>
                 </dl>
             </div>
         </div>
@@ -48,18 +46,19 @@
             <div class="col-md-9">
                 <dl class="row">
                     <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
-                    <dd class="col-sm-9 border p-2 m-0">Lorem ipsum dolor...</dd>
+                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
                 </dl>
             </div>
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Outcome</dt>
-                    <dd class="col-sm-6 border p-2 m-0">-</dd>
+                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Outcome?.Name</dd>
                 </dl>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- Service History Section -->
 <div class="card mb-4">
@@ -68,111 +67,120 @@
     </div>
     <div class="card-body">
         <form>
+            <div class="row mb-2">
+                <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary">Update Job Card</button>
+                </div>
+            </div>
             <!-- Job Card Details -->
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label for="jobCardNumber" class="form-label">Job Card Number</label>
-                    <input type="text" class="form-control" id="jobCardNumber" placeholder="Unique Identifier" readonly>
+                    <label asp-for="@Model.Job!.JobId" for="jobCardNumber" class="form-label">Job Card Number</label>
+                    <input asp-for="@Model.Job!.JobId" type="text" class="form-control" id="jobCardNumber" placeholder="Unique Identifier" readonly>
                 </div>
 
                 <div class="col-md-4">
-                    <label for="dateIssued" class="form-label">Date Issued</label>
-                    <input type="date" class="form-control" id="dateIssued" readonly>
+                    <label asp-for="@Model.Job!.StartDate" for="dateIssued" class="form-label">Date Issued</label>
+                    <input asp-for="@Model.Job!.StartDate" type="date" class="form-control" id="dateIssued" readonly>
                 </div>
                 <div class="col-md-4">
-                    <label for="status" class="form-label required-field">Status</label>
-                    <select id="status" class="form-select">
-                        <option>In-Progress</option>
-                        <option>Completed</option>
-                        <option>Close</option>
+                    <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
+                    <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6"
+                            data-live-search="true" asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))">
                     </select>
                 </div>
             </div>
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <label for="location" class="form-label">Location</label>
+                    <label for="location" class="form-label">Location</label> @*TBD Get the service point of asset*@
                     <input type="text" class="form-control" id="location" placeholder="Name" readonly>
                 </div>
                 <div class="col-md-4">
-                    <label for="assignedTo" class="form-label">Assigned To</label>
-                    <input type="text" class="form-control" id="assignedTo" placeholder="Technician's Name" readonly>
+                    <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
+                    <input asp-for="Job.AssignedTo" type="text" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
                 </div>
                 <div class="col-md-4">
-                    <label for="status" class="form-label required-field">Type Of Job</label>
-                    <select id="status" class="form-select">
-                        <option>Repair</option>
-                        <option>Upgrade</option>
-                        <option>Maintenance</option>
-                    </select>
+                    <label asp-for="Job.FaultReportId" for="status" class="form-label required-field">Fault Report</label>
+                    <input asp-for="Job.FaultReportId" type="text" class="form-control" value="@Model.Job!.FaultReport!.Name" readonly />
                 </div>
             </div>
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <label for="materialsRequired" class="form-label">Comments</label>
-                    <textarea class="form-control" id="materialsRequired" rows="3" placeholder=""></textarea>
+                    <label asp-for="Job.Remarks" for="materialsRequired" class="form-label">Comments</label>
+                    <textarea asp-for="Job.Remarks" class="form-control" id="materialsRequired" rows="3" placeholder=""></textarea>
                 </div>
-            </div>
-
-            <!-- Time Log -->
-            <div class="mb-3">
-                <p><strong>External Work Done</strong></p>
-                <div class="mb-2">
-                    <form action="">
-                        <div class="row">
-                            <div class="col-md-2">
-                                <input type="date" class="form-control col-md-3" id="dateCompleted">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="text" class="form-control col-md-3" placeholder="Company">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="text" class="form-control col-md-3" placeholder="Details">
-                            </div>
-                            <div class="col-md-2">
-                                <input type="number" class="form-control col-md-3" placeholder="Amount">
-                            </div>
-
-                            <div class="col-md-2">
-                                <input type="text" class="form-control col-md-3" placeholder="InvoiceNo">
-                            </div>
-                            <div class="col-md-2">
-                                <button class="btn btn-sm btn-primary" type="submit">
-                                    <i class="fa fa-plus me-1"></i> Add
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Company</th>
-                            <th>Details</th>
-                            <th>Amount</th>
-                            <th>Invoice</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>29 Apr 2025</td>
-                            <td>Company A</td>
-                            <td>service</td>
-                            <td>300</td>
-                            <td>Inv-001</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="d-flex">
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-primary">Update Job Card</button>
             </div>
         </form>
+
+
+        <!-- Time Log -->
+        <div class="mb-3">
+            <p><strong>External Work Done</strong></p>
+            <div class="mb-2">
+                @if (TempData["Error"] != null)
+                {
+                    <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
+                        <div>
+                            <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
+                            <div>
+                                @TempData["Error"]
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                }
+                <form asp-action="ExWorkDone" asp-controller="JobManagement" method="post">
+                    <input type="int" asp-for="ExWorkDone.JobId" value="@Model.Job.JobId" hidden/>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <input asp-for="ExWorkDone.DateCompleted" type="date" class="form-control col-md-3" id="dateCompleted">
+                        </div>
+                        <div class="col-md-4">
+                            <input asp-for="ExWorkDone.Details" type="text" class="form-control col-md-3" placeholder="Details">
+                        </div>
+                        <div class="col-md-2">
+                            <input asp-for="ExWorkDone.Amount" type="number" class="form-control col-md-3" placeholder="Amount">
+                        </div>
+                        <div class="col-md-2">
+                            <input asp-for="ExWorkDone.InvoiceNo" type="text" class="form-control col-md-3" placeholder="InvoiceNo">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Details</th>
+                        <th>Amount</th>
+                        <th>Invoice</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.ExWorkDoneList != null)
+                        @foreach (var workdone in Model.ExWorkDoneList)
+                        {
+                            <tr>
+                                <td>@workdone.DateCompleted.ToShortDateString()</td>
+                                <td>@workdone.Details</td>
+                                <td>@workdone.Amount</td>
+                                <td>@workdone.InvoiceNo</td>
+                            </tr>
+                        }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Reject Modal -->
+@* <!-- Reject Modal -->  TBD *@
 <div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md">
         <div class="modal-content">

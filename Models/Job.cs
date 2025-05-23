@@ -1,26 +1,32 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Domain;
+using EMMS.Models.Entities;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class Job
+    public class Job : BaseEntity
     {
         [Key]
-        public int JobId { get; set; }
-        [Required]
         [Display(Name = "Job Card Number")]
-        public int JobCardNumber { get; set; }
+        public int JobId { get; set; }
 
         [Required]
         [Display(Name = "Work Request ID")]
-        public int WorkRequestId { get; set; }
+        public Guid WorkRequestId { get; set; }
+        [ForeignKey(nameof(WorkRequestId))]
+        public virtual WorkRequest? WorkRequest { get; set; }
 
         [Required]
         [Display(Name = "Asset ID")]
-        public string AssetId { get; set; }
+        public Guid? AssetId { get; set; }
+        [ForeignKey(nameof(AssetId))]
+        public virtual Asset? Asset { get; set; }
 
         [Required]
         [Display(Name = "Assigned To")]
-        public string AssignedTo { get; set; }
+        public Guid? AssignedTo { get; set; }
 
         [Required]
         [Display(Name = "Start Date")]
@@ -30,28 +36,36 @@ namespace EMMS.Models
         public DateTime? EndDate { get; set; }
 
         [Display(Name = "FaultReport")]
-        public string FaultReport { get; set; }
-
-
-        [Display(Name = "Type Of Job")]
-        public string JobType { get; set; }
+        public int FaultReportId { get; set; }
+        [ForeignKey(nameof(FaultReportId))]
+        public virtual LookupItem? FaultReport { get; set; }
 
         [Required]
         [Display(Name = "IsExternalProvider")]
         public bool IsExternalProvider { get; set; }
 
         [Display(Name = "External Provider")]
-        public string ExternalProvider { get; set; }
+        public int? ExternalProviderId { get; set; }
+        [ForeignKey(nameof(ExternalProviderId))]
+        public virtual LookupItem? ExternalProvider { get; set; }
 
         [Required]
         [Display(Name = "Status")]
-        public string Status { get; set; }
+        public int StatusId { get; set; }
+        [ForeignKey(nameof(StatusId))]
+        public virtual LookupItem? Status { get; set; }
 
 
         [Display(Name = "Remarks")]
-        public string Remarks { get; set; }
+        public string? Remarks { get; set; }
 
-        // Navigation property to link to the WorkRequest
-        public WorkRequest WorkRequest { get; set; }
+        public int FacilityId { get; set; }
+        [ForeignKey(nameof(FacilityId))]
+        public virtual Facility? Facility { get; set; }
+        public Guid? CreatedBy { get; set; }
+        public DateTime? DateCreated { get; set; }
+        public Guid? ModifiedBy { get; set; }
+        public DateTime? DateModified { get; set; }
+        public RowStatus RowState { get; set; }
     }
 }

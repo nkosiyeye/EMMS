@@ -1,186 +1,97 @@
-﻿@model EMMS.Models.MoveAssetViewModel;
+﻿@model EMMS.ViewModels.MoveRequestViewModel;
 @{
     ViewData["Title"] = "Move Assets";
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
-    var pagination = (Pagination)ViewData["Pagination"];
 }
-
-<div class="card mb-12">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Movement History</span>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
-                <i class="fa fa-plus me-1"></i> Move Asset
-            </button>
-        </div>
-    </div>
-    <div class="card-body">
-        <div class="table-wrapper">
-            <table class="table fixed-table table-striped table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Asset ID</th>
-                        <th>Location</th>
-                        <th>Since</th>
-                        <th>Functional Status</th>
-                        <th>Approved</th>
-                        <th>Recieved</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var movement in Model.MoveAssets)
-                    {
-                        <tr>
-                            <td>@movement.AssetId</td>
-                            <td>@movement.Facility @movement.ServicePoint</td>
-                            <td>@movement.MovementDate</td>
-                            <td>@movement.FunctionalStatus</td>
-                            <td>
-                                @if (!movement.IsApproved)
-                                {
-                                    <form asp-action="ApproveMovement" asp-controller="AssetMovement" method="post" style="display:inline;">
-                                        <input type="hidden" name="assetId" value="@movement.MovementId" />
-                                        <input type="hidden" name="movementDate" value="@movement.MovementDate.ToString("o")" />
-                                        <button type="submit" class="btn btn-sm btn-primary me-1" title="Approve">
-                                            Approve
-                                        </button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <span>Yes</span>
-                                }
-                            </td>
-                            <td>@(movement.DateReceived.HasValue ? "Yes":"No")</td>
-
-                            <td>
-                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(movement.DateReceived.HasValue ? "hidden" : "")>
-                                    <i class="fa fa-edit"></i>
-                                </a>
-
-                                <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
-                                    <i class="fa fa-trash"></i>
-                                </a>
-                                <a class="btn btn-sm btn-secondary me-1" title="Gate Pass" @(movement.IsApproved ? "" : "hidden")>
-                                    <i class="fa fa-print"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-
-        <div class="d-flex justify-content-between align-content-center">
-            <p style="font-size: smaller;">
-                Showing @Model.MoveAssets.Count() out of @pagination.TotalItemCount
-            </p>
-            <nav aria-label="Pagination">
-                <ul class="pagination pagination-sm">
-                    <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
-                        <a class="page-link" href="@Url.Action("moveAsset", new { page = pagination.CurrentPage - 1 })">Previous</a>
-                    </li>
-                    @for (int i = 1; i <= pagination.TotalPages; i++)
-                    {
-                        <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("moveAsset", new { page = i })">@i</a>
-                        </li>
-                    }
-                    <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
-                        <a class="page-link" href="@Url.Action("moveAsset", new { page = pagination.CurrentPage + 1 })">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </div>
-</div>
 
 
 <!-- Modal -->
-<div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Asset Movement</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        <div class="card">
+            <div class="card-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Move Asset</h1>
             </div>
-            <div class="modal-body">
+            <div class="card-body">
+                @if (TempData["Error"] != null)
+                {
+                    <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
+                        <div>
+                            <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
+                            <div>
+                                @TempData["Error"]
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                }
                 <form asp-action="MoveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.MovementDate" class="form-label required-field"></label>
                             <input asp-for="MoveAsset.MovementDate" class="form-control" type="date" />
+                    <span asp-validation-for="MoveAsset.MovementDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.AssetId" class="form-select selectpicker col-md-6" id="assetSelect"
-                                    data-live-search="true" title="Select Asset">
-                                <option value="AS-002">AS-002</option>
-                                <option value="AS-001">AS-001</option>
-                                <!-- Add more options as needed -->
-                            </select>
-                            @* <span asp-validation-for="MoveAsset.AssetId" class="text-danger"></span> *@
+                            <input asp-for="MoveAsset.AssetId" class="form-control" type="Guid" hidden />
+                            <input class="form-control" type="text" value="@Model.AssetTag" disabled />   
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.MovementType" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.MovementType" id="movementType" class="form-select" onchange="toggleLocationFields()">
+                            <label asp-for="MoveAsset.MovementTypeId" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.MovementTypeId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.MovementTypes, "Id", "Name"))"
+                                    onchange="toggleLocationFields()">
                                 <option selected disabled>Select Movement Type</option>
-                                <option value="facility">To Another Facility</option>
-                                <option value="service_point">To a Service Point</option>
                             </select>
+                    <span asp-validation-for="MoveAsset.MovementTypeId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6" id="facilityField">
-                            <label asp-for="MoveAsset.Facility" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.Facility" class="form-select">
+                            <label asp-for="MoveAsset.FacilityId" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.FacilityId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">
                                 <option selected disabled>Select Facility</option>
-                                <option value="facility1">Mbabane Hospital</option>
-                                <option value="facility2">Siteki Clinic</option>
                             </select>
                         </div>
                         <div class="col-md-6 d-none" id="servicePointField">
-                            <label asp-for="MoveAsset.ServicePoint" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.ServicePoint" class="form-select">
+                            <label asp-for="MoveAsset.ServicePointId" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.ServicePointId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.ServicePoints, "Id", "Name"))">
                                 <option selected disabled>Select Service Point</option>
-                                <option value="sp1">OPD</option>
-                                <option value="sp2">Pharmacy</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.Reason" class="form-label"></label>
-                            <select asp-for="MoveAsset.Reason" class="form-select">
+                            <label asp-for="MoveAsset.ReasonId" class="form-label"></label>
+                            <select asp-for="MoveAsset.ReasonId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Reasons, "Id", "Name"))">
                                 <option selected disabled>Select Reason</option>
-                                <option value="down_repair">Current equipment down, needs repair</option>
-                                <option value="no_longer_used">No longer use it</option>
-                                <option value="initial_deployment">Initial deployment</option>
-                                <option value="decommisioned">Decommisioned</option>
-                                <option value="other">Other</option>
                             </select>
+                    <span asp-validation-for="MoveAsset.ReasonId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.FunctionalStatus" class="form-label"></label>
-                            <select asp-for="MoveAsset.FunctionalStatus" class="form-select">
+                            <label asp-for="MoveAsset.FunctionalStatusId" class="form-label"></label>
+                            <select asp-for="MoveAsset.FunctionalStatusId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.FunctionalStatuses, "Id", "Name"))">
                                 <option selected disabled>Select Status</option>
-                                <option value="working">Working</option>
-                                <option value="faulty">Faulty</option>
-                                <option value="decommisioned">Decommisioned</option>
-                                <option value="not_tested">Not Tested</option>
                             </select>
+                    <span asp-validation-for="MoveAsset.FunctionalStatusId" class="text-danger"></span>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-3">
-                            <div class="form-check">
-                                <input asp-for="MoveAsset.IsApproved" class="form-check-input" type="checkbox" />
-                                <label asp-for="MoveAsset.IsApproved" class="form-check-label fw-bold"></label>
-                                <div class="form-text text-muted">
-                                    Was this asset Approved for Transfer?
+                    <div class="row mb-3" hidden>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input asp-for="MoveAsset.IsApproved" class="form-check-input" type="checkbox" />
+                                    <label asp-for="MoveAsset.IsApproved" class="form-check-label fw-bold"></label>
+                                    <div class="form-text text-muted">
+                                        Was this asset Approved for Transfer?
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -188,24 +99,30 @@
                     <button type="submit" class="btn btn-primary">Submit Movement</button>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
         </div>
-    </div>
-    <script>
-             function toggleLocationFields() {
-                const movementType = document.getElementById("movementType").value;
-                const facilityField = document.getElementById("facilityField");
-                const servicePointField = document.getElementById("servicePointField");
 
-                if (movementType === "facility") {
-                    facilityField.classList.remove("d-none");
-                servicePointField.classList.add("d-none");
-                } else if (movementType === "service_point") {
-                    facilityField.classList.add("d-none");
-                servicePointField.classList.remove("d-none");
-                }
-        }
+@section Scripts {
+    <script>
+        function toggleLocationFields() {
+                            const movementType = document.getElementById("movementType").value;
+                            //console.log(movementType);
+                            const facilityField = document.getElementById("facilityField");
+                            console.log(facilityField);
+                            const servicePointField = document.getElementById("servicePointField");
+                            console.log(servicePointField);
+
+                        if (movementType && facilityField && servicePointField) {
+                        if (movementType === "41") {
+                            facilityField.classList.remove("d-none");
+                            servicePointField.classList.add("d-none");
+                        } else if (movementType === "42") {
+                            facilityField.classList.add("d-none");
+                            servicePointField.classList.remove("d-none");
+                        }
+                    }
+                        }
     </script>
-</div>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

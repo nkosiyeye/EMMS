@@ -1,0 +1,86 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model EMMS.Models.MoveAsset
+
+@{
+    Layout = null; 
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gate Pass</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+    .gate-pass {
+        max-width: 600px;
+        margin: 0 auto;
+        border: 1px solid #333;
+        padding: 24px;
+    }
+    .gate-pass h2 {
+        text-align: center;
+    }
+    .gate-pass table {
+        width: 100%;
+        margin-top: 16px;
+    }
+    .gate-pass th, .gate-pass td {
+        text-align: left;
+        padding: 4px;
+    }
+    .print-btn {
+        display: none;
+    }
+    /* @@media print {
+        .print-btn {
+            display: none;
+        }
+    } */
+</style>
+
+</head>
+<body>
+    <div class="gate-pass">
+        <h2>Asset Movement Gate Pass</h2>
+        <table>
+            <tr>
+                <th>Asset Tag:</th>
+                <td>@Model.Asset?.AssetTagNumber</td>
+            </tr>
+            <tr>
+                <th>Movement Date:</th>
+                <td>@Model.MovementDate.ToString("yyyy-MM-dd")</td>
+            </tr>
+            <tr>
+                <th>From:</th>
+                <td>@Model.From?.FacilityName</td>
+            </tr>
+            <tr>
+                <th>To:</th>
+                <td>@Model.Facility?.FacilityName</td>
+            </tr>
+            <tr>
+                <th>Functional Status:</th>
+                <td>@Model.FunctionalStatus?.Name</td>
+            </tr>
+            <tr>
+                <th>Approved:</th>
+                <td>@(Model.IsApproved ? "Yes" : "No")</td>
+            </tr>
+        </table>
+        <div style="margin-top: 32px;">
+            <strong>Authorized By:</strong> _______________________
+        </div>
+        <div style="margin-top: 16px;">
+            <button class="btn btn-primary print-btn" onclick="window.print()">Print Gate Pass</button>
+        </div>
+    </div>
+</body>
+</html>
+
