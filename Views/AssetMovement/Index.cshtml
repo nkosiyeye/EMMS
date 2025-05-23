@@ -1,0 +1,196 @@
+﻿@using EMMS.ViewModels
+@model MoveAssetViewModel;
+@{
+    ViewData["Title"] = "Move Assets";
+    ViewData["moveAsset"] = "active";
+    ViewData["JobMovement"] = "active";
+}
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Movement History</span>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
+                <i class="fa fa-plus me-1"></i> Move Asset
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table class="table fixed-table table-striped table-bordered table-hover" id="movementHistoryTable">
+                <thead>
+                    <tr>
+                        <th>Asset Tag</th>
+                        <th>Location</th>
+                        <th>Since</th>
+                        <th>Functional Status</th>
+                        <th>Reason</th>
+                        <th>Approved</th>
+                        <th>Recieved</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var movement in Model.MoveAssets)
+                        {
+                            <tr>
+                                <td>@movement.Asset.AssetTagNumber</td>
+                                <td>
+                                    @if (movement.Facility != null && movement.ServicePoint != null)
+                                    {
+                                        @movement.Facility.FacilityName @movement.ServicePoint.Name
+                                    }
+                                    else if (movement.Facility != null)
+                                    {
+                                        @movement.Facility.FacilityName
+                                    }
+                                    else if (movement.ServicePoint != null)
+                                    {
+                                        @movement.ServicePoint.Name
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger">Unknown</span>
+                                    }
+                                </td>
+                                <td>@movement.MovementDate</td>
+                                <td>@movement.FunctionalStatus!.Name</td>
+                                <td>@movement.Reason!.Name</td>
+                                <td>
+                                    @if (!movement.IsApproved)
+                                    {
+
+                                    <a class="btn btn-sm btn-primary" title="Approve" asp-controller="AssetMovement" asp-action="approveMovement" asp-route-id="@movement.MovementId">
+                                                Approve
+                                            </a>
+                                    }
+                                    else
+                                    {
+                                        <span>Yes</span>
+                                    }
+                                </td>
+                                <td>@(movement.DateReceived.HasValue ? "Yes" : "No")</td>
+
+                                <td>
+                                    <a class="btn btn-sm btn-primary me-1" title="Edit" @(movement.DateReceived.HasValue ? "hidden" : "")>
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+
+                                    <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                <a class="btn btn-sm btn-secondary me-1 @(movement.IsApproved ? "" : "d-none")"
+                                               title="Gate Pass"
+                                               asp-controller="AssetMovement"
+                                               asp-action="GatePass"
+                                               asp-route-id="@movement.MovementId"
+                                               target="_blank">
+                                                <i class="fa fa-print"></i>
+                                            </a>
+
+                                </td>
+                            </tr>
+                        }
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal -->
+<div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Asset Movement</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalAssetBody">
+                <div class="table-responsive" id="table-responsive-asset">
+                    <div class="table-responsive" id="table-responsive-asset">
+                        <table class="table fixed-table table-striped table-bordered table-hover" id="modalAssetTable">
+                            <thead>
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Category</th>
+                                    <th>SubCategory</th>
+                                    <th>Placement</th>
+                                    <th>Location</th>
+                                    <th>Functional Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason?.Name != "Decommision"))
+                                {
+
+                                    var lastMove = asset.LastMovement;
+                                    <tr>
+                                        <td width="10%">@asset.Asset.AssetTagNumber</td>
+                                        <td width="10%">@asset.Asset.Category.Name</td>
+                                        <td width="10%">@asset.Asset.SubCategory.Name</td>
+                                        <td width="10%">@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
+                                        <td width="10%">
+                                            @if (lastMove != null)
+                                            {
+                                                @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                        <td width="10%">
+                                            @if (lastMove != null)
+                                            {
+                                                @(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                        @* <td width="10%">@asset.Location</td> // from movement history todo?
+                                <td width="10%">@asset.FunctionalStatus</td> *@
+                                        <td width="5%">
+
+                                            <a style="font-size: medium;"
+                                               class="btn btn-info"
+                                               title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                <i class="fa fa-arrows-alt"></i> Move Asset
+                                            </a>
+
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#modalAssetTable').DataTable({
+                pageLength: 10
+            });
+        });
+
+
+        $(document).ready(function () {
+            $('#movementHistoryTable').DataTable({
+                pageLength: 10
+            });
+        });
+    </script>
+}

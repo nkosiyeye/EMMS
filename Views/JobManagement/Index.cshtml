@@ -1,0 +1,232 @@
+﻿@using EMMS.ViewModels
+@model WorkRequestViewModel
+@{
+    ViewData["Title"] = "Move Assets";
+    ViewData["workRequest"] = "active";
+    ViewData["JobManagement"] = "active";
+}
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Work Requests</span>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestModal">
+                <i class="fa fa-plus me-1"></i> Request
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-wrapper">
+            <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
+                <thead>
+                    <tr>
+                        <th>Asset ID</th>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Outcome</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in @Model.WorkRequests)
+                        {
+                            <tr>
+                                <td>@request.Asset.AssetTagNumber</td>
+                                <td>@request.RequestDate</td>
+                                <td>@request.FaultReport!.Name</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                    {
+                                        <span>@request.Description.Substring(0, 20)...</span>
+                                        <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                    }
+                                    else
+                                    {
+                                        <span>@request.Description</span>
+                                    }
+                                </td>
+                                <td>@request.WorkStatus!.Name</td>
+                                <td>@request.Outcome?.Name</td>
+                                <td>
+                                    <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.WorkStatus.Name != "Open" ? "hidden" : "")>
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+
+                                    @* <a asp-controller="JobManagement" asp-action="jobCard" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
+                                        <i class="fa fa-eye"></i>
+                                    </a> *@
+
+                                    <button class="btn btn-sm btn-danger me-1" title="Close Job"
+                                    data-bs-toggle="modal" 
+                                        data-bs-target="#closeModal"
+                                        data-request-id="@request.WorkRequestId"
+                                    @(request.Outcome != null ? "hidden" : "")>
+                                        Close Request
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Asset Movement</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalAssetBody">
+                <div class="table-responsive" id="table-responsive-asset">
+                    <div class="table-responsive" id="table-responsive-asset">
+                        <table class="table fixed-table table-striped table-bordered table-hover" id="modalAssetTable">
+                            <thead>
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Category</th>
+                                    <th>SubCategory</th>
+                                    <th>Placement</th>
+                                    <th>Location</th>
+                                    <th>Functional Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var asset in Model.AssetIndex.assetViewModels.Where(a => a.LastMovement?.Reason?.Name != "Decommision"))
+                                {
+
+                                    var lastMove = asset.LastMovement;
+                                    <tr>
+                                        <td width="10%">@asset.Asset.AssetTagNumber</td>
+                                        <td width="10%">@asset.Asset.Category.Name</td>
+                                        <td width="10%">@asset.Asset.SubCategory.Name</td>
+                                        <td width="10%">@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
+                                        <td width="10%">
+                                            @if (lastMove != null)
+                                            {
+                                                @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                        <td width="10%">
+                                            @if (lastMove != null)
+                                            {
+                                                @(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                            }
+                                            else
+                                            {
+                                                <span>-</span>
+                                            }
+                                        </td>
+                                        @* <td width="10%">@asset.Location</td> // from movement history todo?
+                                <td width="10%">@asset.FunctionalStatus</td> *@
+                                        <td width="5%">
+
+                                            <a style="font-size: medium;"
+                                               class="btn btn-info" title="work" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId"
+                                              >
+                                                
+                                                <i class="fa fa-toolbox"></i> work request
+                                            </a>
+
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Reject Modal TBD -->
+<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="closeRequest" asp-controller="JobManagement">
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-4">
+                            <label asp-for="WorkRequest.CloseDate" class="form-label required-field">Date Closed</label>
+                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="movementDate" required>
+                        </div>
+                        <div class="col-md-4">
+                        <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
+                        <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
+                                data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
+                            @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Closed"))
+                            {
+                                <option value="@status.Id" selected>@status.Name</option>
+                            }
+                        </select>
+                        </div>
+
+                        <!-- Outcome -->
+                        <div class="col-md-4">
+                            <input asp-for="WorkRequest.WorkRequestId" id="requestId" type="hidden" />
+                            <label asp-for="WorkRequest.OutcomeId" for="title" class="form-label required-field"></label>
+                            <select asp-for="WorkRequest.OutcomeId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Outcomes, "Id", "Name"))">
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Close</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            $(document).ready(function () {
+            $('#workRequestTable').DataTable({
+                    pageLength: 10
+                });
+            });
+
+         $(document).ready(function () {
+        $('#modalAssetTable').DataTable({
+                pageLength: 10
+            });
+        });
+         document.addEventListener("DOMContentLoaded", function () {
+
+                const jobModal = document.getElementById("closeModal");
+                const requestIdInput = document.getElementById("requestId");
+
+                
+                jobModal.addEventListener("show.bs.modal", function (event) {
+                    const button = event.relatedTarget;
+                    
+                    const requestId = button.getAttribute("data-request-id");
+
+                    requestIdInput.value = requestId;
+                });
+            });
+    </script>
+}

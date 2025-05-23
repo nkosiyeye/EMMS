@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
     @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
+    @* <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.dataTables.css" /> *@
     <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
 </head>
@@ -32,14 +34,14 @@
                             <i class="fa-solid fa-arrows-turn-to-dots"></i> <span>Asset Movement</span>
                         </a>
                         <div style="border:solid; border-color:gray;" id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="moveAsset" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Move Asset</span></a>
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Move Asset</span></a>
                             <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Receive Asset</span></a>
                         </div>
                         <a style="color:black" href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
                             <i class="fa-solid fa-toolbox"></i> <span>Job Management</span>
                         </a>
                         <div style="border:solid; border-color:gray;" id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="workRequest" class="@ViewData["workRequest"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Work Request</span></a>
+                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="Index" class="@ViewData["workRequest"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Work Request</span></a>
                             <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Create Job</span></a>
                         </div>
 
@@ -103,6 +105,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
     <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
+    <script src="~/lib/DataTables/datatables.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script>

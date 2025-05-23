@@ -10,7 +10,7 @@ function printAssetDetail() {
     printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Print Asset ${assetDetail.assetId}</title>
+                        <title>Print Asset ${assetDetail.assetTagNumber}</title>
                         <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
                     </head>
                     <body>
@@ -20,13 +20,13 @@ function printAssetDetail() {
                                 <div class="col-md-4">
                                     <dl class="row">
                                         <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetId}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetTagNumber}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.category}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.category.name}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Sub Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.subCategory}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.subCategory.name}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
                                         <dd class="col-sm-6 border p-1 m-0">${assetDetail.itemName}</dd>
@@ -36,10 +36,10 @@ function printAssetDetail() {
                                     <dl class="row">
 
                                         <dt class="col-sm-6 border p-1 m-0">Department</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.department}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.department.name}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Manufacturer</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.manufacturer}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.manufacturer.name}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
                                         <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
@@ -66,10 +66,10 @@ function printAssetDetail() {
                                         <dd class="col-sm-6 border p-1 m-0">Yes</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Vendor</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.vendor}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.vendor.name}</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Service Provider</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serviceProvider}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serviceProvider.name}</dd>
                                     </dl>
                                 </div>
                             </div>
@@ -91,7 +91,7 @@ function printAssetDetail() {
                                     <dl class="row">
 
                                         <dt class="col-sm-6 border p-1 m-0">Lifespan</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.lifespanQuantity} ${assetDetail.lifespanPeriod}</dd>
+                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.lifespanQuantity} year(s)</dd>
 
                                         <dt class="col-sm-6 border p-1 m-0">Cost</dt>
                                         <dd class="col-sm-6 border p-1 m-0">${assetDetail.cost}</dd>
@@ -187,7 +187,7 @@ function printSelectedStickers() {
                             </div>
                             <div class="row py-0">
                                 <div class="sticker-details col-md-6">
-                                        <p><strong>Asset ID:</strong> ${asset.id}</p>
+                                        <p><strong>Asset ID:</strong> ${asset.assetTagNumber}</p>
                                         <p><strong>Serial Number:</strong> ${asset.serialNumber}</p>
                                         <p><strong>Model:</strong> ${asset.model}</p>
                                 </div>

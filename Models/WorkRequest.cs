@@ -1,35 +1,65 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Domain;
+using EMMS.Models.Entities;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class WorkRequest
+    public class WorkRequest : BaseEntity
     {
         [Key]
-        public int WorkRequestId { get; set; }
+        public Guid WorkRequestId { get; set; }
 
         [Required]
-        [Display(Name = "Asset ID")]
-        public string AssetId { get; set; }
+        [Display(Name = "Asset Id")]
+        public Guid? AssetId { get; set; }
+        [ForeignKey(nameof(AssetId))]
+        public virtual Asset? Asset { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Request Date is required")]
         [Display(Name = "Request Date")]
         public DateTime RequestDate { get; set; }
 
-        [Required]
-        [Display(Name = "Title")]
-        public string Title { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Fault Report is required")]
+        [Display(Name = "FaultReport")]
+        public int FaultReportId { get; set; }
+        [ForeignKey(nameof(FaultReportId))]
+        public virtual LookupItem? FaultReport { get; set; }
+
+        [Required(ErrorMessage = "Description is required")]
         [Display(Name = "Description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
-        [Display(Name = "Status")]
-        public string Status { get; set; }
+
+        [Display(Name = "Work Status")]
+        public int WorkStatusId { get; set; }
+        [ForeignKey(nameof(WorkStatusId))]
+        public virtual LookupItem? WorkStatus { get; set; }
+
 
         [Display(Name = "Outcome")]
-        public string Outcome { get; set; }
+        public int? OutcomeId { get; set; }
+        [ForeignKey(nameof(OutcomeId))]
+        public virtual LookupItem? Outcome { get; set; }
 
         [Display(Name = "Requested By")]
-        public string RequestedBy { get; set; }
+        public Guid? RequestedBy { get; set; }
+
+        [Display(Name = "Facility")]
+        public int FacilityId { get; set; }
+        [ForeignKey(nameof(FacilityId))]
+        public virtual Facility? Facility { get; set; }
+
+        [Display(Name = "Close Date")]
+        public DateTime? CloseDate { get; set; }
+
+
+        public Guid? CreatedBy { get; set; }
+        public DateTime? DateCreated { get; set; }
+        public Guid? ModifiedBy { get; set; }
+        public DateTime? DateModified { get; set; }
+        public RowStatus RowState { get; set; }
     }
 }

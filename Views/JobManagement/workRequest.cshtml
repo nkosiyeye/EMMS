@@ -1,191 +1,86 @@
-﻿@model EMMS.Models.WorkRequestViewModel
+﻿@using EMMS.ViewModels
+@model WorkRequestViewModel
 @{
     ViewData["Title"] = "Move Assets";
     ViewData["workRequest"] = "active";
     ViewData["JobManagement"] = "active";
-    var pagination = (Pagination)ViewData["Pagination"];
 }
 
 <div class="card mb-12">
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Work Requests</span>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestModal">
-                <i class="fa fa-plus me-1"></i> Request
-            </button>
+            <span>Create Work Request</span>
         </div>
     </div>
     <div class="card-body">
-        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-
-        <div class="table-wrapper">
-            <table class="table fixed-table table-striped table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Asset ID</th>
-                        <th>Date</th>
-                        <th>Title</th>
-                        <th>Description</th>
-                        <th>Status</th>
-                        <th>Outcome</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-
-                    @foreach (var request in @Model.WorkRequests)
-                    {
-                        <tr>
-                            <td>@request.AssetId</td>
-                            <td>@request.RequestDate</td>
-                            <td>@request.Title</td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
-                                {
-                                    <span>@request.Description.Substring(0, 20)...</span>
-                                    <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
-                                }
-                                else
-                                {
-                                    <span>@request.Description</span>
-                                }
-                            </td>
-                            <td>@request.Status</td>
-                            <td>@request.Outcome</td>
-                            <td>
-                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.Outcome != null ? "hidden" : "")>
-                                    <i class="fa fa-edit"></i>
-                                </a>
-
-                                <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
-                                    <i class="fa fa-eye"></i>
-                                </a>
-
-                                <button class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal" @(request.Outcome != null ? "hidden" : "")>
-                                    Close Request
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="d-flex justify-content-between align-content-center">
-            <p style="font-size: smaller;">
-                Showing @Model.WorkRequests.Count() out of @pagination.TotalItemCount
-            </p>
-            <nav aria-label="Pagination">
-                <ul class="pagination pagination-sm">
-                    <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
-                        <a class="page-link" href="@Url.Action("workRequest", new { page = pagination.CurrentPage - 1 })">Previous</a>
-                    </li>
-                    @for (int i = 1; i <= pagination.TotalPages; i++)
-                    {
-                        <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
-                            <a class="page-link" href="@Url.Action("workRequest", new { page = i })">@i</a>
-                        </li>
-                    }
-                    <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
-                        <a class="page-link" href="@Url.Action("workRequest", new { page = pagination.CurrentPage + 1 })">Next</a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </div>
-</div>
-<!-- Request Modal -->
-<div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Work Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-2">
-
-                        <!-- Date -->
-                        <div class="col-md-4">
-                            <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
-                            <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
-                        </div>
-
-                        <!-- Asset Name / Tag -->
-                        <div class="col-md-4">
-                            <label asp-for="WorkRequest.AssetId" for="assetTag" class="form-label required-field">Asset Name / Tag</label>
-                            <select asp-for="WorkRequest.AssetId" class="form-select" id="assetTag" required>
-                                <option selected disabled>Select Asset</option>
-                                <option value="asset1">CT-Scanner - AS-002</option>
-                                <option value="asset2">Patient Monitor - AS-001</option>
-                            </select>
-                        </div>
-
-                        <!-- Title -->
-                        <div class="col-md-4">
-                            <label asp-for="WorkRequest.Title" for="title" class="form-label required-field">Title</label>
-                            <select asp-for="WorkRequest.Title" class="form-select" id="title" required>
-                                <option selected disabled>Select Title</option>
-                                <option value="Fault">Electrical Fault</option>
-                                <option value="Maintenance">Maintenance</option>
-                            </select>
-                        </div>
+        @if (TempData["Error"] != null)
+        {
+            <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
+                <div>
+                    <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
+                    <div>
+                        @TempData["Error"]
                     </div>
+                </div>
 
-                    <div class="col-md-12 mb-2">
-                        <label asp-for="WorkRequest.Description" for="faultDescription" class="form-label required-field">Fault Description</label>
-                        <textarea asp-for="WorkRequest.Description" class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the problem"></textarea>
-                    </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Request</button>
-                </form>
+        }
+        <form asp-action="WorkRequest" asp-controller="JobManagement" method="post">
+            <div class="row mb-2">
+
+                <!-- Date -->
+                <div class="col-md-3">
+                    <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
+                    <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
+                    <span asp-validation-for="WorkRequest.RequestDate" class="text-danger"></span>
+                </div>
+
+                <!-- Asset Name / Tag -->
+                <div class="col-md-3">
+                    <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
+                    <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden />
+                    <input class="form-control" type="text" value="@Model.AssetTag" disabled />
+                </div>
+
+                <!-- Title -->
+                <div class="col-md-3">
+                    <label asp-for="WorkRequest.FaultReportId" for="title" class="form-label required-field"></label>
+                    <select asp-for="WorkRequest.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
+                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                        <option selected disabled>Select Fault Report</option>
+                    </select>
+                    <span asp-validation-for="WorkRequest.FaultReportId" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
+                    <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
+                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
+                        @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
+                        {
+                            <option value="@status.Id" selected>@status.Name</option>                            
+                        }
+                    </select>
+                    <span asp-validation-for="WorkRequest.WorkStatusId" class="text-danger"></span>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+            <div class="col-md-12 mb-2">
+                <label asp-for="WorkRequest.Description" for="faultDescription" class="form-label required-field">Fault Description</label>
+                <textarea asp-for="WorkRequest.Description" class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the problem"></textarea>
+                <span asp-validation-for="WorkRequest.Description" class="text-danger"></span>
             </div>
-        </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary">Request</button>
+        </form>
     </div>
 </div>
 
-<!-- Reject Modal -->
-<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-3">
-                        <!-- Date -->
-                        <div class="col-md-6">
-                            <label for="rejectedDate" class="form-label required-field">Date Closed</label>
-                            <input type="date" class="form-control" id="movementDate" required>
-                        </div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
 
-
-                        <!-- Outcome -->
-                        <div class="col-md-6">
-                            <label for="outcome" class="form-label required-field">Outcome</label>
-                            <select class="form-select" id="outcome" required>
-                                <option selected disabled>Select Outcome</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="not-resolved">not Resolved</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Close</button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>

@@ -1,4 +1,4 @@
-﻿@model EMMS.Models.JobViewModel
+﻿@model EMMS.ViewModels.JobViewModel;
 @{
     ViewData["Title"] = "Manage Jobs";
     ViewData["manageJob"] = "active";
@@ -21,7 +21,7 @@
             <div class="card-body">
 
                 <div class="table-wrapper">
-                    <table class="table fixed-table table-striped table-bordered table-hover">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
                         <thead>
                             <tr>
                                 <th>Asset ID</th>
@@ -33,12 +33,12 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var request in Model.WorkRequests)
+                            @foreach (var request in Model.WorkRequests.Where(w => w.WorkStatus.Name == "Open"))
                             {
                                 <tr>
-                                    <td>@request.AssetId</td>
+                                    <td>@request.Asset.AssetTagNumber</td>
                                     <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
-                                    <td>@request.Title</td>
+                                    <td>@request.FaultReport.Name</td>
                                     <td>
                                         @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
                                         {
@@ -50,9 +50,15 @@
                                             <span>@request.Description</span>
                                         }
                                     </td>
-									<td>@request.Status</td>
+                                    <td>@request.WorkStatus.Name</td>
                                     <td>
-                                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#jobModal">
+                                        <button 
+                                            class="btn btn-primary btn-sm" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#jobModal"
+                                                data-request-id="@request.WorkRequestId"
+                                                data-asset-id="@request.AssetId"
+                                            data-asset-tag="@request.Asset.AssetTagNumber">
                                             Create Job
                                         </button>
                                         <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -72,7 +78,7 @@
             <div class="card-header">Job History</div>
             <div class="card-body">
                 <div class="table-wrapper">
-                    <table class="table fixed-table table-striped table-bordered table-hover">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="JobTable">
                         <thead>
                             <tr>
                                 <th>Asset ID</th>
@@ -84,46 +90,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>AS-001</td>
-                                <td>29 Apr 2025</td>
-                                <td>Electrical Fault</td>
-                                <td>User</td>
-                                <td>In-Progress</td>
-                                <td>
-                                    <a asp-controller="JobManagement" asp-action="jobCard" class="btn btn-sm btn-info me-1" title="View">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
+                            @foreach (var job in Model.Jobs)
+                            {
 
-                            <tr>
-                                <td>AS-001</td>
-                                <td>29 Apr 2025</td>
-                                <td>Electrical Fault</td>
-                                <td>User</td>
-                                <td>In-Progress(External)</td>
-                                @* <td>@request.Status @(request.IsExternalProvider ? "(ExternalProvider)" : "")</td> *@
-                                <td>
-                                    <a asp-controller="JobManagement" asp-action="externaljobCard" class="btn btn-sm btn-info me-1" title="View">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td>@job.Asset.AssetTagNumber</td>
+                                    <td>@job.StartDate</td>
+                                    <td>@job.FaultReport.Name</td>
+                                    <td>@job.AssignedTo</td>
+                                    <td>@job.Status.Name @(job.IsExternalProvider ? "(External)" : "")</td>
+                                    <td>
+                                        <a asp-controller="JobManagement" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-                    <nav aria-label="Pagination">
-                        <ul class="pagination pagination-sm">
-                            <li class="page-item disabled"><a class="page-link">Previous</a></li>
-                            <li class="page-item"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item active" aria-current="page"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                        </ul>
-                    </nav>
                 </div>
             </div>
         </div>
@@ -141,31 +125,60 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                @if (TempData["Error"] != null)
+                {
+                    <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
+                        <div>
+                            <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
+                            <div>
+                                @TempData["Error"]
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                }
+                <form asp-action="createJobCard" asp-controller="JobManagement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
-                        <div class="col-md-6">
-                            <label for="jobDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="jobDate" required>
+                        <div class="col-md-4">
+                            <label asp-for="Job.StartDate" for="jobDate" class="form-label">Date</label>
+                            <input asp-for="Job.StartDate" type="date" class="form-control" id="jobDate" required>
                         </div>
                         <!-- Asset Name / Tag -->
-                        <div class="col-md-6">
-                            <label for="assetTag" class="form-label">Asset Name / Tag</label>
-                            <input type="text" value="AS-001" class="form-control" id="assetTag" required readonly>
+                        <div class="col-md-4">
+                            <label for="assetTag" class="form-label required-field">Asset Tag</label>
+                            <input asp-for="Job.WorkRequestId" id="requestId" type="hidden" />
+                            <input asp-for="Job.AssetId" id="assetId" type="hidden" />
+                            <input readonly type="text" class="form-control" id="assetTag">
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
+                            <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
+                                @foreach (var status in Model.WorkStatuses!.Where(w => w.Name == "In Progress"))
+                                {
+                                    <option value="@status.Id" selected>@status.Name</option>
+                                }
+                            </select>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <!-- Fault Report -->
                         <div class="col-md-6">
-                            <label for="faultreport" class="form-label">Fault Report</label>
-                            <select class="form-select" id="faultreport" required>
-                                <option selected disabled>Select Title</option>
+                            <label asp-for="Job.FaultReportId" for="title" class="form-label required-field"></label>
+                            <select asp-for="Job.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                                <option selected disabled>Select Fault Report</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="assignedTo" class="form-label">Assigned To</label>
-                            <select class="form-select" id="assignedTo" required>
+                            <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
+                            <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" required>
                                 <option selected disabled>Select BioMed</option>
+                                <option value="@Guid.NewGuid()">BioMed</option>
+                                @* TBD *@
                             </select>
                         </div>
                     </div>
@@ -184,12 +197,9 @@
                             </div>
 
                             <div class="col-md-8 d-none" id="external-field-container">
-                                <label asp-for="Job.ExternalProvider" class="form-label required-field"></label>
-                                <select asp-for="Job.ExternalProvider" class="form-select selectpicker col-md-6" id="assetSelect"
-                                        data-live-search="true" title="Select ExternalProvider">
-                                    <option value="a">AVOMA</option>
-                                    <option value="p">Philips</option>
-                                    <!-- Add more options as needed -->
+                                <label asp-for="Job.ExternalProviderId" class="form-label required-field"></label>
+                                <select asp-for="Job.ExternalProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
+                                    <option selected disabled>Select Service Provider</option>
                                 </select>
                                 @* <span asp-validation-for="MoveAsset.AssetId" class="text-danger"></span> *@
                             </div>
@@ -218,41 +228,21 @@
     </script>
 </div>
 
-<!-- Reject Modal -->
-<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Cancel Work Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-3">
-                        <!-- Date -->
-                        <div class="col-md-6">
-                            <label for="rejectedDate" class="form-label required-field">Date Canceled</label>
-                            <input type="date" class="form-control" id="movementDate" required>
-                        </div>
+@section Scripts {
+    <script>
+            $(document).ready(function () {
+            $('#workRequestTable').DataTable({
+                    pageLength: 10
+                });
+            });
 
-                        <!-- Reason -->
-                        <div class="col-md-6">
-                            <label for="reason" class="form-label required-field">Reason</label>
-                            <select class="form-select" id="reason" required>
-                                <option selected disabled>Select Reason</option>
-                                <option value="outofscope">Out of Scope</option>
-                                <option value="external">External Work</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Reject</button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+         $(document).ready(function () {
+        $('#JobTable').DataTable({
+                pageLength: 10
+            });
+        });
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

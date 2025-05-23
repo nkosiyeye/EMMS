@@ -1,38 +1,57 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.CustomRequiredAttribute;
+using EMMS.Models.Domain;
+using EMMS.Models.Entities;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class Asset
-    {
+    public class Asset : BaseEntity    {
         [Required]
-        [Display(Name = "Asset Tag")]
-        public string AssetId { get; set; }
+        [Display(Name = "Asset Id")]
+        public Guid AssetId { get; set; }
 
-        [Required]
+        [Display(Name = "Asset Tag Number")]
+        public string AssetTagNumber { get; set; }
+
+        // Category
+        [Required(ErrorMessage = "Category is required")]
         [Display(Name = "Category")]
-        public string Category { get; set; }
+        public int CategoryId { get; set; }
+        [ForeignKey(nameof(CategoryId))]
+        public virtual LookupItem? Category { get; set; }
 
-        [Required]
+        // SubCategory
+        [Required(ErrorMessage = "SubCategory is required")]
         [Display(Name = "SubCategory")]
-        public string SubCategory { get; set; }
+        public int SubCategoryId { get; set; }
+        [ForeignKey(nameof(SubCategoryId))]
+        public virtual LookupItem? SubCategory { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Item Name is required")]
         [Display(Name = "Item Name")]
         public string ItemName { get; set; }
 
-        [Required]
+        // Department
+        [Required(ErrorMessage = "Department is required")]
         [Display(Name = "Department")]
-        public string Department { get; set; }
+        public int DepartmentId { get; set; }
+        [ForeignKey(nameof(DepartmentId))]
+        public virtual LookupItem? Department { get; set; }
 
-        [Required]
+        // Manufacturer
+        [Required(ErrorMessage = "Manufacturer is required")]
         [Display(Name = "Manufacturer")]
-        public string Manufacturer { get; set; }
+        public int ManufacturerId { get; set; }
+        [ForeignKey(nameof(ManufacturerId))]
+        public virtual LookupItem? Manufacturer { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Serial Number is required")]
         [Display(Name = "Serial Number")]
         public string SerialNumber { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Model is required")]
         [Display(Name = "Model")]
         public string Model { get; set; }
 
@@ -40,9 +59,11 @@ namespace EMMS.Models
         public bool IsPlacement { get; set; }
 
         [Display(Name = "Placement Start Date")]
+       // [RequiredIfAttribute("IsPlacement",true, ErrorMessage = "Placement Start Date is required when Placement is checked.")]
         public DateTime? PlacementStartDate { get; set; }
 
         [Display(Name = "Placement End Date")]
+        //[RequiredIfAttribute("IsPlacement",true, ErrorMessage = "Placement End Date is required when Placement is checked.")]
         public DateTime? PlacementEndDate { get; set; }
 
         [Display(Name = "Donated")]
@@ -52,41 +73,50 @@ namespace EMMS.Models
         public bool IsServiceable { get; set; }
 
         [Display(Name = "Service Period")]
-        public string ServicePeriod { get; set; }
+        public string? ServicePeriod { get; set; }
 
         [Display(Name = "Service Interval")]
-        public string ServiceInterval { get; set; }
+        public string? ServiceInterval { get; set; }
 
-        [Required]
+        // Vendor
+        [Required(ErrorMessage = "Vendor is required")]
         [Display(Name = "Vendor")]
-        public string Vendor { get; set; }
+        public int VendorId { get; set; }
+        [ForeignKey(nameof(VendorId))]
+        public virtual LookupItem? Vendor { get; set; }
 
-        [Required]
+        // Service Provider
+        [Required(ErrorMessage = "Service Provider is required")]
         [Display(Name = "Service Provider")]
-        public string ServiceProvider { get; set; }
+        public int ServiceProviderId { get; set; }
+        [ForeignKey(nameof(ServiceProviderId))]
+        public virtual LookupItem? ServiceProvider { get; set; }
 
-        [Required]
+        // Status
+        [Required(ErrorMessage = "Status is required")]
         [Display(Name = "Status")]
-        public string Status { get; set; }
+        public int StatusId { get; set; }
+        [ForeignKey(nameof(StatusId))]
+        public virtual LookupItem? Status { get; set; }
 
-        [Required]
+        //[RequiredIf("StatusId", 32, ErrorMessage = "Procurement Date is required for new assets.")]
         [Display(Name = "Procurement Date")]
-        public DateTime ProcurementDate { get; set; }
+        public DateTime? ProcurementDate { get; set; }
 
-        [Required]
+        //[RequiredIf("StatusId", 32, ErrorMessage = "Cost is required for new assets.")]
         [Display(Name = "Cost")]
-        public decimal Cost { get; set; }
+        public decimal? Cost { get; set; }
 
-        [Display(Name = "Unit of Measure")]
-        public string UnitOfMeasure { get; set; }
+        //[RequiredIf("StatusId", 32, ErrorMessage = "Lifespan Quantity is required for new assets.")]
+        [Display(Name = "Lifespan (Years)")]
+        public int? LifespanQuantity { get; set; }
 
-        [Display(Name = "Quantity")]
-        public int Quantity { get; set; }
 
-        [Display(Name = "Lifespan Period")]
-        public string LifespanPeriod { get; set; }
-
-        [Display(Name = "Lifespan Quantity")]
-        public int LifespanQuantity { get; set; }
+        public Guid? CreatedBy { get; set; }
+        public DateTime? DateCreated { get; set; }
+        public Guid? ModifiedBy { get; set; }
+        public DateTime? DateModified { get; set; }
+        public RowStatus RowState { get; set; }
     }
 }
+

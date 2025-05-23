@@ -129,6 +129,10 @@ td {
 /* ===========================
    Forms and Cards
 =========================== */
+.alert{
+    
+}
+
 p.card-text {
     font-size: x-small;
 }

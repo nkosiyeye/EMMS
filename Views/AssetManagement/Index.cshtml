@@ -1,4 +1,4 @@
-﻿@model List<Asset>
+﻿@model EMMS.ViewModels.AssetIndexViewModel
 @{
     var pagination = (Pagination)ViewData["Pagination"];
 
@@ -16,7 +16,10 @@
                 </a>
                 <button class="btn btn-primary btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
                     <i class="fa fa-download"></i>
-                   </button>                
+                   </button>
+                <button type="button" class="btn btn-sm btn-secondary" title="Printer" onclick="printSelectedStickers()">
+                    <i class="fa-solid fa-print"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -24,24 +27,10 @@
         <div class="table-responsive" id="table-responsive-asset">
             <div class="table-responsive" id="table-responsive-asset">
                 <table class="table fixed-table table-striped table-bordered table-hover" id="assetTable">
-                    <colgroup>
-                        <col span="1" style="width: 5%;">
-                        <col span="1" style="width: 5%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 5%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 5%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 10%;">
-                        <col span="1" style="width: 5%;">
-                    </colgroup>
                     <thead>
                         <tr>
                             <th></th>
-                            <th>ID</th>
+                            <th>Tag</th>
                             <th>Category</th>
                             <th>SubCategory</th>
                             <th>Placement</th>
@@ -53,113 +42,82 @@
                             <th>Functional Status</th>
                             <th>Action</th>
                         </tr>
-
-                        <tr>
-                            <th>
-                                <button type="button" class="btn btn-sm btn-secondary" title="Printer" onclick="printSelectedStickers()">
-                                    <i class="fa-solid fa-print"></i>
-                                </button>
-                            </th>
-                            <th><input type="text" class="form-control form-control-sm" placeholder="Filter by ID" onkeyup="filterTable(1, this.value)"></th>
-                            <th>
-                                <select class="form-select form-select-sm" onchange="filterTable(2, this.value)">
-                                    <option value="">All</option>
-                                    <option value="Medical">Medical</option>
-                                    <option value="Non-Medical">Non-Medical</option>
-                                </select>
-                            </th>
-                            <th><input type="text" class="form-control form-control-sm" placeholder="Filter by SubCategory" onkeyup="filterTable(3, this.value)"></th>
-                            <th>
-                                <select class="form-select form-select-sm" onchange="filterTable(4, this.value)">
-                                    <option value="">All</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                </select>
-                            </th>
-                            <th><input type="text" class="form-control form-control-sm" placeholder="Filter by Vendor" onkeyup="filterTable(5, this.value)"></th>
-                            <th><input type="text" class="form-control form-control-sm" placeholder="Filter by Provider" onkeyup="filterTable(6, this.value)"></th>
-                            <th><input type="date" class="form-control form-control-sm" onchange="filterTable(7, this.value)"></th>
-                            <th>
-                                <select class="form-select form-select-sm" onchange="filterTable(8, this.value)">
-                                    <option value="">All</option>
-                                    <option value="New">New</option>
-                                    <option value="Used">Used</option>
-                                    <option value="Refurbished">Refurbished</option>
-                                </select>
-                            </th>
-                            <th><input type="text" class="form-control form-control-sm" placeholder="Filter by Location" onkeyup="filterTable(9, this.value)"></th>
-                            <th>
-                                <select class="form-select form-select-sm" onchange="filterTable(10, this.value)">
-                                    <option value="">All</option>
-                                    <option value="Working">Working</option>
-                                    <option value="Faulty">Faulty</option>
-                                    <option value="decommisioned">Decommisioned</option>
-                                    <option value="Not Tested">Not Tested</option>
-                                </select>
-                            </th>
-                            <th>
-
-                            </th>
-                        </tr>
                     </thead>
                     <tbody>
-                        @foreach (var asset in Model)
+                        @foreach (var asset in Model.assetViewModels!)
                         {
+
+                            var lastMove = asset.LastMovement;
                             <tr>
                                 <td>
                                     <input type="checkbox" class="asset-checkbox"
-                                           value='@Html.Raw(Json.Serialize(new { asset.AssetId, asset.SerialNumber, asset.Model }))'>
+                                           value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
                                 </td>
-                                <td width="10%">@asset.AssetId</td>
-                                <td width="10%">@asset.Category</td>
-                                <td width="10%">@asset.SubCategory</td>
-                                <td width="10%">@(asset.IsPlacement ? "Yes" : "No")</td>
-                                <td width="10%">@asset.Vendor</td>
-                                <td width="10%">@asset.ServiceProvider</td>
-                                <td width="5%">@asset.ProcurementDate.ToShortDateString()</td>
-                                <td width="10%">@asset.Status</td>
-                                <td width="10%">Lobamba</td>
-                                <td width="10%">Working</td>
-                                @* <td width="10%">@asset.Location</td> // from movement history todo?
-                                <td width="10%">@asset.FunctionalStatus</td> *@
-                                <td width="5%">
+                                <td>@asset.Asset.AssetTagNumber</td>
+                                <td>@asset.Asset?.Category!.Name</td>
+                                <td>@asset.Asset?.SubCategory!.Name</td>
+                                <td>@(asset.Asset!.IsPlacement! ? "Yes" : "No")</td>
+                                <td>@asset.Asset.Vendor!.Name</td>
+                                <td>@asset.Asset.ServiceProvider!.Name</td>
+                                <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
+                                <td>@asset.Asset.Status!.Name</td>
+                                <td>
+                                    @if (lastMove != null)
+                                    {
+                                        @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td width="10%">
+                                    @if (lastMove != null)
+                                    {
+                                        @:@(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                        @if (lastMove.Reason?.Name == "Decommision")
+                                        {
+                                            @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fa-solid fa-ellipsis"></i>
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li>
+                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
                                                 <button class="dropdown-item btn btn-primary me-1" title="Edit" style="font-size: medium;">
                                                     <i class="fa fa-edit"></i> edit asset
                                                 </button>
                                             </li>
                                             <li>
-                                                <a asp-action="detail" asp-route-id="@asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
+                                                <a asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
                                                     <i class="fa fa-eye"></i> view asset
                                                 </a>
                                             </li>
-                                            <li>
-                                                <button style="font-size: medium;"
+                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                                <a style="font-size: medium;"
                                                         class="dropdown-item btn btn-warning"
                                                         title="Move"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#moveModal"
-                                                        data-asset-id="@asset.AssetId">
+                                                        asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-arrows-alt"></i> move asset
-                                                </button>
+                                                </a>
                                             </li>
-                                            <li>
-                                                <button style="font-size: medium;"
+                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                                <a style="font-size: medium;"
                                                         class="dropdown-item btn btn-secondary"
-                                                        title="work request"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#requestModal"
-                                                        data-asset-id="@asset.AssetId">
-                                                    <i class="fa-solid fa-toolbox"></i> work request
-                                                </button>
+                                                        title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-toolbox"></i> work request
+                                                </a>
 
                                             </li>
-                                            <li>
+                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
@@ -173,269 +131,21 @@
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-between align-content-center">
-                <p style="font-size: smaller;">
-                    Showing @Model.Count() out of @pagination.TotalItemCount
-                </p>
-                <nav aria-label="Pagination">
-                    <ul class="pagination pagination-sm">
-                        <li class="page-item @(pagination.HasPreviousPage ? "" : "disabled")">
-                            <a class="page-link" href="@Url.Action("Index", new { page = pagination.CurrentPage - 1 })">Previous</a>
-                        </li>
-                        @for (int i = 1; i <= pagination.TotalPages; i++)
-                        {
-                            <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
-                                <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
-                            </li>
-                        }
-                        <li class="page-item @(pagination.HasNextPage ? "" : "disabled")">
-                            <a class="page-link" href="@Url.Action("Index", new { page = pagination.CurrentPage + 1 })">Next</a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
           
     </div> 
-    <script>
-             function filterTable(columnIndex, filterValue) {
-          const table = document.querySelector("table tbody");
-            const rows = table.querySelectorAll("tr");
-
-          rows.forEach((row) => {
-            const cell = row.cells[columnIndex];
-            if (cell) {
-              const cellValue = cell.textContent || cell.innerText;
-            if (filterValue === "" || cellValue.toLowerCase().includes(filterValue.toLowerCase())) {
-                row.style.display = "";
-              } else {
-                row.style.display = "none";
-              }
-            }
-          });
-        }
-
-    </script>
 
 </div>
-</div>
-
-
-
-
-
-<!-- Modal -->
-<div class="modal fade" id="moveModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Move Asset</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-3">
-
-                        <!-- Date -->
-                        <div class="col-md-6">
-                            <label for="movementDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="movementDate" required>
-                        </div>
-                        <!-- Asset Name / Tag -->
-                        <div class="col-md-6">
-                            <label for="assetTag" class="form-label required-field">Asset ID</label>
-                            <input readonly type="text" class="form-control" id="assetTag" value="AS-001" required>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <!-- Movement Type -->
-                        <div class="col-md-6">
-                            <label for="movementType" class="form-label required-field">Movement Type</label>
-                            <select class="form-select" id="movementType" required onchange="toggleLocationFields()">
-                                <option selected disabled>Select Movement Type</option>
-                                <option value="facility">To Another Facility</option>
-                                <option value="service_point">To a Service Point</option>
-                            </select>
-                        </div>
-                        <!-- Facility Location -->
-                        <div class="col-md-6" id="facilityField">
-                            <label for="location" class="form-label required-field">Facility</label>
-                            <select class="form-select" id="location">
-                                <option selected disabled>Select Facility</option>
-                                <option value="facility1">Mbabane Hospital</option>
-                                <option value="facility2">Siteki Clinic</option>
-                            </select>
-                        </div>
-
-                        <!-- Service Point -->
-                        <div class="col-md-6 d-none" id="servicePointField">
-                            <label for="servicePoint" class="form-label required-field">Service Point</label>
-                            <select class="form-select" id="servicePoint">
-                                <option selected disabled>Select Service Point</option>
-                                <option value="sp1">OPD</option>
-                                <option value="sp2">Pharmacy</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-
-                        <!-- Reason -->
-                        <div class="col-md-6">
-                            <label for="reason" class="form-label required-field">Reason</label>
-                            <select class="form-select" id="reason" required>
-                                <option selected disabled>Select Reason</option>
-                                <option value="down_repair">Current equipment down, needs repair</option>
-                                <option value="no_longer_used">No longer use it</option>
-                                <option value="initial_deployment">Initial deployment</option>
-                                <option value="decommisioned">Decommisioned</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <!-- Functional Status -->
-                        <div class="col-md-6">
-                            <label for="functionalStatus" class="form-label required-field">Functional Status</label>
-                            <select class="form-select" id="functionalStatus" required>
-                                <option selected disabled>Select Status</option>
-                                <option value="working">Working</option>
-                                <option value="faulty">Faulty</option>
-                                <option value="decommisioned">Decommisioned</option>
-                                <option value="not_tested">Not Tested</option>
-                            </select>
-                        </div>
-                    </div>
-
-                   @*  <!-- Approval -->
-                    <div class="col-md-6 mb-3">
-                        <div class="border rounded p-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="donatedCheck">
-                                <label class="form-check-label fw-bold" for="donatedCheck">
-                                    Approved?
-                                </label>
-                                <div class="form-text text-muted">
-                                    Was this asset Approved for Transfer?
-                                </div>
-                            </div>
-                        </div>
-                    </div> *@
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Move</button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-        <script>
-
-                    document.addEventListener("DOMContentLoaded", function () {
-                // Get the modal and the asset tag input field
-                const moveModal = document.getElementById("moveModal");
-                const assetTagInput = document.getElementById("assetTag");
-
-                // Listen for when the modal is shown
-                moveModal.addEventListener("show.bs.modal", function (event) {
-                    // Get the button that triggered the modal
-                    const button = event.relatedTarget;
-
-                    // Extract the asset ID from the data-asset-id attribute
-                    const assetId = button.getAttribute("data-asset-id");
-
-                    // Populate the Asset Tag field in the modal
-                    assetTagInput.value = assetId;
-                });
-            });
-        </script>
-    </div>
-    <script>
-                  function toggleLocationFields() {
-                const movementType = document.getElementById("movementType").value;
-                const facilityField = document.getElementById("facilityField");
-                const servicePointField = document.getElementById("servicePointField");
-
-                if (movementType === "facility") {
-                    facilityField.classList.remove("d-none");
-                servicePointField.classList.add("d-none");
-                } else if (movementType === "service_point") {
-                    facilityField.classList.add("d-none");
-                servicePointField.classList.remove("d-none");
-                }
-        }
-    </script>
-</div>
-
-<!-- Request Modal -->
-<div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Work Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-3">
-
-                        <!-- Date -->
-                        <div class="col-md-4">
-                            <label for="requestDate" class="form-label required-field">Request Date</label>
-                            <input type="date" class="form-control" id="requestDate" required>
-                        </div>
-
-                        <!-- Asset Name / Tag -->
-                        <div class="col-md-4">
-                            <label for="assetRequestTag" class="form-label required-field">Asset ID</label>
-                            <input type="text" class="form-control" id="assetRequestTag" required readonly>
-                        </div>
-
-                        <!-- Title -->
-                        <div class="col-md-4">
-                            <label for="title" class="form-label required-field">Title</label>
-                            <select class="form-select" id="title" required>
-                                <option selected disabled>Select Title</option>
-                                <option selected disabled>Electrical Fault</option>
-                                <option selected disabled>Maintenance</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 mb-3">
-                        <label for="faultDescription" class="form-label required-field">Fault Description</label>
-                        <textarea class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the problem"></textarea>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Request</button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 
 @section Scripts {
     <script>
-
-                document.addEventListener("DOMContentLoaded", function () {
-            // Get the modal and the asset tag input field
-            const Modal = document.getElementById("requestModal");
-            const assetInput = document.getElementById("assetRequestTag");
-
-            // Listen for when the modal is shown
-            Modal.addEventListener("show.bs.modal", function (event) {
-                // Get the button that triggered the modal
-                const button = event.relatedTarget;
-
-                // Extract the asset ID from the data-asset-id attribute
-                const assetId = button.getAttribute("data-asset-id");
-
-                // Populate the Asset Tag field in the modal
-                assetInput.value = assetId;
+            $(document).ready(function () {
+                $('#assetTable').DataTable({
+                    // Optional: customize page length, language, etc.
+                    pageLength: 10
+                });
             });
-        });
+
     </script>
 }
