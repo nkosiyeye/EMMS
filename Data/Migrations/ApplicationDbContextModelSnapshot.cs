@@ -92,11 +92,11 @@ namespace EMMS.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ServiceInterval")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ServiceInterval")
+                        .HasColumnType("int");
 
-                    b.Property<string>("ServicePeriod")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ServicePeriodId")
+                        .HasColumnType("int");
 
                     b.Property<int>("ServiceProviderId")
                         .HasColumnType("int");
@@ -117,6 +117,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("ManufacturerId");
+
+                    b.HasIndex("ServicePeriodId");
 
                     b.HasIndex("ServiceProviderId");
 
@@ -189,6 +191,9 @@ namespace EMMS.Data.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
                     b.Property<byte>("RowState")
                         .HasColumnType("tinyint");
 
@@ -231,6 +236,53 @@ namespace EMMS.Data.Migrations
                     b.HasKey("LookupListId");
 
                     b.ToTable("LookupLists");
+                });
+
+            modelBuilder.Entity("EMMS.Models.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FacilityId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FacilityId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("EMMS.Models.ExternalWorkDone", b =>
@@ -284,6 +336,9 @@ namespace EMMS.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobId"));
 
+                    b.Property<int?>("Amount")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("AssetId")
                         .IsRequired()
                         .HasColumnType("uniqueidentifier");
@@ -312,6 +367,9 @@ namespace EMMS.Data.Migrations
 
                     b.Property<int>("FaultReportId")
                         .HasColumnType("int");
+
+                    b.Property<string>("InvoiceNo")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsExternalProvider")
                         .HasColumnType("bit");
@@ -761,6 +819,10 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "ServicePeriodName")
+                        .WithMany()
+                        .HasForeignKey("ServicePeriodId");
+
                     b.HasOne("EMMS.Models.Entities.LookupItem", "ServiceProvider")
                         .WithMany()
                         .HasForeignKey("ServiceProviderId")
@@ -791,6 +853,8 @@ namespace EMMS.Data.Migrations
 
                     b.Navigation("Manufacturer");
 
+                    b.Navigation("ServicePeriodName");
+
                     b.Navigation("ServiceProvider");
 
                     b.Navigation("Status");
@@ -809,6 +873,15 @@ namespace EMMS.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("LookupList");
+                });
+
+            modelBuilder.Entity("EMMS.Models.Entities.Notification", b =>
+                {
+                    b.HasOne("EMMS.Models.Entities.Facility", "Facility")
+                        .WithMany()
+                        .HasForeignKey("FacilityId");
+
+                    b.Navigation("Facility");
                 });
 
             modelBuilder.Entity("EMMS.Models.Job", b =>

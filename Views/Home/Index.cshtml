@@ -1,4 +1,6 @@
-﻿@{
+﻿@model EMMS.ViewModels.IndexModel;
+
+@{
     ViewData["Title"] = "Home Page";
     ViewData["active"] = "active";
 }
@@ -8,54 +10,136 @@
     <div class="card-header">
         <h4>Dashboard</h4>
     </div>
+    <div class="card-body">
+        <!-- Dashboard Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        Total Assets
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.TotalAssets</h1>
+                        <p class="card-text">Assets currently being tracked.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        Completed Jobs
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.CompletedJobs</h1>
+                        <p class="card-text">Jobs successfully completed.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-warning text-white">
+                        Pending Jobs
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.PendingJobs</h1>
+                        <p class="card-text">Jobs awaiting approval or action.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div class="row justify-content-end">
+            <div class="col-lg-4 col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Notifications</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-body">
+                            <ul class="notification-list list-unstyled mb-0" id="notificationList">
+                                @if (Model.notifications != null && Model.notifications.Any())
+                                {
+                                    foreach (var item in Model.notifications)
+                                    {
+                                        <li class="notification-item d-flex align-items-center py-2 border-bottom">
+                                            <div class="notification-icon me-3">
+                                                @if (item.Type == "work")
+                                                {
+                                                    <i class="fas fa-tools text-primary"></i>
+                                                }
+                                                else if (item.Type == "job")
+                                                {
+                                                    <i class="fas fa-briefcase text-success"></i>
+                                                }
+                                                else if (item.Type == "asset")
+                                                {
+                                                    <i class="fas fa-box text-info"></i>
+                                                }
+                                                else if (item.Type == "move")
+                                                {
+                                                    <i class="fa-solid fa-arrows-turn-to-dots"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-bell text-secondary"></i>
+                                                }
+                                            </div>
+                                            <div class="notification-content flex-grow-1">
+                                                <p class="notification-message mb-1">@item.Message</p>
+                                                <span class="notification-time small text-muted">@item.DateCreated?.ToShortDateString()</span>
+                                            </div>
+                                            <div class="notification-actions ms-3">
+                                                @if (item.Type == "work")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Work Request"
+                                                       href="@Url.Action("Index", "JobManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "job")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Job"
+                                                       href="@Url.Action("Index", "JobManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "asset")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Asset"
+                                                       href="@Url.Action("Index", "AssetManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "move")
+                                                {
+                                                    <a class="notification-action mark-read" title="Receive Asset"
+                                                       href="@Url.Action("recieveAsset", "AssetMovement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="notification-action mark-read" title="No action">
+                                                        <i class="fas fa-eye-slash"></i>
+                                                    </span>
+                                                }
+                                            </div>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="text-center text-muted py-4">
+                                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                                        <div>No notifications yet</div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-<!-- Dummy Dashboard Content -->
-<div class="row">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-info text-white">
-                Total Assets
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">150</h5>
-                <p class="card-text">Assets currently being tracked.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-danger text-white">
-                Decommisioned Assets
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">15</h5>
-                <p class="card-text">Assets that have been Decommisioned.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-success text-white">
-                Completed Jobs
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">120</h5>
-                <p class="card-text">Jobs successfully completed.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-warning text-white">
-                Pending Jobs
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">15</h5>
-                <p class="card-text">Jobs awaiting approval or action.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-

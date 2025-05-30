@@ -92,6 +92,7 @@ namespace EMMS.Controllers
                 assetMovement.RowState = RowStatus.Active;
                 assetMovement.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
                 //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
 
                 _context.Add(assetMovement);
                 await _context.SaveChangesAsync();
@@ -143,7 +144,9 @@ namespace EMMS.Controllers
 
              
                 var movement = _context.AssetMovement
-                    .FirstOrDefault(m => m.MovementId == id); 
+                    .FirstOrDefault(m => m.MovementId == id);
+            var assetTag = _context.Assets
+            .FirstOrDefault(a => a.AssetId == movement.AssetId).AssetTagNumber;
 
                 if (movement == null)
                 {
@@ -155,7 +158,17 @@ namespace EMMS.Controllers
                 // Update movement properties
                 movement.IsApproved = true;
                 movement.ApprovedBy = Guid.NewGuid();
-                _context.Update(movement);
+                var notification = new Models.Entities.Notification
+                {
+                    Message = $"Recieve Asset: {assetTag}",
+                    Type = "move",
+                    DateCreated = DateTime.Now,
+                    FacilityId = movement.FacilityId,
+                    RowState = RowStatus.Active
+                    // UserId = ... // Optionally set for a specific user
+                };
+            _context.Notifications.Add(notification);
+            _context.Update(movement);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             

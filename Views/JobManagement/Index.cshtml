@@ -99,7 +99,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var asset in Model.AssetIndex.assetViewModels.Where(a => a.LastMovement?.Reason?.Name != "Decommision"))
+                                @foreach (var asset in Model.AssetIndex.assetViewModels.Where(a => a.LastMovement?.Reason?.Name != "Decommission"))
                                 {
 
                                     var lastMove = asset.LastMovement;

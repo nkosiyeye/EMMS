@@ -10,6 +10,8 @@ namespace EMMS.Models.Entities
         public int LookupListId { get; set; }
         [ForeignKey("LookupListId")]
         public virtual LookupList LookupList { get; set; }
+
+        public int? ParentId { get; set; } // optional parent for hierarchical lookups
         public string? Name { get; set; }
         public int SortIndex { get; set; }
         public Guid? CreatedBy { get; set; }

@@ -53,24 +53,44 @@ function generateNotificationContent() {
             notificationItem.className = `notification-item ${notification.read ? '' : 'unread'}`;
             notificationItem.dataset.id = notification.id;
 
+            // Helper to get icon class by type
+            function getNotificationIcon(type) {
+                switch (type) {
+                    case "work": return "fas fa-tools text-primary";
+                    case "job": return "fas fa-briefcase text-success";
+                    case "asset": return "fas fa-box text-info";
+                    default: return "fas fa-bell text-secondary";
+                }
+            }
+
+            // Helper to get link by type
+            function getNotificationLink(type) {
+                switch (type) {
+                    case "work":
+                        return `/JobManagement/Index/`;
+                    case "job":
+                        return `/JobManagement/Index/`;
+                    case "asset":
+                        return `/AssetManagement/Index/`;
+                    default:
+                        return "#";
+                }
+            }
+
             notificationItem.innerHTML = `
-                <div class="notification-icon ${notification.type}">
-                  <i class="${notification.icon}"></i>
-                </div>
-                <div class="notification-content">
-                  <p class="notification-message">${notification.message}</p>
-                  <span class="notification-time">${notification.time}</span>
-                </div>
-                <div class="notification-actions">
-                  ${!notification.read ?
-                    `<button class="notification-action mark-read" title="Mark as read" onclick="markNotificationAsRead(${notification.id})">
-                      <i class="fas fa-check"></i>
-                    </button>` : ''}
-                  <button class="notification-action delete" title="Delete" onclick="deleteNotification(${notification.id})">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-              `;
+                            <div class="notification-icon ${notification.type}">
+                              <i class="${getNotificationIcon(notification.type)}"></i>
+                            </div>
+                            <div class="notification-content">
+                              <p class="notification-message">${notification.message}</p>
+                              <span class="notification-time">${notification.dateCreated}</span>
+                            </div>
+                            <div class="notification-actions">
+                              <a class="notification-action mark-read" title="View" href="${getNotificationLink(notification.type)}">
+                                <i class="fas fa-eye"></i>
+                              </a>
+                            </div>`;
+
 
             notificationList.appendChild(notificationItem);
         });

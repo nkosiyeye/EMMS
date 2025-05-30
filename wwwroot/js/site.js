@@ -181,9 +181,9 @@ function printSelectedStickers() {
                     </head>
                     <body>
                         ${selectedAssets.map(asset => `
-                        <div class="sticker">
+                        <div class="sticker mt-4">
                             <div class="sticker-header">
-                                EMMS
+                                EMMS Asset
                             </div>
                             <div class="row py-0">
                                 <div class="sticker-details col-md-6">

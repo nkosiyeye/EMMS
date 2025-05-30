@@ -1,5 +1,7 @@
 ﻿using EMMS.Data.Repository;
+using EMMS.Models.Entities;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace EMMS.ViewModels
 {
@@ -12,6 +14,7 @@ namespace EMMS.ViewModels
         public int DecommissionedAssets { get; set; }
         public int CompletedJobs { get; set; }
         public int PendingJobs { get; set; }
+        public IEnumerable<Notification> notifications { get; set; }
 
         public IndexModel(AssetManagementRepo assetRepo, JobManagementRepo jobRepo)
         {
@@ -21,10 +24,11 @@ namespace EMMS.ViewModels
 
         public void OnGet()
         {
-            //TotalAssets = _assetRepo.GetAssetsFromDb().Result.Count();
-            //DecommissionedAssets = _assetRepo.GetAssetsFromDb().Result.Count();
-            //CompletedJobs = _jobRepo.GetCompletedJobs();
-            //PendingJobs = _jobRepo.GetPendingJobs();
+            notifications = _assetRepo.GetNotifications().Result.Take(4);
+            TotalAssets = _assetRepo.GetAssetsFromDb().Result.Count();
+            //DecommissionedAssets = _assetRepo.GetAssetsFromDb().Result.Where().Count();
+            CompletedJobs = _jobRepo.GetJobfromDbs().Result.Where(j => j.EndDate != null).Count();
+            PendingJobs = _jobRepo.GetWorkRequests().Result.Where(w => w.Outcome == null).Count();
         }
     }
 }

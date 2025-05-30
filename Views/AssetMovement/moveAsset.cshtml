@@ -13,7 +13,7 @@
                 <h1 class="modal-title fs-5" id="exampleModalLabel">Move Asset</h1>
             </div>
             <div class="card-body">
-                @if (TempData["Error"] != null)
+               @*  @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                         <div>
@@ -26,7 +26,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                }
+                } *@
                 <form asp-action="MoveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -67,7 +67,7 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.ReasonId" class="form-label"></label>
+                    <label asp-for="MoveAsset.ReasonId" class="form-label required-field"></label>
                             <select asp-for="MoveAsset.ReasonId" class="form-select selectpicker col-md-6"
                                     data-live-search="true" asp-items="@(new SelectList(Model.Reasons, "Id", "Name"))">
                                 <option selected disabled>Select Reason</option>
@@ -75,7 +75,7 @@
                     <span asp-validation-for="MoveAsset.ReasonId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.FunctionalStatusId" class="form-label"></label>
+                    <label asp-for="MoveAsset.FunctionalStatusId" class="form-label required-field"></label>
                             <select asp-for="MoveAsset.FunctionalStatusId" class="form-select selectpicker col-md-6"
                                     data-live-search="true" asp-items="@(new SelectList(Model.FunctionalStatuses, "Id", "Name"))">
                                 <option selected disabled>Select Status</option>
@@ -112,10 +112,10 @@
                             console.log(servicePointField);
 
                         if (movementType && facilityField && servicePointField) {
-                        if (movementType === "41") {
+                        if (movementType === "110") {
                             facilityField.classList.remove("d-none");
                             servicePointField.classList.add("d-none");
-                        } else if (movementType === "42") {
+                        } else if (movementType === "111") {
                             facilityField.classList.add("d-none");
                             servicePointField.classList.remove("d-none");
                         }

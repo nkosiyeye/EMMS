@@ -55,6 +55,12 @@ namespace EMMS.Models
         [ForeignKey(nameof(StatusId))]
         public virtual LookupItem? Status { get; set; }
 
+        [Display(Name = "Amount")]
+        public int? Amount { get; set; }
+
+        [Display(Name = "Invoice No")]
+        public string? InvoiceNo { get; set; }
+
 
         [Display(Name = "Remarks")]
         public string? Remarks { get; set; }

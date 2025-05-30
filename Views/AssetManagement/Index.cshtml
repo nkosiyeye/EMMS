@@ -75,7 +75,7 @@
                                     @if (lastMove != null)
                                     {
                                         @:@(lastMove.FunctionalStatus?.Name ?? "N/A")
-                                        @if (lastMove.Reason?.Name == "Decommision")
+                                        @if (lastMove.Reason?.Name == "Decommission")
                                         {
                                             @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
                                         }
@@ -91,7 +91,7 @@
                                             <i class="fa-solid fa-ellipsis"></i>
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
                                                 <button class="dropdown-item btn btn-primary me-1" title="Edit" style="font-size: medium;">
                                                     <i class="fa fa-edit"></i> edit asset
                                                 </button>
@@ -101,7 +101,7 @@
                                                     <i class="fa fa-eye"></i> view asset
                                                 </a>
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
                                                 <a style="font-size: medium;"
                                                         class="dropdown-item btn btn-warning"
                                                         title="Move"
@@ -109,7 +109,7 @@
                                                     <i class="fa fa-arrows-alt"></i> move asset
                                                 </a>
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
                                                 <a style="font-size: medium;"
                                                         class="dropdown-item btn btn-secondary"
                                                         title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
@@ -117,7 +117,7 @@
                                                 </a>
 
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>

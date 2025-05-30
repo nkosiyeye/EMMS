@@ -110,6 +110,19 @@ namespace EMMS.Controllers
                 work.RowState = RowStatus.Active;
                 work.RequestedBy = Guid.NewGuid();
                 work.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                                                 // Add notification
+                var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
+
+                var notification = new Models.Entities.Notification
+                {
+                    Message = $"New work requested for: {assetTag}",
+                    Type = "work",
+                    DateCreated = DateTime.Now,
+                    FacilityId = work.FacilityId,
+                    RowState = RowStatus.Active
+                    // UserId = ... // Optionally set for a specific user
+                };
+                _context.Notifications.Add(notification);
 
                 _context.Add(work);
                 await _context.SaveChangesAsync();
@@ -182,11 +195,20 @@ namespace EMMS.Controllers
                 job.StatusId = jobView.Job.StatusId;
                 job.DateModified = DateTime.Now;
                 job.Remarks = jobView.Job.Remarks;
+                if (job.IsExternalProvider)
+                {
+                    job.Amount = jobView.Job.Amount;
+                    job.InvoiceNo = jobView.Job.InvoiceNo;
+                }
                 _context.Update(job);
                 _context.Update(workRequest);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(manageJobs));
 
+            }
+            if (jobView.Job!.IsExternalProvider)
+            {
+                return RedirectToAction(nameof(externalJobCard), new { id = jobView.Job!.JobId });
             }
             return RedirectToAction(nameof(jobCard), new { id = jobView.Job!.JobId });
 
@@ -215,7 +237,7 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone!.JobId });
         }
         [HttpPost]
-        public async Task<IActionResult> ExWorkDone(JobViewModel ExView)
+        public async Task<IActionResult> ExWorkDone(JobViewModel wView)
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
@@ -223,18 +245,19 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 //var _job = wView.Job;
-                var exworkDone = ExView.ExWorkDone;
-                exworkDone.ExternalWorkDoneId = Guid.NewGuid();
-                exworkDone.DateCreated = DateTime.Now;
-                exworkDone.RowState = RowStatus.Active;
-                exworkDone.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
-                _context.Add(exworkDone);
+                var workDone = wView.WorkDone;
+                workDone.WorkDoneId = Guid.NewGuid();
+                workDone.JobId = wView.WorkDone.JobId;
+                workDone.DateCreated = DateTime.Now;
+                workDone.RowState = RowStatus.Active;
+                workDone.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                _context.Add(workDone);
                 await _context.SaveChangesAsync();
                 // Stay on the same job card
-                return RedirectToAction(nameof(externalJobCard), new { id = ExView.ExWorkDone.JobId });
+                return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone.JobId });
             }
 
-            return RedirectToAction(nameof(externalJobCard), new { id = ExView.ExWorkDone.JobId });
+            return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone!.JobId });
         }
         public async Task<IActionResult> externalJobCard(int id)
         {
@@ -247,8 +270,8 @@ namespace EMMS.Controllers
                 WorkStatuses = await _repo.GetWorkStatus(),
                // WorkDoneList = await GetWorkDone(),
                 //WorkDone = new WorkDone(),
-                ExWorkDoneList = _repo.GetExWorkDone().Result.Where(w => w.JobId == job.JobId),
-                ExWorkDone = new ExternalWorkDone(),
+                WorkDoneList = _repo.GetWorkDone().Result.Where(w => w.JobId == job.JobId),
+                WorkDone = new WorkDone(),
 
             };
             return View(jobView);

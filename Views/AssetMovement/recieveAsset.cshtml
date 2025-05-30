@@ -111,7 +111,7 @@
             </div>
             <div class="modal-body">
 
-                @if (TempData["Error"] != null)
+                @* @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                         <div>
@@ -124,7 +124,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                }
+                } *@
                 <form asp-action="ReceiveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
