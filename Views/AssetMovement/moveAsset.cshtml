@@ -32,7 +32,7 @@
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.MovementDate" class="form-label required-field"></label>
                             <input asp-for="MoveAsset.MovementDate" class="form-control" type="date" />
-                    <span asp-validation-for="MoveAsset.MovementDate" class="text-danger"></span>
+                            <span asp-validation-for="MoveAsset.MovementDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
@@ -51,6 +51,7 @@
                     <span asp-validation-for="MoveAsset.MovementTypeId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6" id="facilityField">
+                             <input asp-for="MoveAsset.FromId" value="@ViewBag._currentUser.FacilityId" class="form-control" type="int" hidden/>
                             <label asp-for="MoveAsset.FacilityId" class="form-label required-field"></label>
                             <select asp-for="MoveAsset.FacilityId" class="form-select selectpicker col-md-6"
                                     data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">

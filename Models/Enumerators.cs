@@ -6,8 +6,14 @@
         {
             GeneralUser = 1,
             FacilityManager = 2,
-            Supervior = 3,
-            Administrator = 4,
+            Administrator = 3,
+            Biomed = 4,
+        }
+        public enum Permission : byte
+        {
+            Read = 1,
+            ReadnWrite = 2,
+            None = 3,
         }
         public enum RowStatus : byte
         {

@@ -12,7 +12,7 @@ namespace EMMS.Models
 
         
         [Display(Name = "Job ID")]
-        public int? JobId { get; set; }
+        public Guid? JobId { get; set; }
 
         [Required]
         [Display(Name = "Date Completed")]

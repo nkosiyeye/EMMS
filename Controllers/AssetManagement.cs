@@ -1,22 +1,28 @@
 ﻿using System.Diagnostics;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
+using EMMS.Models.Admin;
 using EMMS.Models.Entities;
+using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    public class AssetManagement : Controller
+    public class AssetManagement : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetService _assetService;
         public AssetManagement(ApplicationDbContext context)
         {
             _context = context;
-            
+            _assetService = new AssetService(context);
+
         }
         [HttpGet]
         public async Task<IActionResult> GetSubCategories(int categoryId)
@@ -28,42 +34,14 @@ namespace EMMS.Controllers
 
             return Json(subCategories);
         }
-
-        public async Task<AssetIndexViewModel?> assetViewModel()
-        {
-
-            var _repo = new AssetManagementRepo(_context);
-            var assets = await _repo.GetAssetsFromDb();
-
-            // Fetch last movement for each asset
-            var lastMovements = await _repo.GetAssetMovement();//.Result.Where(w => w.MovementTypeId == 110);
-
-            // Map assetId to last movement
-            var lastMovementDict = lastMovements
-                .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m);
-
-            //view model to hold asset and last movement info
-            var assetViewModels = assets.Select(asset => new AssetViewModel
-            {
-                Asset = asset,
-                LastMovement = lastMovementDict.ContainsKey(asset.AssetId) ? lastMovementDict[asset.AssetId] : null
-            }).ToList();
-
-            var indexView = new AssetIndexViewModel
-            {
-                assetViewModels = assetViewModels,
-                moveAsset = new MoveAsset()
-            };
-            return indexView;
-        }
+        [RequireLogin]
         public async Task<IActionResult> Index()
         {
 
-            return View(await assetViewModel());
+            return View(await _assetService.GetAssetIndexViewModel(CurrentUser));
         }
 
-
+        [RequireLogin]
         public async Task<IActionResult> Detail(Guid id)
         {
             var asset = await _context.Assets
@@ -75,6 +53,7 @@ namespace EMMS.Controllers
                 .Include(a => a.ServiceProvider)
                 .Include(a => a.ServicePeriodName)
                 .Include(a => a.Status)
+                .Include(u => u.User)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
 
             var serviceHistory = await _context.Job
@@ -102,6 +81,8 @@ namespace EMMS.Controllers
             return View(vm);
         }
 
+
+        [RequireLogin]
         public async Task<IActionResult> registerAsset()
         {
             var _repo = new AssetManagementRepo(_context);
@@ -125,7 +106,65 @@ namespace EMMS.Controllers
 
             return View(viewModel);
         }
-             
+
+        [RequireLogin]
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            var _repo = new AssetManagementRepo(_context);
+
+            var viewModel = new AssetRegistrationViewModel
+            {
+                asset = _repo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id)!,
+                Categories = await _repo.GetCategories(),
+                SubCategories = await _repo.GetSubCategories(),
+                Departments = await _repo.GetDepartments(),
+                Manufacturers = await _repo.GetManufacturers(),
+                Vendors = await _repo.GetVendors(),
+                ServiceProviders = await _repo.GetServiceProviders(),
+                Statuses = await _repo.GetStatuses(),
+                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                LifespanPeriods = await _repo.GetLifespanPeriods()
+            };
+
+            return View("edit", viewModel);
+
+        }
+        [RequireLogin]
+        [HttpPost]
+        public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
+        {
+            var _repo = new AssetManagementRepo(_context);
+            var asset = Assetmodel.asset;
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
+            if (ModelState.IsValid)
+            {
+                UpdateEntity(asset); // TBD Replace with actual user ID
+                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                _context.Update(asset);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+
+            var viewModel = new AssetRegistrationViewModel
+            {
+                asset = asset,
+                Categories = await _repo.GetCategories(),
+                SubCategories = await _repo.GetSubCategories(),
+                Departments = await _repo.GetDepartments(),
+                Manufacturers = await _repo.GetManufacturers(),
+                Vendors = await _repo.GetVendors(),
+                ServiceProviders = await _repo.GetServiceProviders(),
+                Statuses = await _repo.GetStatuses(),
+                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                LifespanPeriods = await _repo.GetLifespanPeriods()
+            };
+
+            return View("edit", viewModel);
+
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
@@ -136,8 +175,7 @@ namespace EMMS.Controllers
             {
                 var asset = Assetmodel.asset;
                 asset.DateCreated = DateTime.Now;
-                asset.RowState = RowStatus.Active;
-                asset.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                CreateEntity(asset); // TBD Replace with actual user ID
                 //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 _context.Add(asset);

@@ -1,4 +1,5 @@
 ﻿using EMMS.Models.Domain;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using static EMMS.Models.Enumerators;
 
@@ -9,9 +10,13 @@ namespace EMMS.Models.Entities
         public int Id { get; set; }
         public int LookupListId { get; set; }
         [ForeignKey("LookupListId")]
-        public virtual LookupList LookupList { get; set; }
+        public virtual LookupList? LookupList { get; set; }
 
         public int? ParentId { get; set; } // optional parent for hierarchical lookups
+        [ForeignKey(nameof(ParentId))]
+        public virtual LookupItem? Parent { get; set; } // self-referencing for hierarchical lookups
+
+        [Required(ErrorMessage = "Enter Item Name")]
         public string? Name { get; set; }
         public int SortIndex { get; set; }
         public Guid? CreatedBy { get; set; }

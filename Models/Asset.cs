@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using EMMS.CustomRequiredAttribute;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -115,6 +116,8 @@ namespace EMMS.Models
 
 
         public Guid? CreatedBy { get; set; }
+        [ForeignKey(nameof(CreatedBy))]
+        public virtual User? User { get; set; }
         public DateTime? DateCreated { get; set; }
         public Guid? ModifiedBy { get; set; }
         public DateTime? DateModified { get; set; }

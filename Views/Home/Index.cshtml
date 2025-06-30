@@ -49,8 +49,130 @@
         </div>
 
         <!-- Notifications Section -->
-        <div class="row justify-content-end">
-            <div class="col-lg-4 col-md-12">
+        <div class="row">
+            <div class="col-lg-6 col-md-12  justify-content-start">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Equipments Up for Service</span>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="table-responsive" id="table-responsive-asset">
+                            <div class="table-responsive" id="table-responsive-asset">
+                                <table class="table fixed-table table-striped table-bordered table-hover" id="assetTable">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Tag</th>
+                                            <th>Category</th>
+                                            <th>SubCategory</th>
+                                            <th>Placement</th>
+                                            <th>Vendor</th>
+                                            <th>Service Provider</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Location</th>
+                                            <th>Functional Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var asset in Model.assets)
+                                        {
+
+                                            var lastMove = asset.LastMovement;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="asset-checkbox"
+                                                           value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
+                                                </td>
+                                                <td>@asset.Asset.AssetTagNumber</td>
+                                                <td>@asset.Asset?.Category!.Name</td>
+                                                <td>@asset.Asset?.SubCategory!.Name</td>
+                                                <td>@(asset.Asset!.IsPlacement! ? "Yes" : "No")</td>
+                                                <td>@asset.Asset.Vendor!.Name</td>
+                                                <td>@asset.Asset.ServiceProvider!.Name</td>
+                                                <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
+                                                <td>@asset.Asset.Status!.Name</td>
+                                                <td>
+                                                    @if (lastMove != null)
+                                                    {
+                                                        @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </td>
+                                                <td width="10%">
+                                                    @if (lastMove != null)
+                                                    {
+                                                        @:@(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                                        @if (lastMove.Reason?.Name == "Decommission")
+                                                        {
+                                                            @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                            <i class="fa-solid fa-ellipsis"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li class="@(lastMove != null  ? "d-none" : "")">
+                                                                <a class="dropdown-item btn btn-primary me-1"
+                                                                   title="Edit" style="font-size: medium;"
+                                                                   asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-edit"></i> edit asset
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
+                                                                    <i class="fa fa-eye"></i> view asset
+                                                                </a>
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <a style="font-size: medium;"
+                                                                   class="dropdown-item btn btn-warning"
+                                                                   title="Move"
+                                                                   asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-arrows-alt"></i> move asset
+                                                                </a>
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <a style="font-size: medium;"
+                                                                   class="dropdown-item btn btn-secondary"
+                                                                   title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-toolbox"></i> work request
+                                                                </a>
+
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
+                                                                    <i class="fa fa-trash"></i> delete asset
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        <div class="col-lg-6 col-md-12 justify-content-end">
                 <div class="card shadow-sm">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span>Notifications</span>
@@ -143,3 +265,12 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#assetTable').DataTable({
+                pageLength: 10
+            });
+        });
+    </script>
+}

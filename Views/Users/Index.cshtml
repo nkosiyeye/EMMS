@@ -1,0 +1,133 @@
+﻿@model IEnumerable<EMMS.Models.Admin.User>
+
+@{
+
+    ViewData["Title"] = "Manage Users";
+    ViewData["UserManagement"] = "active";
+    ViewData["userAccounts"] = "active";
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>User Accounts</span>
+            <div class="d-flex justify-content-between align-items-center">
+                <a class="btn btn-primary btn-sm" asp-action="Create">
+                    <i class="fa fa-plus me-1"></i> Create New
+                </a>
+                <button class="btn btn-primary btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
+                    <i class="fa fa-download"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" id="table-responsive-asset">
+            <div class="table-responsive" id="table-responsive-asset">
+                <table class="table fixed-table table-striped table-bordered table-hover" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                @Html.DisplayNameFor(model => model.FirstName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.MiddleName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.LastName)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.DOB)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Gender)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Cellphone)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Designations)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Facility)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.Username)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.UserRole)
+                            </th>
+                            <th>
+                                @Html.DisplayNameFor(model => model.RowState)
+                            </th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.FirstName)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.MiddleName)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.LastName)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.DOB)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Gender)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Cellphone)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Designations.Name)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Facility.FacilityName)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.Username)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.UserRole.Name)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.RowState)
+                                </td>
+                                <td>
+                                    <a asp-action="Edit" asp-route-id="@item.UserId">Edit</a> |
+                                    <a asp-action="Details" asp-route-id="@item.UserId">Details</a> |
+                                    <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#userTable').DataTable({
+                // Optional: customize page length, language, etc.
+                pageLength: 10
+            });
+        });
+
+    </script>
+}
+
+

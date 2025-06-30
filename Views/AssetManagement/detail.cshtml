@@ -37,8 +37,8 @@
                     <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
 
-                    <dt class="col-sm-6 border p-1 m-0">TBD</dt>
-                    <dd class="col-sm-6 border p-1 m-0"></dd>
+                    <dt class="col-sm-6 border p-1 m-0">Created By</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.User.FirstName)</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>

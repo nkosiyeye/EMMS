@@ -31,33 +31,44 @@
                 </thead>
                 <tbody>
                     @foreach (var request in @Model.WorkRequests)
-                        {
-                            <tr>
-                                <td>@request.Asset.AssetTagNumber</td>
-                                <td>@request.RequestDate</td>
-                                <td>@request.FaultReport!.Name</td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
-                                    {
-                                        <span>@request.Description.Substring(0, 20)...</span>
-                                        <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
-                                    }
-                                    else
-                                    {
-                                        <span>@request.Description</span>
-                                    }
-                                </td>
+                    {
+                        <tr>
+                            <td>@request.Asset.AssetTagNumber</td>
+                            <td>@request.RequestDate</td>
+                            <td>@request.FaultReport!.Name</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                {
+                                    <span>@request.Description.Substring(0, 20)...</span>
+                                    <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                }
+                                else
+                                {
+                                    <span>@request.Description</span>
+                                }
+                            </td>
+                            @if (request.JobId != null)
+                            {
+                                <td>@request.WorkStatus!.Name @(request.Job!.IsExternalProvider ? "(ExternalJobCard)" : "")</td>
+                                
+                            }
+                            else
+                            {
                                 <td>@request.WorkStatus!.Name</td>
-                                <td>@request.Outcome?.Name</td>
-                                <td>
-                                    <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.WorkStatus.Name != "Open" ? "hidden" : "")>
-                                        <i class="fa fa-edit"></i>
+                            }
+                             <td>@request.Outcome?.Name</td>
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.WorkStatus.Name != "Open" ? "hidden" : "")>
+                                    <i class="fa fa-edit"></i>
+                                </a>
+                                @if (request.JobId != null)
+                                {
+                                    <a asp-controller="JobManagement" asp-action="@(request.Job!.IsExternalProvider ? "externalJobCard": "jobCard")" 
+                                       asp-route-id="@request.JobId" class="btn btn-sm btn-info me-1" title="View">
+                                        <i class="fa fa-eye"></i>
                                     </a>
 
-                                    @* <a asp-controller="JobManagement" asp-action="jobCard" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
-                                        <i class="fa fa-eye"></i>
-                                    </a> *@
-
+                                }
                                     <button class="btn btn-sm btn-danger me-1" title="Close Job"
                                     data-bs-toggle="modal" 
                                         data-bs-target="#closeModal"
@@ -66,7 +77,7 @@
                                         Close Request
                                     </button>
                                 </td>
-                            </tr>
+                            </tr> 
                         }
                     
                 </tbody>

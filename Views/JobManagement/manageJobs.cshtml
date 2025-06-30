@@ -53,12 +53,12 @@
                                     <td>@request.WorkStatus.Name</td>
                                     <td>
                                         <button 
-                                            class="btn btn-primary btn-sm" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#jobModal"
-                                                data-request-id="@request.WorkRequestId"
-                                                data-asset-id="@request.AssetId"
-                                            data-asset-tag="@request.Asset.AssetTagNumber">
+                                        class="btn btn-primary btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#jobModal"
+                                        data-request-id="@request.WorkRequestId"
+                                        data-asset-id="@request.AssetId"
+                                        data-asset-tag="@request.Asset.AssetTagNumber">
                                             Create Job
                                         </button>
                                         <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -97,7 +97,7 @@
                                     <td>@job.Asset.AssetTagNumber</td>
                                     <td>@job.StartDate</td>
                                     <td>@job.FaultReport.Name</td>
-                                    <td>@job.AssignedTo</td>
+                                    <td>@job.User.FirstName</td>
                                     <td>@job.Status.Name @(job.IsExternalProvider ? "(External)" : "")</td>
                                     <td>
                                         <a asp-controller="JobManagement" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
@@ -143,7 +143,7 @@
                             <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
                             <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "In Progress").Name" disabled />
                             <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
-                                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
+                            data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
                                 @foreach (var status in Model.WorkStatuses!.Where(w => w.Name == "In Progress"))
                                 {
                                     <option value="@status.Id" selected>@status.Name</option>
@@ -156,17 +156,24 @@
                         <div class="col-md-6">
                             <label asp-for="Job.FaultReportId" for="title" class="form-label required-field"></label>
                             <select asp-for="Job.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                            data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
                                 <option selected disabled>Select Fault Report</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
-                            <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" required>
-                                <option selected disabled>Select BioMed</option>
-                                <option value="@Guid.NewGuid()">BioMed</option>
-                                @* TBD *@
-                            </select>
+                            @if (ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator)
+                            {
+                                <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" asp-items="ViewBag.Biomed" required>
+                                </select>
+
+                            }
+                            else
+                            {
+                                    <input asp-for="Job.AssignedTo" value="@ViewBag._currentUser.UserId" id="requestId" type="hidden" />
+                                <input readonly type="text" class="form-control" id="assignedTo" value="@ViewBag._currentUser.FirstName">
+                               
+                            }
                         </div>
                     </div>
 

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EMMS.Controllers
 {
-    public class NotificationController : Controller
+    public class NotificationController : BaseController
     {
         private readonly ApplicationDbContext _context;
         public NotificationController(ApplicationDbContext context)

@@ -1,6 +1,5 @@
 ﻿@model EMMS.ViewModels.AssetIndexViewModel
 @{
-    var pagination = (Pagination)ViewData["Pagination"];
 
     ViewData["Title"] = "Manage Assets";
     ViewData["asset"] = "active";
@@ -91,10 +90,12 @@
                                             <i class="fa-solid fa-ellipsis"></i>
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
-                                                <button class="dropdown-item btn btn-primary me-1" title="Edit" style="font-size: medium;">
+                                            <li class="@(lastMove != null  ? "d-none" : "")">
+                                                <a class="dropdown-item btn btn-primary me-1" 
+                                                title="Edit" style="font-size: medium;"
+                                                   asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-edit"></i> edit asset
-                                                </button>
+                                                </a>
                                             </li>
                                             <li>
                                                 <a asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
@@ -143,7 +144,7 @@
             $(document).ready(function () {
                 $('#assetTable').DataTable({
                     // Optional: customize page length, language, etc.
-                    pageLength: 10
+                    pageLength: 5
                 });
             });
 

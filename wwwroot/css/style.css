@@ -20,6 +20,11 @@ main{
     overflow-y: auto;
     background:whitesmoke;
 }
+.logo {
+    width: 11rem;
+}
+
+
 
 
 /* ===========================

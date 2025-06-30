@@ -1,22 +1,28 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
+using EMMS.Service;
 using EMMS.ViewModels;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    public class JobManagementController : Controller
+    public class JobManagementController : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetService _assetService;
         public JobManagementController(ApplicationDbContext context)
         {
             _context = context;
+            _assetService = new AssetService(context);
         }
         
 
@@ -26,16 +32,12 @@ namespace EMMS.Controllers
             {
                 workmodel = new WorkRequest();
             }
-            var _repo = new JobManagementRepo(_context);
-            var assets = await new AssetManagement(_context).assetViewModel();
+            
+            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser);
             WorkRequestViewModel paginatedWorkRequest = new WorkRequestViewModel
             {
-                WorkRequests = await _repo.GetWorkRequests(),
                 WorkRequest = workmodel,
                 AssetIndex = assets,
-                Outcomes = await _repo.GetOutcomes(),
-                WorkStatuses = await _repo.GetWorkStatus(),
-                //Assets = await _Assetrepo.GetAssetsFromDb(),
             };
 
             return paginatedWorkRequest;
@@ -53,8 +55,8 @@ namespace EMMS.Controllers
             var all = await _repo.GetJobfromDbs();
             JobViewModel paginatedJob = new JobViewModel
             {
-                Jobs = await _repo.GetJobfromDbs(),
-                WorkRequests = await _repo.GetWorkRequests(),
+                Jobs = _repo.GetJobfromDbs().Result.Where(w => w.FacilityId == CurrentUser.FacilityId || w.AssignedTo == CurrentUser.UserId),
+                WorkRequests = _repo.GetWorkRequests().Result.Where(w => w.FacilityId == CurrentUser.FacilityId),
                 Job = jobmodel,
                 //Asset = await assets.GetAssetsFromDb(),
                 FaultReports = await _repo.GetFaultReports(),
@@ -68,11 +70,18 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            return View(await WorkRequestData());
+            var _repo = new JobManagementRepo(_context);
+            var data = await WorkRequestData();
+            data.WorkRequests = await _repo.GetWorkRequests();//.Result.Where(w => w.FacilityId == CurrentUser.FacilityId);
+            data.Outcomes = await _repo.GetOutcomes();
+            data.WorkStatuses = await _repo.GetWorkStatus();
+            return View(data);
         }
         [HttpGet]
+        [RequireLogin]
         public async Task<IActionResult> workRequest(Guid id)
         {
             var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
@@ -102,14 +111,9 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 var work = workRequestView.WorkRequest;
-                Debug.WriteLine($"WorkRequest: {work!.FaultReportId}");
-
-
-                work.FacilityId = 2; //TBD Update with logged in facility;
-                work.DateCreated = DateTime.Now;
-                work.RowState = RowStatus.Active;
-                work.RequestedBy = Guid.NewGuid();
-                work.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                Debug.WriteLine($"WorkRequest: {work!.FaultReportId}");//TBD Update with logged in facility;
+                work.RequestedBy = CurrentUser.UserId;
+                CreateEntity(work);; // TBD Replace with actual user ID
                                                  // Add notification
                 var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
 
@@ -130,11 +134,13 @@ namespace EMMS.Controllers
             }
             return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
         }
-
+        [RequireLogin]
         public async Task<IActionResult> manageJobs()
         {
+            ViewData["Biomed"] = new SelectList(_context.User.Where(f => f.RowState == RowStatus.Active && f.UserRole.UserType == Enumerators.UserType.Biomed), "UserId", "FirstName");
             return View(await JobData());
         }
+        [RequireLogin]
         public async Task<IActionResult> createJobCard(JobViewModel jobView)
         {
             var _repo = new JobManagementRepo(_context);
@@ -143,15 +149,13 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 var job = jobView.Job;
+                job.JobId = Guid.NewGuid();
                 var wRequest = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
                 wRequest.DateModified = DateTime.Now;
                 wRequest.WorkStatusId = job.StatusId;
-
-
-                job.FacilityId = 2; //TBD Update with logged in facility;
-                job.DateCreated = DateTime.Now;
-                job.RowState = RowStatus.Active;
-                job.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                wRequest.JobId = job.JobId;
+                job.FacilityId = wRequest.FacilityId; //TBD Update with logged in facility;
+                CreateEntity(job); // TBD Replace with actual user ID
 
                 _context.Add(job);
                 _context.Update(wRequest);
@@ -161,7 +165,7 @@ namespace EMMS.Controllers
             }
             return View("manageJobs",await JobData());
         }
-        public async Task<IActionResult> jobCard(int id)
+        public async Task<IActionResult> jobCard(Guid id)
         {
             var _repo = new JobManagementRepo(_context);
             var job = _repo.GetJobfromDbs().Result.FirstOrDefault(j => j.JobId == id);
@@ -225,9 +229,7 @@ namespace EMMS.Controllers
                 var workDone = wView.WorkDone;
                 workDone.WorkDoneId = Guid.NewGuid();
                 workDone.JobId = wView.WorkDone.JobId;
-                workDone.DateCreated = DateTime.Now;
-                workDone.RowState = RowStatus.Active;
-                workDone.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                CreateEntity(workDone); // TBD Replace with actual user ID
                 _context.Add(workDone);
                 await _context.SaveChangesAsync();
                 // Stay on the same job card
@@ -248,9 +250,7 @@ namespace EMMS.Controllers
                 var workDone = wView.WorkDone;
                 workDone.WorkDoneId = Guid.NewGuid();
                 workDone.JobId = wView.WorkDone.JobId;
-                workDone.DateCreated = DateTime.Now;
-                workDone.RowState = RowStatus.Active;
-                workDone.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
+                CreateEntity(workDone); // TBD Replace with actual user ID
                 _context.Add(workDone);
                 await _context.SaveChangesAsync();
                 // Stay on the same job card
@@ -259,7 +259,8 @@ namespace EMMS.Controllers
 
             return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone!.JobId });
         }
-        public async Task<IActionResult> externalJobCard(int id)
+        [RequireLogin]
+        public async Task<IActionResult> externalJobCard(Guid id)
         {
             var _repo = new JobManagementRepo(_context);
             var job = _repo.GetJobfromDbs().Result.FirstOrDefault(j => j.JobId == id);

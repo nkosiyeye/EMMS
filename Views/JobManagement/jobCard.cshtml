@@ -2,6 +2,9 @@
 @{
     ViewData["Title"] = "Job";
     ViewData["JobManagement"] = "active";
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+    var currentUser = ViewBag._currentUser;
 }
 
 <!-- Asset Detail Section -->
@@ -78,11 +81,13 @@
 
         } *@
         <form asp-controller="JobManagement" asp-action="updateJobCard" method="post">
-            <div class="row mb-2">
-                <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
-                    <button type="submit" class="btn btn-primary">Update Job Card</button>
-                </div>
-            </div>
+            
+                @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo)
+                {
+                    <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
+                        <button type="submit" class="btn btn-primary">Update Job Card</button>
+                    </div>                    
+                }
             <!-- Job Card Details -->
             <div class="row mb-3">
                 <div class="col-md-4">
@@ -109,7 +114,8 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
-                    <input asp-for="Job.AssignedTo" type="text" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input asp-for="Job.AssignedTo" type="hidden" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input type="text" class="form-control" id="assignedTo" value="@Model.Job.User.FirstName" readonly>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.FaultReportId" for="status" class="form-label required-field">Fault Report</label>

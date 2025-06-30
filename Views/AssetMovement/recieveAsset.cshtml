@@ -147,7 +147,8 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.ReceivedBy" class="form-label"></label>
-                            <input asp-for="MoveAsset.ReceivedBy" class="form-control" value="@Guid.NewGuid()" readonly/>
+                            <input asp-for="MoveAsset.ReceivedBy" type="hidden" class="form-control" value="@ViewBag._currentUser.UserId" readonly />
+                            <input class="form-control" value="@ViewBag._currentUser.FirstName" readonly />
                         </div>
                     </div>
                     <div class="row mb-3">
