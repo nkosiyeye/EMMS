@@ -31,31 +31,22 @@
             <div class="row mb-2">
 
                 <!-- Date -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
                     <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
                     <span asp-validation-for="WorkRequest.RequestDate" class="text-danger"></span>
                 </div>
 
                 <!-- Asset Name / Tag -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
-                    <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden />
+                    <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden/>
                     <input class="form-control" type="text" value="@Model.AssetTag" disabled />
                 </div>
-
-                <!-- Title -->
-                <div class="col-md-3">
-                    <label asp-for="WorkRequest.FaultReportId" for="title" class="form-label required-field"></label>
-                    <select asp-for="WorkRequest.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
-                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
-                        <option selected disabled>Select Fault Report</option>
-                    </select>
-                    <span asp-validation-for="WorkRequest.FaultReportId" class="text-danger"></span>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
-                    <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
+                    <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "Open").Name" disabled />
+                    <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
                     data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
                         @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
                         {
@@ -63,6 +54,23 @@
                         }
                     </select>
                     <span asp-validation-for="WorkRequest.WorkStatusId" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <label asp-for="WorkRequest.FacilityId" class="form-label"></label>
+                    <input asp-for="WorkRequest.FacilityId" type="hidden" class="form-control" value="@ViewBag._currentUser.FacilityId" readonly />
+                     <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
+                </div>
+
+                <!-- Title -->
+                <div class="col-md-6">
+                    <label asp-for="WorkRequest.FaultReportId" for="title" class="form-label required-field"></label>
+                    <select asp-for="WorkRequest.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
+                            data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                        <option selected disabled>Select Fault Report</option>
+                    </select>
+                    <span asp-validation-for="WorkRequest.FaultReportId" class="text-danger"></span>
                 </div>
             </div>
 

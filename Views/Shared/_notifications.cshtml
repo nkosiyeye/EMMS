@@ -1,0 +1,20 @@
+﻿@inject EMMS.Data.ApplicationDbContext _context
+
+@{
+    var notifications = _context.Notifications
+        .OrderByDescending(n => n.DateCreated)
+        .Take(5)
+        .ToList();
+}
+
+<div class="notifications">
+    <h5>Notifications</h5>
+    <ul>
+        @foreach (var note in notifications)
+        {
+            <li>
+                @note.Message <small class="text-muted">(@note.DateCreated?.ToShortTimeString())</small>
+            </li>
+        }
+    </ul>
+</div>

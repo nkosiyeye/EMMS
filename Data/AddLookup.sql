@@ -16,54 +16,65 @@ DECLARE @VendorId INT = (SELECT LookupListId FROM LookupLists WHERE Name = 'Vend
 DECLARE @ServiceProviderId INT = (SELECT LookupListId FROM LookupLists WHERE Name = 'Service Provider');
 DECLARE @StatusId INT = (SELECT LookupListId FROM LookupLists WHERE Name = 'Status');
 
--- Insert LookupItems for each list
-INSERT INTO LookupItems (LookupListId, Name, SortIndex, RowState) VALUES
--- Categories
-(@CategoryId, 'Medical Equipment', 1, 1),
-(@CategoryId, 'Non Medical Equipment', 2, 1),
+-- Insert Categories and capture their IDs
+INSERT INTO LookupItems (LookupListId, Name, SortIndex, RowState, ParentId)
+VALUES (@CategoryId, 'Medical Equipment', 1, 1, 0);
+DECLARE @MedicalCategoryId INT = SCOPE_IDENTITY();
 
--- SubCategories
-(@SubCategoryId, 'CT Scanner', 1, 1),
-(@SubCategoryId, 'Centrifuge', 2, 1),
-(@SubCategoryId, 'Ultrasound Scanner', 3, 1),
-(@SubCategoryId, 'Oxygen Concentrator', 4, 1),
-(@SubCategoryId, 'Ventilator', 5, 1),
-(@SubCategoryId, 'Defibrillator', 6, 1),
-(@SubCategoryId, 'Dialysis Machine', 7, 1),
-(@SubCategoryId, 'Patient Monitor', 8, 1),
-(@SubCategoryId, 'Infusion Pump', 9, 1),
+INSERT INTO LookupItems (LookupListId, Name, SortIndex, RowState, ParentId)
+VALUES (@CategoryId, 'Non Medical Equipment', 2, 1, 0);
+DECLARE @NonMedicalCategoryId INT = SCOPE_IDENTITY();
+
+-- Insert SubCategories with ParentId
+INSERT INTO LookupItems (LookupListId, Name, SortIndex, RowState, ParentId) VALUES
+-- Medical Equipment Subcategories
+(@SubCategoryId, 'CT Scanner', 1, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Centrifuge', 2, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Ultrasound Scanner', 3, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Oxygen Concentrator', 4, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Ventilator', 5, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Defibrillator', 6, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Dialysis Machine', 7, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Patient Monitor', 8, 1, @MedicalCategoryId),
+(@SubCategoryId, 'Infusion Pump', 9, 1, @MedicalCategoryId),
+
+-- Non Medical Equipment Subcategories (example)
+(@SubCategoryId, 'Generator', 10, 1, @NonMedicalCategoryId),
+(@SubCategoryId, 'Air Conditioner', 11, 1, @NonMedicalCategoryId),
+(@SubCategoryId, 'UPS', 12, 1, @NonMedicalCategoryId),
+
 
 -- Departments
-(@DepartmentId, 'Lab', 1, 1),
-(@DepartmentId, 'Radiology', 2, 1),
-(@DepartmentId, 'ICU', 3, 1),
-(@DepartmentId, 'OT', 4, 1),
-(@DepartmentId, 'Ward', 5, 1),
-(@DepartmentId, 'Pharmacy', 6, 1),
-(@DepartmentId, 'Blood Bank', 7, 1),
+(@DepartmentId, 'Lab', 1, 1, 0),
+(@DepartmentId, 'Radiology', 2, 1, 0),
+(@DepartmentId, 'ICU', 3, 1, 0),
+(@DepartmentId, 'OT', 4, 1, 0),
+(@DepartmentId, 'Ward', 5, 1, 0),
+(@DepartmentId, 'Pharmacy', 6, 1, 0),
+(@DepartmentId, 'Blood Bank', 7, 1, 0),
 
 -- Manufacturers
-(@ManufacturerId, 'GE', 1, 1),
-(@ManufacturerId, 'Philips', 2, 1),
-(@ManufacturerId, 'Siemens', 3, 1),
-(@ManufacturerId, 'Samsung', 4, 1),
-(@ManufacturerId, 'Medtronic', 5, 1),
-(@ManufacturerId, 'Fujifilm', 6, 1),
+(@ManufacturerId, 'GE', 1, 1, 0),
+(@ManufacturerId, 'Philips', 2, 1, 0),
+(@ManufacturerId, 'Siemens', 3, 1, 0),
+(@ManufacturerId, 'Samsung', 4, 1, 0),
+(@ManufacturerId, 'Medtronic', 5, 1, 0),
+(@ManufacturerId, 'Fujifilm', 6, 1, 0),
 
 -- Vendors
-(@VendorId, 'MOH', 1, 1),
-(@VendorId, 'PERPFAR', 2, 1),
-(@VendorId, 'ICAP', 3, 1),
+(@VendorId, 'MOH', 1, 1, 0),
+(@VendorId, 'PERPFAR', 2, 1, 0),
+(@VendorId, 'ICAP', 3, 1, 0),
 
 -- Service Providers
-(@ServiceProviderId, 'ASD', 1, 1),
-(@ServiceProviderId, 'AVOMA', 2, 1),
-(@ServiceProviderId, 'E-Medical', 3, 1),
+(@ServiceProviderId, 'ASD', 1, 1, 0),
+(@ServiceProviderId, 'AVOMA', 2, 1, 0),
+(@ServiceProviderId, 'E-Medical', 3, 1, 0),
 
 -- Statuses
-(@StatusId, 'New', 1, 1),
-(@StatusId, 'Used', 2, 1),
-(@StatusId, 'Refurbished', 3, 1),
-(@StatusId, 'Decommissioned', 4, 1);
+(@StatusId, 'New', 1, 1, 0),
+(@StatusId, 'Used', 2, 1, 0),
+(@StatusId, 'Refurbished', 3, 1, 0),
+(@StatusId, 'Decommissioned', 4, 1, 0);
 
 

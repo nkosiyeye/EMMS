@@ -1,6 +1,13 @@
-﻿@model List<EMMS.Models.Notification>
+﻿@inject EMMS.Data.ApplicationDbContext _context
+
+@{
+    var notifications = _context.Notifications
+        .OrderByDescending(n => n.DateCreated)
+        .Take(3)
+        .ToList();
+}
 
 <script>
     // Pass notifications from C# to JavaScript
-    const notificationsData = @Html.Raw(Json.Serialize(Model));
+    const notificationsData = @Html.Raw(Json.Serialize(notifications));
 </script>

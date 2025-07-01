@@ -37,8 +37,8 @@
                     <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
 
-                    <dt class="col-sm-6 border p-1 m-0">TBD</dt>
-                    <dd class="col-sm-6 border p-1 m-0"></dd>
+                    <dt class="col-sm-6 border p-1 m-0">Created By</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.User.FirstName)</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
@@ -96,7 +96,7 @@
                     <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ServiceProvider!.Name)</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.Facility?.FacilityName ?? "-")</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.Facility?.FacilityName ?? Model.MovementHistory?.FirstOrDefault()?.ServicePoint?.Name ?? "-")</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
                     <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus?.Name ?? "-")</dd>
@@ -104,7 +104,7 @@
                     <dt class="col-sm-6 border p-1 m-0">Servicable</dt>
                     <dd class="col-sm-6 border p-1 m-0">
                         @(Model.Asset.IsServiceable ?
-                            "Yes " + Model.Asset.ServiceInterval + " " + Model.Asset.ServicePeriod
+                            "Yes " + Model.Asset.ServiceInterval + " " + Model.Asset.ServicePeriodName.Name
                             : "No"
                             )
                     </dd>

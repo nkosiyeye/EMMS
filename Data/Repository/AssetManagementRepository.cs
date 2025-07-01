@@ -1,4 +1,5 @@
-﻿using EMMS.Models;
+﻿using EMMS.Data.Migrations;
+using EMMS.Models;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using static EMMS.Models.Enumerators;
@@ -22,8 +23,15 @@ namespace EMMS.Data.Repository
                 .Include(x => x.Manufacturer)
                 .Include(x => x.Vendor)
                 .Include(x => x.ServiceProvider)
+                .Include(x => x.ServicePeriodName)
                 .Include(x => x.Status)
                 .ToListAsync();
+        }
+        public async Task<List<Models.Entities.Notification>> GetNotifications()
+        {
+            return await _context.Notifications
+            .OrderByDescending(n => n.DateCreated)
+            .ToListAsync();
         }
 
         public async Task<List<MoveAsset?>> GetAssetMovement()
@@ -96,7 +104,7 @@ namespace EMMS.Data.Repository
         public async Task<IEnumerable<LookupItem>> GetLifespanPeriods()
         {
             return await _context.LookupItems
-                .Where(x => x.LookupList.Name == "Lifespan Period" && x.RowState == RowStatus.Active)
+                .Where(x => x.LookupList.Name == "Period" && x.RowState == RowStatus.Active)
                 .ToListAsync();
         }
     }

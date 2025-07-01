@@ -1,4 +1,6 @@
-﻿@{
+﻿@model EMMS.ViewModels.IndexModel;
+
+@{
     ViewData["Title"] = "Home Page";
     ViewData["active"] = "active";
 }
@@ -8,54 +10,267 @@
     <div class="card-header">
         <h4>Dashboard</h4>
     </div>
+    <div class="card-body">
+        <!-- Dashboard Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        Total Assets
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.TotalAssets</h1>
+                        <p class="card-text">Assets currently being tracked.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        Completed Jobs
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.CompletedJobs</h1>
+                        <p class="card-text">Jobs successfully completed.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center h-100 shadow-sm">
+                    <div class="card-header bg-warning text-white">
+                        Pending Jobs
+                    </div>
+                    <div class="card-body">
+                        <h1 class="card-title">@Model.PendingJobs</h1>
+                        <p class="card-text">Jobs awaiting approval or action.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Section -->
+        <div class="row">
+            <div class="col-lg-6 col-md-12  justify-content-start">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Equipments Up for Service</span>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="table-responsive" id="table-responsive-asset">
+                            <div class="table-responsive" id="table-responsive-asset">
+                                <table class="table fixed-table table-striped table-bordered table-hover" id="assetTable">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Tag</th>
+                                            <th>Category</th>
+                                            <th>SubCategory</th>
+                                            <th>Placement</th>
+                                            <th>Vendor</th>
+                                            <th>Service Provider</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Location</th>
+                                            <th>Functional Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var asset in Model.assets)
+                                        {
+
+                                            var lastMove = asset.LastMovement;
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="asset-checkbox"
+                                                           value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
+                                                </td>
+                                                <td>@asset.Asset.AssetTagNumber</td>
+                                                <td>@asset.Asset?.Category!.Name</td>
+                                                <td>@asset.Asset?.SubCategory!.Name</td>
+                                                <td>@(asset.Asset!.IsPlacement! ? "Yes" : "No")</td>
+                                                <td>@asset.Asset.Vendor!.Name</td>
+                                                <td>@asset.Asset.ServiceProvider!.Name</td>
+                                                <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
+                                                <td>@asset.Asset.Status!.Name</td>
+                                                <td>
+                                                    @if (lastMove != null)
+                                                    {
+                                                        @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </td>
+                                                <td width="10%">
+                                                    @if (lastMove != null)
+                                                    {
+                                                        @:@(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                                        @if (lastMove.Reason?.Name == "Decommission")
+                                                        {
+                                                            @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>-</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                            <i class="fa-solid fa-ellipsis"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <li class="@(lastMove != null  ? "d-none" : "")">
+                                                                <a class="dropdown-item btn btn-primary me-1"
+                                                                   title="Edit" style="font-size: medium;"
+                                                                   asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-edit"></i> edit asset
+                                                                </a>
+                                                            </li>
+                                                            <li>
+                                                                <a asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
+                                                                    <i class="fa fa-eye"></i> view asset
+                                                                </a>
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <a style="font-size: medium;"
+                                                                   class="dropdown-item btn btn-warning"
+                                                                   title="Move"
+                                                                   asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-arrows-alt"></i> move asset
+                                                                </a>
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <a style="font-size: medium;"
+                                                                   class="dropdown-item btn btn-secondary"
+                                                                   title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                                    <i class="fa fa-toolbox"></i> work request
+                                                                </a>
+
+                                                            </li>
+                                                            <li class="@(lastMove?.Reason?.Name == "Decommission" ? "d-none" : "")">
+                                                                <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
+                                                                    <i class="fa fa-trash"></i> delete asset
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        <div class="col-lg-6 col-md-12 justify-content-end">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Notifications</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="notification-body">
+                            <ul class="notification-list list-unstyled mb-0" id="notificationList">
+                                @if (Model.notifications != null && Model.notifications.Any())
+                                {
+                                    foreach (var item in Model.notifications)
+                                    {
+                                        <li class="notification-item d-flex align-items-center py-2 border-bottom">
+                                            <div class="notification-icon me-3">
+                                                @if (item.Type == "work")
+                                                {
+                                                    <i class="fas fa-tools text-primary"></i>
+                                                }
+                                                else if (item.Type == "job")
+                                                {
+                                                    <i class="fas fa-briefcase text-success"></i>
+                                                }
+                                                else if (item.Type == "asset")
+                                                {
+                                                    <i class="fas fa-box text-info"></i>
+                                                }
+                                                else if (item.Type == "move")
+                                                {
+                                                    <i class="fa-solid fa-arrows-turn-to-dots"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-bell text-secondary"></i>
+                                                }
+                                            </div>
+                                            <div class="notification-content flex-grow-1">
+                                                <p class="notification-message mb-1">@item.Message</p>
+                                                <span class="notification-time small text-muted">@item.DateCreated?.ToShortDateString()</span>
+                                            </div>
+                                            <div class="notification-actions ms-3">
+                                                @if (item.Type == "work")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Work Request"
+                                                       href="@Url.Action("Index", "JobManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "job")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Job"
+                                                       href="@Url.Action("Index", "JobManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "asset")
+                                                {
+                                                    <a class="notification-action mark-read" title="View Asset"
+                                                       href="@Url.Action("Index", "AssetManagement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else if (item.Type == "move")
+                                                {
+                                                    <a class="notification-action mark-read" title="Receive Asset"
+                                                       href="@Url.Action("recieveAsset", "AssetMovement")">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="notification-action mark-read" title="No action">
+                                                        <i class="fas fa-eye-slash"></i>
+                                                    </span>
+                                                }
+                                            </div>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="text-center text-muted py-4">
+                                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                                        <div>No notifications yet</div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-<!-- Dummy Dashboard Content -->
-<div class="row">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-info text-white">
-                Total Assets
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">150</h5>
-                <p class="card-text">Assets currently being tracked.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-danger text-white">
-                Decommisioned Assets
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">15</h5>
-                <p class="card-text">Assets that have been Decommisioned.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-success text-white">
-                Completed Jobs
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">120</h5>
-                <p class="card-text">Jobs successfully completed.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-header bg-warning text-white">
-                Pending Jobs
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">15</h5>
-                <p class="card-text">Jobs awaiting approval or action.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#assetTable').DataTable({
+                pageLength: 10
+            });
+        });
+    </script>
+}

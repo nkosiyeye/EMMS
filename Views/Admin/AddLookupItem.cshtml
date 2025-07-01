@@ -1,0 +1,57 @@
+﻿@model EMMS.ViewModels.Admin.LookupViewModel;
+@{
+}
+<div class="container">
+    <div class="d-flex justify-content-center">
+        <div class="card col-md-6 mb-6">
+            <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Add @Model.LookupList?.Name Item</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (TempData["Error"] != null)
+                {
+                    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                <form asp-action="AddLookupItem" asp-controller="Admin" method="post">
+                    <div class="row">
+                        <input type="hidden" asp-for="_lookupItem.LookupListId" value="@Model.LookupList?.LookupListId" />
+                        <div class="mb-3">
+                            <label asp-for="_lookupItem.Name" for="Name" class="form-label required-field">Item Name</label>
+                            <input asp-for="_lookupItem.Name" type="text" class="form-control" id="Name" required />
+                            <span asp-validation-for="_lookupItem.Name" class="text-danger"></span>
+                        </div>
+                        @if (Model._lookupItems != null && Model._lookupItems.Count() > 0)
+                        {
+                            <div class="mb-3">
+                                <label for="ParentId" class="form-label">Parent</label>
+                                <select asp-for="_lookupItem.ParentId" id="category" class="form-select selectpicker col-md-6">
+                                    @foreach (var lookup in Model._lookupItems)
+                                    {
+                                        <option value="@lookup.Id">@lookup.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        <div class="mb-3">
+                            <label asp-for="_lookupItem.RowState" for="RowState" class="form-label">Status</label>
+                            <select asp-for="_lookupItem.RowState" class="form-select" id="RowState">
+                                <option value="1" selected>Active</option>
+                                <option value="2">Inactive</option>
+                                <option value="0">Deleted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Add Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

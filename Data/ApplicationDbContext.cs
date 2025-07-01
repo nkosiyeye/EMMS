@@ -18,6 +18,10 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.Job> Job { get; set; }
         public DbSet<EMMS.Models.WorkDone> WorkDone { get; set; }
         public DbSet<EMMS.Models.ExternalWorkDone> ExternalWorkDone { get; set; }
+        public DbSet<EMMS.Models.Entities.Notification> Notifications { get; set; }
+        public DbSet<EMMS.Models.Admin.User> User { get; set; }
+        public DbSet<EMMS.Models.Admin.UserRole> UserRole { get; set; }
+
 
 
 

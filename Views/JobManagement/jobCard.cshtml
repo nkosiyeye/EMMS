@@ -2,6 +2,9 @@
 @{
     ViewData["Title"] = "Job";
     ViewData["JobManagement"] = "active";
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+    var currentUser = ViewBag._currentUser;
 }
 
 <!-- Asset Detail Section -->
@@ -13,7 +16,7 @@
         </a> *@
     </div>
     <div class="card-body">
-        <div class="row">
+        <div class="row g-0">
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Asset ID</dt>
@@ -42,7 +45,7 @@
                 </dl>
             </div>
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-md-9">
                 <dl class="row">
                     <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
@@ -65,24 +68,26 @@
         <span>Job Card</span>
     </div>
     <div class="card-body">
-        @if (TempData["Error"] != null)
+       @*  @if (TempData["Error"] != null)
         {
             <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
 
-                @* <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> *@
+                <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> 
 
                 @TempData["Error"]
 
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
-        }
+        } *@
         <form asp-controller="JobManagement" asp-action="updateJobCard" method="post">
-            <div class="row mb-2">
-                <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
-                    <button type="submit" class="btn btn-primary">Update Job Card</button>
-                </div>
-            </div>
+            
+                @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo)
+                {
+                    <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
+                        <button type="submit" class="btn btn-primary">Update Job Card</button>
+                    </div>                    
+                }
             <!-- Job Card Details -->
             <div class="row mb-3">
                 <div class="col-md-4">
@@ -109,7 +114,8 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
-                    <input asp-for="Job.AssignedTo" type="text" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input asp-for="Job.AssignedTo" type="hidden" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input type="text" class="form-control" id="assignedTo" value="@Model.Job.User.FirstName" readonly>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.FaultReportId" for="status" class="form-label required-field">Fault Report</label>
@@ -130,7 +136,7 @@
         <div class="mb-3">
             <p><strong>Work Done</strong></p>
             <div class="mb-2">
-                @if (TempData["Error"] != null)
+               @*  @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                         <div>
@@ -143,7 +149,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                }
+                } *@
                 <div class="row @(Model.Job?.Status?.Name == "Completed" || Model.Job?.EndDate != null ? "d-none" : "")">
                     <form asp-action="workDone" asp-controller="JobManagement" method="post">
                         <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
@@ -186,47 +192,6 @@
                         }
                 </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<!-- Reject Modal -->
-<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row mb-3">
-                        <!-- Date -->
-                        <div class="col-md-6">
-                            <label for="rejectedDate" class="form-label required-field">Date Rejected</label>
-                            <input type="date" class="form-control" id="movementDate" required>
-                        </div>
-
-
-                        <!-- Outcome -->
-                        <div class="col-md-6">
-                            <label for="outcome" class="form-label required-field">Outcome</label>
-                            <select class="form-select" id="outcome" required>
-                                <option selected disabled>Select Outcome</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="not-resolved">not Resolved</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Recieve</button>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
         </div>
     </div>
 </div>

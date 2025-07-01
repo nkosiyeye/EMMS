@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using EMMS.CustomRequiredAttribute;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -73,10 +74,12 @@ namespace EMMS.Models
         public bool IsServiceable { get; set; }
 
         [Display(Name = "Service Period")]
-        public string? ServicePeriod { get; set; }
+        public int? ServicePeriodId { get; set; }
+        [ForeignKey(nameof(ServicePeriodId))]
+        public virtual LookupItem? ServicePeriodName { get; set; }
 
         [Display(Name = "Service Interval")]
-        public string? ServiceInterval { get; set; }
+        public int? ServiceInterval { get; set; }
 
         // Vendor
         [Required(ErrorMessage = "Vendor is required")]
@@ -113,6 +116,8 @@ namespace EMMS.Models
 
 
         public Guid? CreatedBy { get; set; }
+        [ForeignKey(nameof(CreatedBy))]
+        public virtual User? User { get; set; }
         public DateTime? DateCreated { get; set; }
         public Guid? ModifiedBy { get; set; }
         public DateTime? DateModified { get; set; }

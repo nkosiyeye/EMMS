@@ -32,7 +32,7 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.CategoryId" class="form-label required-field">Category</label>
-                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" onchange="updateSubCategory(value)">
                         <option selected disabled>Select Category</option>
                     </select>
                     <span asp-validation-for="asset.CategoryId" class="text-danger"></span>
@@ -41,8 +41,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.SubCategoryId" class="form-label required-field">SubCategory</label>
-                    <select asp-for="asset.SubCategoryId" id="subcategory" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.SubCategories, "Id", "Name"))">
-                        <option selected disabled>Select SubCategory</option>
+                    <select asp-for="asset.SubCategoryId" id="subcategory" class="form-select selectpicker col-md-6" data-live-search="true">
                     </select>
                     <span asp-validation-for="asset.SubCategoryId" class="text-danger"></span>
                 </div>
@@ -89,8 +88,8 @@
 
             <!-- Placement -->
             <h5 class="mb-3 mt-3">Placement & Serviceability</h5>
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
+            <div class="row mb-3">
+                <div class="col-md-12 col-lg-12 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsPlacement" type="checkbox" class="form-check-input" id="placement-checkbox" onchange="checkPlacement(this)">
@@ -103,13 +102,13 @@
                             </div>
                         </div>
                         <div class="row mb-1 d-none" id="duration-field-container">
-                            <div class="col-md-6">
+                            <div class="col-md-8 col-lg-6">
                                 <label asp-for="asset.PlacementStartDate" for="start-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementStartDate" type="date" id="start-field" placeholder="Duration" class="form-control">
 
                                 <span asp-validation-for="asset.PlacementStartDate" class="text-danger"></span>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-8 col-lg-6">
                                 <label asp-for ="asset.PlacementEndDate" for="end-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementEndDate" type="date" id="end-field" placeholder="Duration" class="form-control">
                             </div>
@@ -117,7 +116,7 @@
                     </div>
                 </div>
                 <!-- Donated -->
-                <div class="col-md-4">
+                <div class="col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsDonated" class="form-check-input" type="checkbox" id="donatedCheck">
@@ -131,7 +130,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsServiceable" input type="checkbox" class="form-check-input" id="serviceable-checkbox" onchange="checkServiceable(this)">
@@ -144,15 +143,13 @@
                         </div>
                         <div class="row d-none" id="service-field-container">
                             <div class="col-md-6" id="duration(period)-field-container">
-                                <label asp-for="asset.ServicePeriod" for="period" class="form-label required-field" id="period">Period</label>
-                                <select asp-for="asset.ServicePeriod" id="period" class="form-select" aria-placeholder="interval(period)">
-                                    <option value="1">years</option>
-                                    <option value="2">months</option>
+                                <label asp-for="asset.ServicePeriodId" for="period" class="form-label required-field" id="period">Period</label>
+                                <select asp-for="asset.ServicePeriodId" id="period" class="form-select" aria-placeholder="interval(period)" asp-items="@(new SelectList(Model.LifespanPeriods, "Id", "Name"))">
                                 </select>
                             </div>
                             <div class="col-md-6" id="interval-field-container">
                                 <label asp-for="asset.ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval</label>
-                                <input asp-for="asset.ServiceInterval" type="text" id="interval" placeholder="e.g every 6 months" class="form-control">
+                                <input asp-for="asset.ServiceInterval" type="number" id="interval" placeholder="e.g every 6 months" class="form-control">
                             </div>
                         </div>
                     </div>
@@ -235,7 +232,7 @@
         }
          function checkStatus(select) {
             console.log(select.value);
-          if(select.value == 32){
+          if(select.value == 106){
             document.getElementById('procument-id').classList.add("required-field");
             document.getElementById('cost').classList.add("required-field");
             document.getElementById('quantitylifespan').classList.add("required-field");
@@ -245,6 +242,36 @@
             document.getElementById('quantitylifespan').classList.remove("required-field");
           }
         }
+                   function updateSubCategory(categoryId) {
+            var subCategorySelect = document.getElementById('subcategory');
+            // Clear current options
+            subCategorySelect.innerHTML = '<option selected disabled>Select SubCategory</option>';
+
+            if (categoryId) {
+                fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(function (item) {
+                            var option = document.createElement('option');
+                            option.value = item.id;
+                            option.text = item.name;
+                            subCategorySelect.appendChild(option);
+                        });
+                        // Refresh the selectpicker UI if using Bootstrap Select
+                        if ($(subCategorySelect).hasClass('selectpicker')) {
+                            $(subCategorySelect).selectpicker('refresh');
+                        }
+                    });
+            } else {
+                subCategorySelect.innerHTML = '<option selected disabled>Select Category</option>';
+                // Also refresh if cleared
+                if ($(subCategorySelect).hasClass('selectpicker')) {
+                    $(subCategorySelect).selectpicker('refresh');
+                }
+            }
+        }
+
+
 
     </script>
     @{
