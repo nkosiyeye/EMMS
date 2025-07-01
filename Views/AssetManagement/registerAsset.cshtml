@@ -155,6 +155,45 @@
                     </div>
                 </div>
             </div>
+            <div class="row mb-3">
+                <div class="col-md-12 col-lg-12 col-xl-6">
+                    <div class="border rounded p-3">
+                        <div class="form-check">
+                            <input asp-for="@Model.alreadyDeployed" type="checkbox" class="form-check-input" id="deployed-checkbox" onchange="checkAlreadyDeployed(this)">
+                            <input type="hidden" value="false" id="IsDeployed" name="IsDeployed">
+                            <label asp-for="@Model.alreadyDeployed" class="form-check-label fw-bold" for="isDeployedCheck">
+                                Already Deployed ?
+                            </label>
+                            <div class="form-text text-muted">
+                                Is this equipment already in use at a Facility
+                            </div>
+                        </div>
+                        <div class="row mb-1 d-none" id="isdeployed-field-container">
+                            <div class="col-md-8 col-lg-6">
+                                <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
+                                <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
+
+                                
+                            </div>
+                            <div class="col-md-8 col-lg-6" id="facilityField">
+                                <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
+                                <select asp-for="@Model.facilityId" class="form-select selectpicker col-md-6"
+                                        data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">
+                                    <option selected disabled>Select Facility</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 d-none" id="servicePointField">
+                                <label asp-for="@Model.ServicePointId" class="form-label required-field"></label>
+                                <select asp-for="@Model.ServicePointId" class="form-select selectpicker col-md-6"
+                                        data-live-search="true" asp-items="@(new SelectList(Model.ServicePoints, "Id", "Name"))">
+                                    <option selected disabled>Select Service Point</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <h5 class="mb-3 mt-3">Procurement & Status</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
@@ -224,6 +263,15 @@
         }
         function checkServiceable(checkbox) {
             const durationField = document.getElementById('service-field-container');
+            if (checkbox.checked) {
+                durationField.classList.remove('d-none');
+            } else {
+                durationField.classList.add('d-none');
+            }
+        }
+
+        function checkAlreadyDeployed(checkbox) {
+            const durationField = document.getElementById('isdeployed-field-container');
             if (checkbox.checked) {
                 durationField.classList.remove('d-none');
             } else {

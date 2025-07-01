@@ -42,13 +42,13 @@
             </div>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label asp-for="MoveAsset.MovementTypeId" class="form-label required-field"></label>
-                    <select asp-for="MoveAsset.MovementTypeId" id="movementType" class="form-select selectpicker col-md-6"
+                    <label asp-for="MoveAsset.MovementType" class="form-label required-field"></label>
+                    <select asp-for="MoveAsset.MovementType" id="movementType" class="form-select selectpicker col-md-6"
                             data-live-search="true" asp-items="@(new SelectList(Model.MovementTypes, "Id", "Name"))"
                             onchange="toggleLocationFields()">
                         <option selected disabled>Select Movement Type</option>
                     </select>
-                    <span asp-validation-for="MoveAsset.MovementTypeId" class="text-danger"></span>
+                    <span asp-validation-for="MoveAsset.MovementType" class="text-danger"></span>
                 </div>
                 <div class="col-md-6" id="facilityField">
                     <input asp-for="MoveAsset.FromId" value="@ViewBag._currentUser.FacilityId" class="form-control" type="int" hidden />
@@ -68,20 +68,20 @@
             </div>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label asp-for="MoveAsset.ReasonId" class="form-label required-field"></label>
-                    <select asp-for="MoveAsset.ReasonId" class="form-select selectpicker col-md-6"
+                    <label asp-for="MoveAsset.Reason" class="form-label required-field"></label>
+                    <select asp-for="MoveAsset.Reason" class="form-select selectpicker col-md-6"
                             data-live-search="true" asp-items="@(new SelectList(Model.Reasons, "Id", "Name"))">
                         <option selected disabled>Select Reason</option>
                     </select>
-                    <span asp-validation-for="MoveAsset.ReasonId" class="text-danger"></span>
+                    <span asp-validation-for="MoveAsset.Reason" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="MoveAsset.FunctionalStatusId" class="form-label required-field"></label>
-                    <select asp-for="MoveAsset.FunctionalStatusId" class="form-select selectpicker col-md-6"
+                    <label asp-for="MoveAsset.FunctionalStatus" class="form-label required-field"></label>
+                    <select asp-for="MoveAsset.FunctionalStatus" class="form-select selectpicker col-md-6"
                             data-live-search="true" asp-items="@(new SelectList(Model.FunctionalStatuses, "Id", "Name"))">
                         <option selected disabled>Select Status</option>
                     </select>
-                    <span asp-validation-for="MoveAsset.FunctionalStatusId" class="text-danger"></span>
+                    <span asp-validation-for="MoveAsset.FunctionalStatus" class="text-danger"></span>
                 </div>
             </div>
             <div class="row mb-3" hidden>

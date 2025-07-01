@@ -69,7 +69,7 @@ namespace EMMS.Controllers
                 AssetTag = _arepo.AssetTagNumber,
                 MoveAsset = moveAsset,
 
-                MovementTypes = await _repo.GetMovementTypes(),
+               // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
@@ -92,7 +92,7 @@ namespace EMMS.Controllers
             {
                 MoveAsset = moveAsset,
 
-                MovementTypes = await _repo.GetMovementTypes(),
+               // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
@@ -129,7 +129,7 @@ namespace EMMS.Controllers
             {
                 MoveAsset = assetMovement,
 
-                MovementTypes = await _repo.GetMovementTypes(),
+               // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
@@ -257,7 +257,6 @@ namespace EMMS.Controllers
                 .Include(m => m.Facility)
                 .Include(m => m.From)
                 .Include(m => m.ServicePoint)
-                .Include(m => m.FunctionalStatus)
                 .FirstOrDefaultAsync(m => m.MovementId == id);
 
             if (movement == null)

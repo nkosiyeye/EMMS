@@ -32,5 +32,28 @@
             Error = 0,
             Success = 1,
         }
+
+        public enum MovementType : byte
+        {
+            Facility = 1,
+            ServicePoint = 2,
+            Site = 3,
+        }
+        public enum MovementReason : byte
+        {
+            RoutineTransfer = 1,
+            Repair = 2,
+            Replacement = 3,
+            Upgrade = 4,
+            Decommission = 5,
+            Deployment = 6,
+            Other = 6
+        }
+        public enum FunctionalStatus : byte
+        {
+            Functional = 1,
+            NonFunctional = 2,
+            UnderMaintenance = 3
+        }
     }
 }

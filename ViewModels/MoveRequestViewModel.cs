@@ -8,7 +8,7 @@ namespace EMMS.ViewModels
         public string? AssetTag { get; set; }
         public MoveAsset? MoveAsset { get; set; }
 
-        public IEnumerable<LookupItem>? MovementTypes { get; set; }
+        public IEnumerable<Enumerators.MovementType>? MovementTypes { get; set; } = Enum.GetValues<Enumerators.MovementType>();
         public IEnumerable<Facility>? Facilities { get; set; }
         public IEnumerable<LookupItem>? ServicePoints { get; set; }
         public IEnumerable<LookupItem>? Reasons { get; set; }

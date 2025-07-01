@@ -22,6 +22,132 @@ namespace EMMS.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("EMMS.Models.Admin.User", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Cellphone")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DOB")
+                        .HasColumnType("Smalldatetime");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DesignationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FacilityId")
+                        .IsRequired()
+                        .HasColumnType("int");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Gender")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MiddleName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("UserRoleId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("DesignationId");
+
+                    b.HasIndex("FacilityId");
+
+                    b.HasIndex("UserRoleId");
+
+                    b.ToTable("User");
+                });
+
+            modelBuilder.Entity("EMMS.Models.Admin.UserRole", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("ApproveAssetMovement")
+                        .HasColumnType("bit");
+
+                    b.Property<byte>("AssetManagement")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("AssetMovement")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("JobManagement")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("UserType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("WorkRequest")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserRole");
+                });
+
             modelBuilder.Entity("EMMS.Models.Asset", b =>
                 {
                     b.Property<Guid>("AssetId")
@@ -114,6 +240,8 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("ManufacturerId");
@@ -189,6 +317,7 @@ namespace EMMS.Data.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("ParentId")
@@ -203,6 +332,8 @@ namespace EMMS.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LookupListId");
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("LookupItems");
                 });
@@ -330,11 +461,9 @@ namespace EMMS.Data.Migrations
 
             modelBuilder.Entity("EMMS.Models.Job", b =>
                 {
-                    b.Property<int>("JobId")
+                    b.Property<Guid>("JobId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("JobId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("Amount")
                         .HasColumnType("int");
@@ -396,6 +525,8 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("AssetId");
 
+                    b.HasIndex("AssignedTo");
+
                     b.HasIndex("ExternalProviderId");
 
                     b.HasIndex("FacilityId");
@@ -442,8 +573,8 @@ namespace EMMS.Data.Migrations
                     b.Property<int>("FromId")
                         .HasColumnType("int");
 
-                    b.Property<int>("FunctionalStatusId")
-                        .HasColumnType("int");
+                    b.Property<byte>("FunctionalStatus")
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
@@ -454,11 +585,14 @@ namespace EMMS.Data.Migrations
                     b.Property<DateTime>("MovementDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("MovementTypeId")
-                        .HasColumnType("int");
+                    b.Property<byte>("MovementType")
+                        .HasColumnType("tinyint");
 
-                    b.Property<int>("ReasonId")
-                        .HasColumnType("int");
+                    b.Property<string>("OtherReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Reason")
+                        .HasColumnType("tinyint");
 
                     b.Property<Guid?>("ReceivedBy")
                         .HasColumnType("uniqueidentifier");
@@ -481,12 +615,6 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("FacilityId");
 
                     b.HasIndex("FromId");
-
-                    b.HasIndex("FunctionalStatusId");
-
-                    b.HasIndex("MovementTypeId");
-
-                    b.HasIndex("ReasonId");
 
                     b.HasIndex("ServicePointId");
 
@@ -518,8 +646,8 @@ namespace EMMS.Data.Migrations
                     b.Property<int?>("Hours")
                         .HasColumnType("int");
 
-                    b.Property<int?>("JobId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -564,6 +692,9 @@ namespace EMMS.Data.Migrations
                     b.Property<int>("FaultReportId")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -589,6 +720,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("FacilityId");
 
                     b.HasIndex("FaultReportId");
+
+                    b.HasIndex("JobId");
 
                     b.HasIndex("OutcomeId");
 
@@ -799,6 +932,29 @@ namespace EMMS.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("EMMS.Models.Admin.User", b =>
+                {
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Designations")
+                        .WithMany()
+                        .HasForeignKey("DesignationId");
+
+                    b.HasOne("EMMS.Models.Entities.Facility", "Facility")
+                        .WithMany()
+                        .HasForeignKey("FacilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.UserRole", "UserRole")
+                        .WithMany()
+                        .HasForeignKey("UserRoleId");
+
+                    b.Navigation("Designations");
+
+                    b.Navigation("Facility");
+
+                    b.Navigation("UserRole");
+                });
+
             modelBuilder.Entity("EMMS.Models.Asset", b =>
                 {
                     b.HasOne("EMMS.Models.Entities.LookupItem", "Category")
@@ -806,6 +962,10 @@ namespace EMMS.Data.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.User", "User")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
 
                     b.HasOne("EMMS.Models.Entities.LookupItem", "Department")
                         .WithMany()
@@ -861,6 +1021,8 @@ namespace EMMS.Data.Migrations
 
                     b.Navigation("SubCategory");
 
+                    b.Navigation("User");
+
                     b.Navigation("Vendor");
                 });
 
@@ -872,7 +1034,13 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId");
+
                     b.Navigation("LookupList");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.Notification", b =>
@@ -889,6 +1057,12 @@ namespace EMMS.Data.Migrations
                     b.HasOne("EMMS.Models.Asset", "Asset")
                         .WithMany()
                         .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.User", "User")
+                        .WithMany()
+                        .HasForeignKey("AssignedTo")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -930,6 +1104,8 @@ namespace EMMS.Data.Migrations
 
                     b.Navigation("Status");
 
+                    b.Navigation("User");
+
                     b.Navigation("WorkRequest");
                 });
 
@@ -955,24 +1131,6 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EMMS.Models.Entities.LookupItem", "FunctionalStatus")
-                        .WithMany()
-                        .HasForeignKey("FunctionalStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EMMS.Models.Entities.LookupItem", "MovementType")
-                        .WithMany()
-                        .HasForeignKey("MovementTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EMMS.Models.Entities.LookupItem", "Reason")
-                        .WithMany()
-                        .HasForeignKey("ReasonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("EMMS.Models.Entities.LookupItem", "ServicePoint")
                         .WithMany()
                         .HasForeignKey("ServicePointId");
@@ -984,12 +1142,6 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Facility");
 
                     b.Navigation("From");
-
-                    b.Navigation("FunctionalStatus");
-
-                    b.Navigation("MovementType");
-
-                    b.Navigation("Reason");
 
                     b.Navigation("ServicePoint");
                 });
@@ -1014,6 +1166,10 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EMMS.Models.Job", "Job")
+                        .WithMany()
+                        .HasForeignKey("JobId");
+
                     b.HasOne("EMMS.Models.Entities.LookupItem", "Outcome")
                         .WithMany()
                         .HasForeignKey("OutcomeId");
@@ -1029,6 +1185,8 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Facility");
 
                     b.Navigation("FaultReport");
+
+                    b.Navigation("Job");
 
                     b.Navigation("Outcome");
 

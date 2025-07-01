@@ -41,14 +41,19 @@
                         </div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label asp-for="MoveAsset.MovementTypeId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.MovementTypeId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.MovementTypes, "Id", "Name"))"
-                                    onchange="toggleLocationFields()">
-                                <option selected disabled>Select Movement Type</option>
-                            </select>
-                    <span asp-validation-for="MoveAsset.MovementTypeId" class="text-danger"></span>
+                <div class="col-md-6">
+                    <label asp-for="MoveAsset.MovementType" class="form-label required-field"></label>
+                    <select asp-for="MoveAsset.MovementType" id="movementType" class="form-select selectpicker col-md-6"
+                            data-live-search="true"
+                            onchange="toggleLocationFields()">
+                        <option selected disabled>Select Movement Type</option>
+                        @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementType)).Cast<EMMS.Models.Enumerators.MovementType>())
+                        {
+                            <option value="@(Convert.ToInt32(type))">@type.ToString()</option>
+                        }
+                    </select>
+                    <span asp-validation-for="MoveAsset.MovementType" class="text-danger"></span>
+
                         </div>
                         <div class="col-md-6" id="facilityField">
                              <input asp-for="MoveAsset.FromId" value="@ViewBag._currentUser.FacilityId" class="form-control" type="int" hidden/>
@@ -68,20 +73,28 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                    <label asp-for="MoveAsset.ReasonId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.ReasonId" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.Reasons, "Id", "Name"))">
-                                <option selected disabled>Select Reason</option>
+                    <label asp-for="MoveAsset.Reason" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.Reason" class="form-select selectpicker col-md-6"
+                            data-live-search="true">
+                        <option selected disabled>Select Movement Reason</option>
+                        @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementReason)).Cast<EMMS.Models.Enumerators.MovementReason>())
+                        {
+                            <option value="@(Convert.ToInt32(type))">@type.ToString()</option>
+                        }
                             </select>
-                    <span asp-validation-for="MoveAsset.ReasonId" class="text-danger"></span>
+                    <span asp-validation-for="MoveAsset.Reason" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                    <label asp-for="MoveAsset.FunctionalStatusId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.FunctionalStatusId" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.FunctionalStatuses, "Id", "Name"))">
-                                <option selected disabled>Select Status</option>
+                    <label asp-for="MoveAsset.FunctionalStatus" class="form-label required-field"></label>
+                            <select asp-for="MoveAsset.FunctionalStatus" class="form-select selectpicker col-md-6"
+                            data-live-search="true">
+                        <option selected disabled>Select Functional Status</option>
+                        @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.FunctionalStatus)).Cast<EMMS.Models.Enumerators.FunctionalStatus>())
+                        {
+                                <option value="@(Convert.ToInt32(type))">@type.ToString()</option>
+                        }
                             </select>
-                    <span asp-validation-for="MoveAsset.FunctionalStatusId" class="text-danger"></span>
+                    <span asp-validation-for="MoveAsset.FunctionalStatus" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row mb-3" hidden>
@@ -113,10 +126,10 @@
                             console.log(servicePointField);
 
                         if (movementType && facilityField && servicePointField) {
-                        if (movementType === "110") {
+                        if (movementType === "1") {
                             facilityField.classList.remove("d-none");
                             servicePointField.classList.add("d-none");
-                        } else if (movementType === "111") {
+                        } else if (movementType === "2") {
                             facilityField.classList.add("d-none");
                             servicePointField.classList.remove("d-none");
                         }

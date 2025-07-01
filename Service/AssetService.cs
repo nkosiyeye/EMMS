@@ -18,7 +18,7 @@ namespace EMMS.Service
         public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser)
         {
             var _repo = new AssetManagementRepo(_context);
-            var assets = await _repo.GetAssetsFromDb();
+            var assets = _repo.GetAssetsFromDb().Result.OrderByDescending(a => a.DateCreated);
             var lastMovements = await _repo.GetAssetMovement();
 
             var lastMovementDict = lastMovements
@@ -33,11 +33,11 @@ namespace EMMS.Service
 
             var indexView = new AssetIndexViewModel
             {
-                assetViewModels = assetViewModels
-                    .Where(l =>
+                assetViewModels = currentUser!.UserRole!.UserType != Enumerators.UserType.Administrator ? assetViewModels
+                    .Where(l => 
                         (l.LastMovement != null && l.LastMovement.FacilityId == currentUser.FacilityId)
                         || l.Asset.CreatedBy == currentUser.UserId
-                    ).ToList(),
+                    ).ToList() : assetViewModels,
                 moveAsset = new MoveAsset()
             };
 
