@@ -19,10 +19,7 @@ namespace EMMS.Data.Repository
                                 .Include(x => x.Asset)
                                 .Include(x => x.From)
                                 .Include(x => x.Facility)
-                                .Include(x => x.MovementType)
                                 .Include(x => x.ServicePoint)
-                                .Include(x => x.Reason)
-                                .Include(x => x.FunctionalStatus)
                                 .Include(x => x.Condition)
                                 .ToListAsync();
             return moveAssets;

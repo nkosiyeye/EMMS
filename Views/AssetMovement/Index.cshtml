@@ -54,8 +54,8 @@
                                 }
                             </td>
                             <td>@movement.MovementDate</td>
-                            <td>@movement.FunctionalStatus!.Name</td>
-                            <td>@movement.Reason!.Name</td>
+                            <td>@movement.FunctionalStatus</td>
+                            <td>@movement.Reason</td>
                             <td>
                                 @if (!movement.IsApproved)
                                 {
@@ -136,7 +136,7 @@
                             <tbody>
                                 @if(Model.AssetIndex.assetViewModels != null)
                                 {
-                                    @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason?.Name != "Decommission"))
+                                    @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason != Enumerators.MovementReason.Decommission))
                                     {
 
                                         var lastMove = asset.LastMovement;
@@ -158,7 +158,7 @@
                                             <td width="10%">
                                                 @if (lastMove != null)
                                                 {
-                                                    @(lastMove.FunctionalStatus?.Name ?? "N/A")
+                                                    @(lastMove.FunctionalStatus.ToString() ?? "N/A")
                                                 }
                                                 else
                                                 {

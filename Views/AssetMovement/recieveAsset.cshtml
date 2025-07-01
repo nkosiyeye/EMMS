@@ -36,8 +36,8 @@
                                 <td>@reciveAsset.Asset!.AssetTagNumber</td>
                                 <td>@reciveAsset.From!.FacilityName</td>
                                 <td>@reciveAsset.MovementDate.ToString("dd MMM yyyy")</td>
-                                <td>@reciveAsset.FunctionalStatus!.Name</td>
-                                <td>@reciveAsset.Reason!.Name</td>
+                                <td>@reciveAsset.FunctionalStatus.ToString()</td>
+                                <td>@reciveAsset.Reason</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal"
                                     data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
@@ -90,7 +90,7 @@
                             <td>@reciveAsset.Asset.AssetTagNumber</td>
                             <td>@reciveAsset.From.FacilityName</td>
                             <td>@reciveAsset.DateReceived!.Value.ToString("dd MMM yyyy")</td>
-                            <td>@reciveAsset.FunctionalStatus.Name</td>
+                            <td>@reciveAsset.FunctionalStatus</td>
                             @* <td>@reciveAsset.ReceivedBy</td> *@
                         </tr>
                     }

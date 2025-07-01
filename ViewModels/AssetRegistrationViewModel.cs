@@ -6,6 +6,13 @@ namespace EMMS.ViewModels
     public class AssetRegistrationViewModel
     {
         public Asset asset { get; set; } = new Asset();
+        public bool alreadyDeployed { get; set; } = false;
+        public DateTime? dateDeployed { get; set; }
+        public int? facilityId { get; set; }
+        public int? ServicePointId { get; set; }
+
+        public IEnumerable<Facility>? Facilities { get; set; }
+        public IEnumerable<LookupItem>? ServicePoints { get; set; }
 
         public IEnumerable<LookupItem>? Categories { get; set; }
         public IEnumerable<LookupItem>? SubCategories { get; set; }

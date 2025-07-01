@@ -67,7 +67,6 @@ namespace EMMS.Controllers
                 .Where(m => m.AssetId == id)
                 .Include(m => m.Facility)
                 .Include(m => m.ServicePoint)
-                .Include(m => m.FunctionalStatus)
                 .OrderByDescending(m => m.MovementDate)
                 .ToListAsync();
 
@@ -83,9 +82,11 @@ namespace EMMS.Controllers
 
 
         [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
         public async Task<IActionResult> registerAsset()
         {
             var _repo = new AssetManagementRepo(_context);
+            var _mrepo = new AssetMovementRepo(_context);
 
             var viewModel = new AssetRegistrationViewModel
             {
@@ -101,7 +102,9 @@ namespace EMMS.Controllers
                 ServiceProviders = await _repo.GetServiceProviders(),
                 Statuses = await _repo.GetStatuses(),
                 UnitOfMeasures = await _repo.GetUnitOfMeasures(),
-                LifespanPeriods = await _repo.GetLifespanPeriods()
+                LifespanPeriods = await _repo.GetLifespanPeriods(),
+                Facilities = await _mrepo.GetFacilities(),
+                ServicePoints = await _mrepo.GetServicePoints(),
             };
 
             return View(viewModel);
@@ -173,6 +176,22 @@ namespace EMMS.Controllers
             TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
+                if (Assetmodel.alreadyDeployed)
+                {
+
+                    var _mrepo = new AssetMovementRepo(_context);
+                    var asmove = new MoveAsset()
+                    {
+                        MovementDate = Assetmodel.dateDeployed ?? DateTime.Now,
+                        AssetId = Assetmodel.asset.AssetId,
+                        MovementType = MovementType.Facility,
+                        FromId = Assetmodel.facilityId ?? 0,
+                        FacilityId = Assetmodel.facilityId,
+                        ServicePointId = Assetmodel.ServicePointId,
+                        Reason = MovementReason.Deployment,
+
+                    };
+                }
                 var asset = Assetmodel.asset;
                 asset.DateCreated = DateTime.Now;
                 CreateEntity(asset); // TBD Replace with actual user ID
