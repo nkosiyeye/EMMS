@@ -30,8 +30,8 @@
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
                             <a class="align-items-center float-start py-1" href="#">
-                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="24" class="me-2">
-                                <span class="navbar-brand mb-0 h1" style="color: white;">EMMS</span>
+                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2">
+                                <span class="navbar-brand mb-1 h1" style="color: white;">EMMS</span>
                             </a>
                         </div>
                     </nav>
@@ -103,7 +103,7 @@
                                         <span class="fw-bold" style="font-size:smaller">
                                             @(currentUser!.FirstName) @(currentUser.LastName)
                                         </span>
-                                        <span class="text-muted" style="font-size:smaller">
+                                        <span class="text-muted" style="font-size:x-small">
                                             @currentUser.UserRole!.Name
                                         </span>
                                     </div>
@@ -122,7 +122,7 @@
                     <div class="notification-body">
                         <ul class="notification-list" id="notificationList">
                             <!-- Notifications will be populated here -->
-							@await Component.InvokeAsync("BellNotifications")
+							 @await Component.InvokeAsync("BellNotifications") 
                         </ul>
                         <div class="empty-notifications d-none" id="emptyNotifications">
                             <i class="fas fa-bell-slash fa-2x mb-3"></i>

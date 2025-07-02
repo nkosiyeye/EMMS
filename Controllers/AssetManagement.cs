@@ -51,7 +51,6 @@ namespace EMMS.Controllers
                 .Include(a => a.Manufacturer)
                 .Include(a => a.Vendor)
                 .Include(a => a.ServiceProvider)
-                .Include(a => a.ServicePeriodName)
                 .Include(a => a.Status)
                 .Include(u => u.User)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
@@ -191,7 +190,7 @@ namespace EMMS.Controllers
                         AssetId = asset.AssetId,
                         MovementType = MovementType.Facility,
                         FromId = Assetmodel.facilityId ?? 0,
-                        FacilityId = Assetmodel.facilityId,
+                        FacilityId = Assetmodel.facilityId ?? 0,
                         ServicePointId = Assetmodel.ServicePointId,
                         Reason = MovementReason.Deployment,
                         FunctionalStatus = FunctionalStatus.Functional,

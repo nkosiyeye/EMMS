@@ -21,7 +21,8 @@
                 <thead>
                     <tr>
                         <th>Asset Tag</th>
-                        <th>Location</th>
+                        <th>Facility</th>
+                        <th>Service Point</th>
                         <th>Since</th>
                         <th>Functional Status</th>
                         <th>Reason</th>
@@ -34,17 +35,10 @@
                     @foreach (var movement in Model.MoveAssets)
                     {
                         <tr>
-                            <td>@movement.Asset.AssetTagNumber</td>
+                            <td>@movement.Asset!.AssetTagNumber</td>
+                            <td>@movement.Facility!.FacilityName</td>
                             <td>
-                                @if (movement.Facility != null && movement.ServicePoint != null)
-                                {
-                                    @movement.Facility.FacilityName @movement.ServicePoint.Name
-                                }
-                                else if (movement.Facility != null)
-                                {
-                                    @movement.Facility.FacilityName
-                                }
-                                else if (movement.ServicePoint != null)
+                                @if (movement.ServicePoint != null)
                                 {
                                     @movement.ServicePoint.Name
                                 }
@@ -195,16 +189,15 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () {
-            $('#modalAssetTable').DataTable({
-                pageLength: 10
-            });
-        });
-
-
-        $(document).ready(function () {
+                $(document).ready(function () {
             $('#movementHistoryTable').DataTable({
-                pageLength: 10
+                pageLength: 10,
+                order: []
+            });
+
+            $('#modalAssetTable').DataTable({
+                pageLength: 10,
+                order: []
             });
         });
     </script>

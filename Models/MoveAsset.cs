@@ -36,9 +36,9 @@ namespace EMMS.Models
         [ForeignKey(nameof(FromId))]
         public virtual Facility? From { get; set; }
 
-        //[Required(ErrorMessage = "Request Date is required")]
+        [Required(ErrorMessage = "Facility is Required")]
         [Display(Name = "Facility")]
-        public int? FacilityId { get; set; }
+        public int FacilityId { get; set; }
         [ForeignKey(nameof(FacilityId))]
         public virtual Facility? Facility { get; set; }
 
