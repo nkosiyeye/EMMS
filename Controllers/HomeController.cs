@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using static EMMS.Models.Enumerators;
 using Microsoft.EntityFrameworkCore;
 using EMMS.CustomAttributes;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace EMMS.Controllers
 {
@@ -23,6 +24,33 @@ namespace EMMS.Controllers
         {
             _logger = logger;                
             _context = context;
+        }
+        public IActionResult UserRegistration()
+        {
+            ViewData["DesignationId"] = new SelectList(_context.LookupItems.Include(x => x.LookupList).Where(l => l.LookupList.Name.Contains("Desig") && l.RowState == RowStatus.Active), "Id", "Name");
+            ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName");
+            ViewData["UserRoleId"] = new SelectList(_context.UserRole.Where(f => f.RowState == RowStatus.Active), "Id", "Name");
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UserRegistration([Bind("UserId,FirstName,MiddleName,LastName,DOB,Gender,Cellphone,DesignationId,FacilityId,Username,Password,UserRoleId,CreatedBy,DateCreated,ModifiedBy,DateModified,RowState")] User user)
+        {
+            if (ModelState.IsValid)
+            {
+                user.UserId = Guid.NewGuid();
+                user.DateCreated = DateTime.Now;
+                user.Password = PasswordManager.Encrypt(user.Password!);
+                //user.CreatedBy = TBD 
+                _context.Add(user);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            ViewData["DesignationId"] = new SelectList(_context.LookupItems.Where(f => f.LookupList.Name.Contains("Desig") && f.RowState == RowStatus.Active), "Id", "Name", user.DesignationId);
+            ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName", user.FacilityId);
+            ViewData["UserRoleId"] = new SelectList(_context.UserRole.Where(f => f.RowState == RowStatus.Active), "Id", "Name", user.UserRoleId);
+            return View(user);
         }
 
 

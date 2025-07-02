@@ -35,7 +35,6 @@ namespace EMMS.Controllers
                 //MoveAssets = all,
                 MoveAsset = movemodel,
                 AssetIndex = assets,
-                //Conditions = await _repo.GetConditions()
             };
 
             return paginatedMovement;
@@ -48,7 +47,7 @@ namespace EMMS.Controllers
         {
             var _repo = new AssetMovementRepo(_context);
             var data = await Data();
-            data.MoveAssets = _repo.GetAssetMovement().Result.Where(m => m.FromId == CurrentUser.FacilityId);
+            data.MoveAssets = await _repo.GetAssetMovement();//.Result.Where(m => m.FromId == CurrentUser.FacilityId);
             data.Conditions = await _repo.GetConditions();
             return View(data);
         }
@@ -117,8 +116,7 @@ namespace EMMS.Controllers
             {
                 //Debug.WriteLine("assetId"+assetMovement.AssetId);
                 //assetMovement.IsApproved = false;
-                UpdateEntity(assetMovement); // TBD Replace with actual user ID
-                                             //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                UpdateEntity(assetMovement); 
 
                 _context.Update(assetMovement);
                 await _context.SaveChangesAsync();
@@ -127,9 +125,6 @@ namespace EMMS.Controllers
             var _repo = new AssetMovementRepo(_context);
             var moveAssetViewModel = new MoveRequestViewModel()
             {
-                MoveAsset = assetMovement,
-
-               // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
