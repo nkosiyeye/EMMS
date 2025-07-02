@@ -172,10 +172,15 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
+                var asset = Assetmodel.asset;
+                asset.AssetId = Guid.NewGuid();
+                CreateEntity(asset);
+
+                _context.Add(asset);
+                await _context.SaveChangesAsync();
+
                 if (Assetmodel.alreadyDeployed)
                 {
 
@@ -183,25 +188,29 @@ namespace EMMS.Controllers
                     var asmove = new MoveAsset()
                     {
                         MovementDate = Assetmodel.dateDeployed ?? DateTime.Now,
-                        AssetId = Assetmodel.asset.AssetId,
+                        AssetId = asset.AssetId,
                         MovementType = MovementType.Facility,
                         FromId = Assetmodel.facilityId ?? 0,
                         FacilityId = Assetmodel.facilityId,
                         ServicePointId = Assetmodel.ServicePointId,
                         Reason = MovementReason.Deployment,
+                        FunctionalStatus = FunctionalStatus.Functional,
+                        IsApproved = true,
+                        DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
+
+
 
                     };
+                    CreateEntity(asmove);
+                    _context.Add(asmove);
+                    await _context.SaveChangesAsync();
                 }
-                var asset = Assetmodel.asset;
-                asset.DateCreated = DateTime.Now;
-                CreateEntity(asset); // TBD Replace with actual user ID
-                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                _context.Add(asset);
-                await _context.SaveChangesAsync();
+                TempData["Success"] = "Equipment added successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["RegistrationError"] = string.Join("; ", errors);
             var _repo = new AssetManagementRepo(_context);
             var viewModel = new AssetRegistrationViewModel
             {
