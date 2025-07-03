@@ -1,4 +1,5 @@
-﻿@model EMMS.ViewModels.AssetRegistrationViewModel;
+﻿@using System.Text.Json
+@model EMMS.ViewModels.AssetRegistrationViewModel;
 @{
 
     ViewData["Title"] = "Register Asset";
@@ -13,26 +14,22 @@
         @if (TempData["RegistrationError"] != null)
         {
             <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                
-                    @* <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> *@
-
                 @TempData["RegistrationError"]
-
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
         }
         <form class="row bg-white" asp-action="RegisterAsset" asp-controller="AssetManagement" method="post">
-            <h5 class="mb-3 mt-3">General Information</h5>
+            <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.AssetTagNumber" class="form-label required-field">Asset Tag</label>
-                    <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model.asset.AssetTagNumber" readonly>
+                    <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model?.asset.AssetTagNumber" readonly>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="asset.CategoryId" class="form-label required-field">Category</label>
-                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" onchange="updateSubCategory(value)">
+                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model?.Categories, "Id", "Name"))" onchange="updateSubCategory(value)">
                         <option selected disabled>Select Category</option>
                     </select>
                     <span asp-validation-for="asset.CategoryId" class="text-danger"></span>
@@ -51,11 +48,11 @@
                     <span asp-validation-for="asset.ItemName" class="text-danger"></span>
                 </div>
             </div>
-            <h5 class="mb-3 mt-3">Technical Details</h5>
+            <h5 class="mb-3 mt-3 form-subheading">Technical Details</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.DepartmentId" class="form-label required-field">Department</label>
-                    <select asp-for="asset.DepartmentId" id="department" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Departments, "Id", "Name"))">
+                    <select asp-for="asset.DepartmentId" id="department" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Departments, "Id", "Name"))">
                         <option selected disabled>Select Department</option>
                     </select>
                     <span asp-validation-for="asset.DepartmentId" class="text-danger"></span>
@@ -63,7 +60,7 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.ManufacturerId" class="form-label required-field">Manufacturer</label>
-                    <select asp-for="asset.ManufacturerId" id="manufacturer" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Manufacturers, "Id", "Name"))">
+                    <select asp-for="asset.ManufacturerId" id="manufacturer" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Manufacturers, "Id", "Name"))">
                         <option selected disabled>Select Manufacturer</option>
                     </select>
                     <span asp-validation-for="asset.ManufacturerId" class="text-danger"></span>
@@ -78,7 +75,6 @@
                     <span asp-validation-for="asset.SerialNumber" class="text-danger"></span>
                 </div>
 
-
                 <div class="col-md-6">
                     <label asp-for="asset.Model" for="model" class="form-label required-field">Model</label>
                     <input asp-for="asset.Model" type="text" id="model" class="form-control">
@@ -86,11 +82,11 @@
                 </div>
             </div>
             
-            <h5 class="mb-3 mt-3">Procurement & Status</h5>
+            <h5 class="mb-3 mt-3 form-subheading">Procurement & Status</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.VendorId" class="form-label required-field">Vendor</label>
-                    <select asp-for="asset.VendorId" id="vendor" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Vendors, "Id", "Name"))">
+                    <select asp-for="asset.VendorId" id="vendor" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Vendors, "Id", "Name"))">
                         <option selected disabled>Select Vendor</option>
                     </select>
                     <span asp-validation-for="asset.VendorId" class="text-danger"></span>
@@ -98,7 +94,7 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.ServiceProviderId" class="form-label required-field">Service Provider</label>
-                    <select asp-for="asset.ServiceProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
+                    <select asp-for="asset.ServiceProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.ServiceProviders, "Id", "Name"))">
                         <option selected disabled>Select Service Provider</option>
                     </select>
                     <span asp-validation-for="asset.ServiceProviderId" class="text-danger"></span>
@@ -108,7 +104,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.StatusId" class="form-label required-field">Status</label>
-                    <select asp-for="asset.StatusId" id="status" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Statuses, "Id", "Name"))" onchange="checkStatus(this)">
+                    <select asp-for="asset.StatusId" id="status" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@Model?.Statuses" onchange="checkStatus(this)">
                         <option selected disabled>Select Status</option>
                     </select>
                     <span asp-validation-for="asset.StatusId" class="text-danger"></span>
@@ -134,7 +130,7 @@
                 </div>
             </div>
             <!-- Placement -->
-            <h5 class="mb-3 mt-3">Placement & Serviceability</h5>
+            <h5 class="mb-3 mt-3 form-subheading">Placement & Serviceability</h5>
             <div class="row mb-3">
                 <div class="col-md-12 col-lg-12 col-xl-4">
                     <div class="border rounded p-3">
@@ -195,7 +191,7 @@
                             </div>
                             <div class="col-md-6" id="duration(period)-field-container">
                                 <label asp-for="asset.ServicePeriodId" for="period" class="form-label required-field" id="period">Period</label>
-                                <select asp-for="asset.ServicePeriodId" id="period" class="form-select" aria-placeholder="interval(period)" asp-items="@(new SelectList(Model.LifespanPeriods, "Id", "Name"))">
+                                <select asp-for="asset.ServicePeriodId" id="period" class="form-select" aria-placeholder="interval(period)" asp-items="@(new SelectList(Model?.LifespanPeriods, "Id", "Name"))">
                                 </select>
                             </div>
                         </div>
@@ -219,13 +215,11 @@
                             <div class="col-md-8 col-lg-6">
                                 <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
                                 <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
-
-
                             </div>
                             <div class="col-md-8 col-lg-6" id="facilityField">
                                 <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
                                 <select asp-for="@Model.facilityId" class="form-select selectpicker col-md-6"
-                                        data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">
+                                        data-live-search="true" asp-items="@(new SelectList(Model?.Facilities, "FacilityId", "FacilityName"))">
                                     <option selected disabled>Select Facility</option>
                                 </select>
                             </div>
@@ -233,7 +227,7 @@
                             <div class="col-md-6 d-none" id="servicePointField">
                                 <label asp-for="@Model.ServicePointId" class="form-label required-field"></label>
                                 <select asp-for="@Model.ServicePointId" class="form-select selectpicker col-md-6"
-                                        data-live-search="true" asp-items="@(new SelectList(Model.ServicePoints, "Id", "Name"))">
+                                        data-live-search="true" asp-items="@(new SelectList(Model?.ServicePoints, "Id", "Name"))">
                                     <option selected disabled>Select Service Point</option>
                                 </select>
                             </div>
@@ -243,7 +237,7 @@
             </div>
 
 
-            <div class="d-flex align-center justify-content-center" style="align-items:center">
+            <div class="d-flex align-center justify-content-center" style="submit-btn-container">
                 <button type="submit" class="btn btn-primary col-md-4">Submit</button>
             </div>
         </form>
@@ -253,6 +247,17 @@
 </div>
 @section Scripts {
     <script>
+         document.addEventListener('DOMContentLoaded', function() {
+            const categorySelector = document.getElementById('category');
+            if (categorySelector) { 
+                const selectedCategory = categorySelector.value;
+                console.log(selectedCategory);
+                if(selectedCategory) {
+                    updateSubCategory(selectedCategory);
+                }
+            }
+        });
+
         function checkPlacement(checkbox) {
             const durationField = document.getElementById('duration-field-container');
             if (checkbox.checked) {
@@ -278,9 +283,9 @@
                 durationField.classList.add('d-none');
             }
         }
-         function checkStatus(select) {
-            console.log(select.value);
-          if(select.value == 106){
+
+        function checkStatus(select) {
+          if(select.value == 0){
             document.getElementById('procument-id').classList.add("required-field");
             document.getElementById('cost').classList.add("required-field");
             document.getElementById('quantitylifespan').classList.add("required-field");
@@ -290,7 +295,8 @@
             document.getElementById('quantitylifespan').classList.remove("required-field");
           }
         }
-                   function updateSubCategory(categoryId) {
+        
+        function updateSubCategory(categoryId) {
             var subCategorySelect = document.getElementById('subcategory');
             // Clear current options
             subCategorySelect.innerHTML = '<option selected disabled>Select SubCategory</option>';

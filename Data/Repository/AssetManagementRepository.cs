@@ -24,7 +24,6 @@ namespace EMMS.Data.Repository
                 .Include(x => x.Vendor)
                 .Include(x => x.ServiceProvider)
                 .Include(x => x.ServicePeriodName)
-                .Include(x => x.Status)
                 .ToListAsync();
         }
         public async Task<List<Models.Entities.Notification>> GetNotifications()
@@ -104,6 +103,14 @@ namespace EMMS.Data.Repository
             return await _context.LookupItems
                 .Where(x => x.LookupList.Name == "Period" && x.RowState == RowStatus.Active)
                 .ToListAsync();
+        }
+
+        public async Task<Asset?> GetAssetBySerialNumber(string serialNum)
+        {
+            var asset = await _context.Assets
+                .FirstOrDefaultAsync(a => a.SerialNumber == serialNum && a.RowState == RowStatus.Active);
+
+            return asset;
         }
     }
 }

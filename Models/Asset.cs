@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using EMMS.CustomRequiredAttribute;
 using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
@@ -99,10 +98,10 @@ namespace EMMS.Models
         [Required(ErrorMessage = "Status is required")]
         [Display(Name = "Status")]
         public int StatusId { get; set; }
-        [ForeignKey(nameof(StatusId))]
-        public virtual LookupItem? Status { get; set; }
+        //[ForeignKey(nameof(StatusId))]
+        //public virtual LookupItem? Status { get; set; }
 
-        //[RequiredIf("StatusId", 32, ErrorMessage = "Procurement Date is required for new assets.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New , ErrorMessage = "Procurement Date is required for new assets.")]
         [Display(Name = "Procurement Date")]
         public DateTime? ProcurementDate { get; set; }
 
@@ -110,10 +109,9 @@ namespace EMMS.Models
         [Display(Name = "Cost")]
         public decimal? Cost { get; set; }
 
-        //[RequiredIf("StatusId", 32, ErrorMessage = "Lifespan Quantity is required for new assets.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Lifespan is required for new assets and cannot be a negative value.")]
         [Display(Name = "Lifespan (Years)")]
         public int? LifespanQuantity { get; set; }
-
 
         public Guid? CreatedBy { get; set; }
         [ForeignKey(nameof(CreatedBy))]
