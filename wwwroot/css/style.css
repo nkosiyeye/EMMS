@@ -129,11 +129,25 @@ td {
     font-size: xx-small;
 }
 
+.btn-doc {
+    background-color: #248951;
+    color: white;
+}
+
+.btn-doc:hover {
+    background-color: #1d6f42;
+    color: white;
+}
+
 /* ===========================
    Forms and Cards
 =========================== */
 .alert{
     
+}
+
+.action-header-container {
+    column-gap: 10px;
 }
 
 p.card-text {
@@ -199,7 +213,7 @@ textarea::placeholder {
     font-size: 0.8rem;
 }
 
-submit-btn-container {
+.submit-btn-container {
     margin: 10px 0 20px;
 }
 

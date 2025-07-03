@@ -20,7 +20,7 @@ public class RequiredIfAttribute : ValidationAttribute
 
         if (dependentValue != null && dependentValue.Equals(_targetValue))
         {
-            if (value == null || (value is int val && val < 0) )
+            if (value == null || (value is int val && val <= 0) )
             {
                 return new ValidationResult(ErrorMessage);
             }

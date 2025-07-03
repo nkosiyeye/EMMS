@@ -109,6 +109,7 @@
                     </select>
                     <span asp-validation-for="asset.StatusId" class="text-danger"></span>
                 </div>
+
                 <div class="col-md-6">
                     <label asp-for="asset.ProcurementDate" for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
                     <input asp-for="asset.ProcurementDate" type="date" id="procurement-date" class="form-control">
@@ -119,7 +120,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.Cost" for="cost" class="form-label required-field" id="cost">Cost</label>
-                    <input asp-for="asset.Cost" type="text" id="cost" class="form-control">
+                    <input asp-for="asset.Cost" type="number" id="cost" class="form-control">
                     <span asp-validation-for="asset.Cost" class="text-danger"></span>
                 </div>
 
@@ -236,7 +237,7 @@
             </div>
 
 
-            <div class="d-flex align-center justify-content-center" style="submit-btn-container">
+            <div class="d-flex align-center justify-content-center submit-btn-container">
                 <button type="submit" class="btn btn-primary col-md-4">Submit</button>
             </div>
         </form>

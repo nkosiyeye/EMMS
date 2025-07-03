@@ -45,10 +45,10 @@
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Html.DisplayFor(model => (ProcurementStatus)model.Asset.StatusId)))</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@((ProcurementStatus)Model.Asset.StatusId)</dd>
                 </dl>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4">  
                 <dl class="row">
 
                     <dt class="col-sm-6 border p-1 m-0">Department</dt>
@@ -115,7 +115,6 @@
                             @Model.Asset.NextServiceDate!.Value.ToString("dd/MM/yyyy")
                                 
                         </dd>
-                        
                     }
                 </dl>
             </div>
