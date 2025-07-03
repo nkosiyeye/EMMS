@@ -25,9 +25,9 @@ namespace EMMS.Models
         // Movement Type
         [Required(ErrorMessage = "Movement Type is required")]
         [Display(Name = "Movement Type")]
-        public int MovementTypeId { get; set; }
-        [ForeignKey(nameof(MovementTypeId))]
-        public virtual LookupItem? MovementType { get; set; }
+        public MovementType MovementType { get; set; }
+        //[ForeignKey(nameof(MovementTypeId))]
+        //public virtual LookupItem? MovementType { get; set; }
 
         // From
         [Required]
@@ -36,9 +36,9 @@ namespace EMMS.Models
         [ForeignKey(nameof(FromId))]
         public virtual Facility? From { get; set; }
 
-        //[Required(ErrorMessage = "Request Date is required")]
+        [Required(ErrorMessage = "Facility is Required")]
         [Display(Name = "Facility")]
-        public int? FacilityId { get; set; }
+        public int FacilityId { get; set; }
         [ForeignKey(nameof(FacilityId))]
         public virtual Facility? Facility { get; set; }
 
@@ -51,22 +51,26 @@ namespace EMMS.Models
         // Reason
         [Required(ErrorMessage = "Reason is required")]
         [Display(Name = "Reason")]
-        public int ReasonId { get; set; }
-        [ForeignKey(nameof(ReasonId))]
-        public virtual LookupItem? Reason { get; set; }
+        public MovementReason Reason { get; set; }
+
+        [Display(Name = "OtherReason")]
+        public string? OtherReason { get; set; }
+        //[ForeignKey(nameof(ReasonId))]
+        //public virtual LookupItem? Reason { get; set; }
 
         // Functional Status
         [Required(ErrorMessage = "Functional Status is required")]
         [Display(Name = "Functional Status")]
-        public int FunctionalStatusId { get; set; }
-        [ForeignKey(nameof(FunctionalStatusId))]
-        public virtual LookupItem? FunctionalStatus { get; set; }
+        public FunctionalStatus FunctionalStatus { get; set; }
+        //[ForeignKey(nameof(FunctionalStatusId))]
+       // public virtual LookupItem? FunctionalStatus { get; set; }
 
         [Display(Name = "Approved")]
         public bool IsApproved { get; set; }
 
         [Display(Name = "Approved By")]
         public Guid? ApprovedBy { get; set; }
+      
 
         
         [Display(Name = "Date Received")]

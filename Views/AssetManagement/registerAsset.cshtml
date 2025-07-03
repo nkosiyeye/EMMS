@@ -1,4 +1,5 @@
-﻿@model EMMS.ViewModels.AssetRegistrationViewModel;
+﻿@using System.Text.Json
+@model EMMS.ViewModels.AssetRegistrationViewModel;
 @{
 
     ViewData["Title"] = "Register Asset";
@@ -10,29 +11,25 @@
         <span>Register Asset</span>
         </div>
     <div class="card-body">
-        @if (TempData["Error"] != null)
+        @if (TempData["RegistrationError"] != null)
         {
             <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                
-                    @* <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> *@
-                    
-                        @TempData["Error"]
-
+                @TempData["RegistrationError"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
         }
         <form class="row bg-white" asp-action="RegisterAsset" asp-controller="AssetManagement" method="post">
-            <h5 class="mb-3 mt-3">General Information</h5>
+            <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.AssetTagNumber" class="form-label required-field">Asset Tag</label>
-                    <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model.asset.AssetTagNumber" readonly>
+                    <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model?.asset.AssetTagNumber" readonly>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="asset.CategoryId" class="form-label required-field">Category</label>
-                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                    <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model?.Categories, "Id", "Name"))" onchange="updateSubCategory(value)">
                         <option selected disabled>Select Category</option>
                     </select>
                     <span asp-validation-for="asset.CategoryId" class="text-danger"></span>
@@ -41,8 +38,7 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.SubCategoryId" class="form-label required-field">SubCategory</label>
-                    <select asp-for="asset.SubCategoryId" id="subcategory" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.SubCategories, "Id", "Name"))">
-                        <option selected disabled>Select SubCategory</option>
+                    <select asp-for="asset.SubCategoryId" id="subcategory" class="form-select selectpicker col-md-6" data-live-search="true">
                     </select>
                     <span asp-validation-for="asset.SubCategoryId" class="text-danger"></span>
                 </div>
@@ -52,11 +48,11 @@
                     <span asp-validation-for="asset.ItemName" class="text-danger"></span>
                 </div>
             </div>
-            <h5 class="mb-3 mt-3">Technical Details</h5>
+            <h5 class="mb-3 mt-3 form-subheading">Technical Details</h5>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="asset.DepartmentId" class="form-label required-field">Department</label>
-                    <select asp-for="asset.DepartmentId" id="department" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Departments, "Id", "Name"))">
+                    <select asp-for="asset.DepartmentId" id="department" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Departments, "Id", "Name"))">
                         <option selected disabled>Select Department</option>
                     </select>
                     <span asp-validation-for="asset.DepartmentId" class="text-danger"></span>
@@ -64,7 +60,7 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.ManufacturerId" class="form-label required-field">Manufacturer</label>
-                    <select asp-for="asset.ManufacturerId" id="manufacturer" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Manufacturers, "Id", "Name"))">
+                    <select asp-for="asset.ManufacturerId" id="manufacturer" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Manufacturers, "Id", "Name"))">
                         <option selected disabled>Select Manufacturer</option>
                     </select>
                     <span asp-validation-for="asset.ManufacturerId" class="text-danger"></span>
@@ -79,18 +75,65 @@
                     <span asp-validation-for="asset.SerialNumber" class="text-danger"></span>
                 </div>
 
-
                 <div class="col-md-6">
                     <label asp-for="asset.Model" for="model" class="form-label required-field">Model</label>
                     <input asp-for="asset.Model" type="text" id="model" class="form-control">
                     <span asp-validation-for="asset.Model" class="text-danger"></span>
                 </div>
             </div>
+            
+            <h5 class="mb-3 mt-3 form-subheading">Procurement & Status</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="asset.VendorId" class="form-label required-field">Vendor</label>
+                    <select asp-for="asset.VendorId" id="vendor" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.Vendors, "Id", "Name"))">
+                        <option selected disabled>Select Vendor</option>
+                    </select>
+                    <span asp-validation-for="asset.VendorId" class="text-danger"></span>
+                </div>
 
+                <div class="col-md-6">
+                    <label asp-for="asset.ServiceProviderId" class="form-label required-field">Service Provider</label>
+                    <select asp-for="asset.ServiceProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model?.ServiceProviders, "Id", "Name"))">
+                        <option selected disabled>Select Service Provider</option>
+                    </select>
+                    <span asp-validation-for="asset.ServiceProviderId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="asset.StatusId" class="form-label required-field">Status</label>
+                    <select asp-for="asset.StatusId" id="status" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@Model?.Statuses" onchange="checkStatus(this)">
+                        <option selected disabled>Select Status</option>
+                    </select>
+                    <span asp-validation-for="asset.StatusId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="asset.ProcurementDate" for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
+                    <input asp-for="asset.ProcurementDate" type="date" id="procurement-date" class="form-control">
+                    <span asp-validation-for="asset.ProcurementDate" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label asp-for="asset.Cost" for="cost" class="form-label required-field" id="cost">Cost</label>
+                    <input asp-for="asset.Cost" type="number" id="cost" class="form-control">
+                    <span asp-validation-for="asset.Cost" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="asset.LifespanQuantity" for="quantitylifespan" class="form-label required-field" id="quantitylifespan"></label>
+                    <input asp-for="asset.LifespanQuantity" type="number" id="quantity2" class="form-control">
+                    <span asp-validation-for="asset.LifespanQuantity" class="text-danger"></span>
+                </div>
+            </div>
             <!-- Placement -->
-            <h5 class="mb-3 mt-3">Placement & Serviceability</h5>
-            <div class="row g-3 mb-3">
-                <div class="col-md-4">
+            <h5 class="mb-3 mt-3 form-subheading">Placement & Serviceability</h5>
+            <div class="row mb-3">
+                <div class="col-md-12 col-lg-12 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsPlacement" type="checkbox" class="form-check-input" id="placement-checkbox" onchange="checkPlacement(this)">
@@ -103,21 +146,21 @@
                             </div>
                         </div>
                         <div class="row mb-1 d-none" id="duration-field-container">
-                            <div class="col-md-6">
+                            <div class="col-md-8 col-lg-6">
                                 <label asp-for="asset.PlacementStartDate" for="start-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementStartDate" type="date" id="start-field" placeholder="Duration" class="form-control">
 
                                 <span asp-validation-for="asset.PlacementStartDate" class="text-danger"></span>
                             </div>
-                            <div class="col-md-6">
-                                <label asp-for ="asset.PlacementEndDate" for="end-field" class="form-label required-field"></label>
+                            <div class="col-md-8 col-lg-6">
+                                <label asp-for="asset.PlacementEndDate" for="end-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementEndDate" type="date" id="end-field" placeholder="Duration" class="form-control">
                             </div>
                         </div>
                     </div>
                 </div>
                 <!-- Donated -->
-                <div class="col-md-4">
+                <div class="col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsDonated" class="form-check-input" type="checkbox" id="donatedCheck">
@@ -131,7 +174,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsServiceable" input type="checkbox" class="form-check-input" id="serviceable-checkbox" onchange="checkServiceable(this)">
@@ -143,71 +186,58 @@
                             </div>
                         </div>
                         <div class="row d-none" id="service-field-container">
-                            <div class="col-md-6" id="duration(period)-field-container">
-                                <label asp-for="asset.ServicePeriod" for="period" class="form-label required-field" id="period">Period</label>
-                                <select asp-for="asset.ServicePeriod" id="period" class="form-select" aria-placeholder="interval(period)">
-                                    <option value="1">years</option>
-                                    <option value="2">months</option>
-                                </select>
-                            </div>
                             <div class="col-md-6" id="interval-field-container">
-                                <label asp-for="asset.ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval</label>
-                                <input asp-for="asset.ServiceInterval" type="text" id="interval" placeholder="e.g every 6 months" class="form-control">
+                                <label asp-for="asset.ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval(In Months)</label>
+                                <input asp-for="asset.ServiceInterval" type="number" id="interval" placeholder="e.g every 6 months" class="form-control">
+                            </div>
+                            <div class="col-md-6" id="duration(period)-field-container">
+                                <label asp-for="asset.NextServiceDate" for="period" class="form-label required-field" id="period"></label>
+                                <input asp-for="asset.NextServiceDate" id="period" class="form-control" type="date" aria-placeholder="interval(period)"/>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <h5 class="mb-3 mt-3">Procurement & Status</h5>
             <div class="row mb-3">
-                <div class="col-md-6">
-                    <label asp-for="asset.VendorId" class="form-label required-field">Vendor</label>
-                    <select asp-for="asset.VendorId" id="vendor" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Vendors, "Id", "Name"))">
-                        <option selected disabled>Select Vendor</option>
-                    </select>
-                    <span asp-validation-for="asset.VendorId" class="text-danger"></span>
-                </div>
+                <div class="col-md-12 col-lg-12 col-xl-6">
+                    <div class="border rounded p-3">
+                        <div class="form-check">
+                            <input asp-for="@Model.alreadyDeployed" type="checkbox" class="form-check-input" id="deployed-checkbox" onchange="checkAlreadyDeployed(this)">
+                            <input type="hidden" value="false" id="IsDeployed" name="IsDeployed">
+                            <label asp-for="@Model.alreadyDeployed" class="form-check-label fw-bold" for="isDeployedCheck">
+                                Already Deployed ?
+                            </label>
+                            <div class="form-text text-muted">
+                                Is this equipment already in use at a Facility
+                            </div>
+                        </div>
+                        <div class="row mb-1 d-none" id="isdeployed-field-container">
+                            <div class="col-md-8 col-lg-6">
+                                <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
+                                <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
+                            </div>
+                            <div class="col-md-8 col-lg-6" id="facilityField">
+                                <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
+                                <select asp-for="@Model.facilityId" class="form-select selectpicker col-md-6"
+                                        data-live-search="true" asp-items="@(new SelectList(Model?.Facilities, "FacilityId", "FacilityName"))">
+                                    <option selected disabled>Select Facility</option>
+                                </select>
+                            </div>
 
-                <div class="col-md-6">
-                    <label asp-for="asset.ServiceProviderId" class="form-label required-field">Service Provider</label>
-                    <select asp-for="asset.ServiceProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
-                        <option selected disabled>Select Service Provider</option>
-                    </select>
-                    <span asp-validation-for="asset.ServiceProviderId" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label asp-for="asset.StatusId" class="form-label required-field">Status</label>
-                    <select asp-for="asset.StatusId" id="status" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.Statuses, "Id", "Name"))" onchange="checkStatus(this)">
-                        <option selected disabled>Select Status</option>
-                    </select>
-                    <span asp-validation-for="asset.StatusId" class="text-danger"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="asset.ProcurementDate" for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
-                    <input asp-for="asset.ProcurementDate" type="date" id="procurement-date" class="form-control">
-                    <span asp-validation-for="asset.ProcurementDate" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label asp-for="asset.Cost" for="cost" class="form-label required-field" id="cost">Cost</label>
-                    <input asp-for="asset.Cost" type="text" id="cost" class="form-control">
-                    <span asp-validation-for="asset.Cost" class="text-danger"></span>
-                </div>
-
-                <div class="col-md-6">
-                    <label asp-for="asset.LifespanQuantity" for="quantitylifespan" class="form-label required-field" id="quantitylifespan"></label>
-                    <input asp-for="asset.LifespanQuantity" type="number" id="quantity2" class="form-control">
-                    <span asp-validation-for="asset.LifespanQuantity" class="text-danger"></span>
+                            <div class="col-md-6 d-none" id="servicePointField">
+                                <label asp-for="@Model.ServicePointId" class="form-label required-field"></label>
+                                <select asp-for="@Model.ServicePointId" class="form-select selectpicker col-md-6"
+                                        data-live-search="true" asp-items="@(new SelectList(Model?.ServicePoints, "Id", "Name"))">
+                                    <option selected disabled>Select Service Point</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
 
-            <div class="d-flex align-center justify-content-center" style="align-items:center">
+            <div class="d-flex align-center justify-content-center submit-btn-container">
                 <button type="submit" class="btn btn-primary col-md-4">Submit</button>
             </div>
         </form>
@@ -217,6 +247,17 @@
 </div>
 @section Scripts {
     <script>
+         document.addEventListener('DOMContentLoaded', function() {
+            const categorySelector = document.getElementById('category');
+            if (categorySelector) { 
+                const selectedCategory = categorySelector.value;
+                console.log(selectedCategory);
+                if(selectedCategory) {
+                    updateSubCategory(selectedCategory);
+                }
+            }
+        });
+
         function checkPlacement(checkbox) {
             const durationField = document.getElementById('duration-field-container');
             if (checkbox.checked) {
@@ -233,9 +274,18 @@
                 durationField.classList.add('d-none');
             }
         }
-         function checkStatus(select) {
-            console.log(select.value);
-          if(select.value == 32){
+
+        function checkAlreadyDeployed(checkbox) {
+            const durationField = document.getElementById('isdeployed-field-container');
+            if (checkbox.checked) {
+                durationField.classList.remove('d-none');
+            } else {
+                durationField.classList.add('d-none');
+            }
+        }
+
+        function checkStatus(select) {
+          if(select.value == 0){
             document.getElementById('procument-id').classList.add("required-field");
             document.getElementById('cost').classList.add("required-field");
             document.getElementById('quantitylifespan').classList.add("required-field");
@@ -245,6 +295,37 @@
             document.getElementById('quantitylifespan').classList.remove("required-field");
           }
         }
+        
+        function updateSubCategory(categoryId) {
+            var subCategorySelect = document.getElementById('subcategory');
+            // Clear current options
+            subCategorySelect.innerHTML = '<option selected disabled>Select SubCategory</option>';
+
+            if (categoryId) {
+                fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(function (item) {
+                            var option = document.createElement('option');
+                            option.value = item.id;
+                            option.text = item.name;
+                            subCategorySelect.appendChild(option);
+                        });
+                        // Refresh the selectpicker UI if using Bootstrap Select
+                        if ($(subCategorySelect).hasClass('selectpicker')) {
+                            $(subCategorySelect).selectpicker('refresh');
+                        }
+                    });
+            } else {
+                subCategorySelect.innerHTML = '<option selected disabled>Select Category</option>';
+                // Also refresh if cleared
+                if ($(subCategorySelect).hasClass('selectpicker')) {
+                    $(subCategorySelect).selectpicker('refresh');
+                }
+            }
+        }
+
+
 
     </script>
     @{

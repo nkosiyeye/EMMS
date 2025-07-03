@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model List<EMMS.Models.Entities.Notification>
 
 @{
 	ViewData["Title"] = "Notifications";
@@ -15,43 +13,81 @@
 	</div>
 	<div class="card-body">
 
-		<div class="notification-body">
-			<ul class="notification-list" id="notificationList">
-				<li class="notification-item">
+        <div class="notification-body">
+            <ul class="notification-list" id="notificationList">
+                @foreach (var item in Model)
+                {
+                    <li class="notification-item">
+                        <div class="notification-icon">
+                            @if (item.Type == "work")
+                            {
+                                <i class="fas fa-tools text-primary"></i>
+                            }
+                            else if (item.Type == "job")
+                            {
+                                <i class="fas fa-briefcase text-success"></i>
+                            }
+                            else if (item.Type == "asset")
+                            {
+                                <i class="fas fa-box text-info"></i>
+                            }
+                            else if (item.Type == "move")
+                            {
+                                <i class="fa-solid fa-arrows-turn-to-dots"></i>
+                            }
+                            else
+                            {
+                                <i class="fas fa-bell text-secondary"></i>
+                            }
+                        </div>
+                        <div class="notification-content">
+                            <p class="notification-message">@item.Message</p>
+                            <span class="notification-time">@item.DateCreated?.ToShortDateString()</span>
+                        </div>
+                        <div class="notification-actions">
+                            @if (item.Type == "work")
+                            {
+                                <a class="notification-action mark-read" title="View Work Request"
+                                   href="@Url.Action("Index", "JobManagement")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
+                            else if (item.Type == "job")
+                            {
+                                <a class="notification-action mark-read" title="View Job"
+                                   href="@Url.Action("Index", "JobManagement")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
+                            else if (item.Type == "asset")
+                            {
+                                <a class="notification-action mark-read" title="View Asset"
+                                   href="@Url.Action("Index", "AssetManagement")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
+                            else if (item.Type == "move")
+                            {
+                                <a class="notification-action mark-read" title="Recieve Asset"
+                                   href="@Url.Action("recieveAsset", "AssetMovement")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="notification-action mark-read" title="No action">
+                                    <i class="fas fa-eye-slash"></i>
+                                </span>
+                            }
+                        </div>
+                    </li>
 
-					<div class="notification-icon success">
-						<i class="fas fa-toolbox"></i>
-					</div>
-					<div class="notification-content">
-						<p class="notification-message">New work request submitted.</p>
-						<span class="notification-time">2 minutes ago</span>
-					</div>
-					<div class="notification-actions">
-						<a class="notification-action mark-read" title="view" asp-controller="JobManagement" asp-action="workRequest">
-							<i class="fas fa-eye"></i>
-						</a>
-					</div>
-				</li>
-				<li class="notification-item">
-
-					<div class="notification-icon info">
-						<i class="fas fa-box-open"></i>
-					</div>
-					<div class="notification-content">
-						<p class="notification-message">New Asset added to inventory.</p>
-						<span class="notification-time">1 hour ago</span>
-					</div>
-					<div class="notification-actions">
-						<a class="notification-action mark-read" title="view" asp-controller="AssetManagement" asp-action="Index">
-							<i class="fas fa-eye"></i>
-						</a>
-					</div>
-				</li>
-			</ul>
-			<div class="empty-notifications d-none" id="emptyNotifications">
-				<i class="fas fa-bell-slash fa-2x mb-3"></i>
-				<p>No notifications yet</p>
-			</div>
-		</div>
+                }
+            </ul>
+            <div class="empty-notifications d-none" id="emptyNotifications">
+                <i class="fas fa-bell-slash fa-2x mb-3"></i>
+                <p>No notifications yet</p>
+            </div>
+        </div>
 	</div>
 </div>

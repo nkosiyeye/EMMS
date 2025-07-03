@@ -1,11 +1,12 @@
-﻿@model EMMS.ViewModels.AssetDetailViewModel
+﻿@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.AssetDetailViewModel
 
 @*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
 @{
 
-    ViewData["Title"] = "A123456";
+    ViewData["Title"] = Model.Asset.AssetTagNumber;
     ViewData["asset"] = "active";
 }
 <script>
@@ -37,17 +38,17 @@
                     <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
 
-                    <dt class="col-sm-6 border p-1 m-0">TBD</dt>
-                    <dd class="col-sm-6 border p-1 m-0"></dd>
+                    <dt class="col-sm-6 border p-1 m-0">Created By</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.User.FirstName)</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Html.DisplayFor(model => model.Asset.Status!.Name))</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@((ProcurementStatus)Model.Asset.StatusId)</dd>
                 </dl>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4">  
                 <dl class="row">
 
                     <dt class="col-sm-6 border p-1 m-0">Department</dt>
@@ -80,9 +81,9 @@
                     <dt class="col-sm-6 border p-1 m-0">Placement</dt>
                     <dd class="col-sm-6 border p-1 m-0">
                         @(Model.Asset.IsPlacement ?
-                            "Yes " + Model.Asset.PlacementStartDate!.Value.ToString("dd/MM/yyyy") + " to " + Model.Asset.PlacementEndDate!.Value.ToString("dd/MM/yyyy")
-                        : "No"
-                        )
+                                "Yes " + Model.Asset.PlacementStartDate!.Value.ToString("dd/MM/yyyy") + " to " + Model.Asset.PlacementEndDate!.Value.ToString("dd/MM/yyyy")
+                            : "No"
+                            )
                         @* @(Html.DisplayFor(model => model.Asset.IsPlacement ? "Yes" : "No")) *@
                     </dd>
 
@@ -96,18 +97,25 @@
                     <dd class="col-sm-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ServiceProvider!.Name)</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.Facility?.FacilityName ?? "-")</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.Facility?.FacilityName ?? Model.MovementHistory?.FirstOrDefault()?.ServicePoint?.Name ?? "-")</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus?.Name ?? "-")</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus.ToString() ?? "-")</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Servicable</dt>
                     <dd class="col-sm-6 border p-1 m-0">
                         @(Model.Asset.IsServiceable ?
-                            "Yes " + Model.Asset.ServiceInterval + " " + Model.Asset.ServicePeriod
-                            : "No"
-                            )
+                            $"Every {Model.Asset.ServiceInterval.ToString()} Month(s)" : "No"
+                                )
                     </dd>
+                    @if (Model.Asset.IsServiceable)
+                    {
+                        <dt class="col-sm-6 border p-1 m-0">Next Service Date</dt>
+                        <dd class="col-sm-6 border p-1 m-0"> 
+                            @Model.Asset.NextServiceDate!.Value.ToString("dd/MM/yyyy")
+                                
+                        </dd>
+                    }
                 </dl>
             </div>
         </div>
@@ -164,7 +172,8 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Detail</th>
+                        <th>Facility</th>
+                        <th>Service Point</th>
                         <th>Functional Status</th>
                         <th>Recieved By</th>
                     </tr>
@@ -175,20 +184,19 @@
                         <tr>
                             <td>@move.MovementDate.ToString("yyyy-MM-dd")</td>
                             <td>
-                                @if (move.Facility != null)
+                                    @($"{move.Facility.FacilityName}")
+                            </td>
+                            <td>
+                                @if (move.ServicePoint != null)
                                 {
-                                    @($"Moved - {move.Facility.FacilityName}")
-                                }
-                                else if (move.ServicePoint != null)
-                                {
-                                    @($"Received - {move.ServicePoint.Name}")
+                                    @($"{move.ServicePoint.Name}")
                                 }
                                 else
                                 {
                                     @("Unknown")
                                 }
                             </td>
-                            <td>@move.FunctionalStatus.Name</td>
+                            <td>@move.FunctionalStatus</td>
                             <td>
                                 @* TBD Replace with actual user *@
                                 @(move.ReceivedBy?.ToString() ?? "N/A")

@@ -1,4 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@using EMMS.Models
+@using EMMS.Models.Admin
+@{
+
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+	var currentUser = ViewBag._currentUser as User;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -9,7 +17,7 @@
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
     @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
-	<link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
+    <link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
     @* <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.dataTables.css" /> *@
     <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
@@ -22,8 +30,8 @@
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
                             <a class="align-items-center float-start py-1" href="#">
-                                <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="me-2">
-                                <span class="navbar-brand mb-0 h1" style="color: white;">EMMS</span>
+                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2">
+                                <span class="navbar-brand mb-1 h1" style="color: white;">EMMS</span>
                             </a>
                         </div>
                     </nav>
@@ -42,10 +50,31 @@
                         </a>
                         <div style="border:solid; border-color:gray;" id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
                             <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="Index" class="@ViewData["workRequest"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Work Request</span></a>
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Create Job</span></a>
+                            @if (isBiomed || isAdmin)
+                            {
+                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Create Job</span></a>                                
+                            }
                         </div>
 
                         <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-bell"></i> <span>Notifications</span></a>
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="LookupList" class="list-group-item border-0 d-inline-block text-truncate">
+                                <i class="fa-solid fa-list"></i> <span>Lookup List</span>
+                            </a>
+
+                            <a style="color:black" href="#usermenu" data-bs-toggle="collapse" class="list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
+                                <i class="fa-solid fa-toolbox"></i> <span>User Management</span>
+                            </a>
+
+                            <div style="border:solid; border-color:gray;" id="usermenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="Users" asp-action="Index" class="list-group-item item border-0 d-inline-block text-truncate"><span>User Accounts</span></a>
+                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="Admin" asp-action="UserRoles" class="list-group-item item border-0 d-inline-block text-truncate"><span>User Roles</span></a>
+                            </div>
+                        }
+
+
+                        @* @await Component.InvokeAsync("SidebarLookups") *@
                     </div>
                 </div>
             </div>
@@ -56,12 +85,31 @@
                             <i class="fa-solid fa-bars"></i>
                         </a>
                         <div class="d-flex align-items-center">
-                            <a href="#" id="notificationBell" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
+                            <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                 <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
                             </a>
-                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
-                                <i class="fa-solid fa-gear"></i>
+                            <a asp-controller="Home" asp-action="Logout" title="Logout" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                                <i class="fa-solid fa-power-off"></i>
                             </a>
+                            <div class="row justify-content-center align-items-center">
+                                <div class="col-auto" style="padding-right:0px;">
+                                    <img src="~/images/user.jpg"
+                                         class="rounded-circle"
+                                         style="width: 30px; height: 30px; object-fit: cover; border: 2px solid #dee2e6; padding: 2px;"
+                                         alt="User Image" />
+                                </div>
+                                <div class="col-auto d-none d-md-block">
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold" style="font-size:smaller">
+                                            @(currentUser!.FirstName) @(currentUser.LastName)
+                                        </span>
+                                        <span class="text-muted" style="font-size:x-small">
+                                            @currentUser.UserRole!.Name
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </nav>
@@ -74,7 +122,7 @@
                     <div class="notification-body">
                         <ul class="notification-list" id="notificationList">
                             <!-- Notifications will be populated here -->
-							@await Component.InvokeAsync("BellNotifications")
+							 @await Component.InvokeAsync("BellNotifications") 
                         </ul>
                         <div class="empty-notifications d-none" id="emptyNotifications">
                             <i class="fas fa-bell-slash fa-2x mb-3"></i>

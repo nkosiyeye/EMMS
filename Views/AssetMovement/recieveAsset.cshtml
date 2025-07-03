@@ -4,6 +4,7 @@
     ViewData["Title"] = "Recieve Assets";
     ViewData["recieveAsset"] = "active";
     ViewData["JobMovement"] = "active";
+    Model.MoveAsset.DateReceived = DateTime.Today;
     //var pagination = (Pagination)ViewData["Pagination"];
 }
 
@@ -36,8 +37,8 @@
                                 <td>@reciveAsset.Asset!.AssetTagNumber</td>
                                 <td>@reciveAsset.From!.FacilityName</td>
                                 <td>@reciveAsset.MovementDate.ToString("dd MMM yyyy")</td>
-                                <td>@reciveAsset.FunctionalStatus!.Name</td>
-                                <td>@reciveAsset.Reason!.Name</td>
+                                <td>@reciveAsset.FunctionalStatus.ToString()</td>
+                                <td>@reciveAsset.Reason</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal"
                                     data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
@@ -90,7 +91,7 @@
                             <td>@reciveAsset.Asset.AssetTagNumber</td>
                             <td>@reciveAsset.From.FacilityName</td>
                             <td>@reciveAsset.DateReceived!.Value.ToString("dd MMM yyyy")</td>
-                            <td>@reciveAsset.FunctionalStatus.Name</td>
+                            <td>@reciveAsset.FunctionalStatus</td>
                             @* <td>@reciveAsset.ReceivedBy</td> *@
                         </tr>
                     }
@@ -111,7 +112,7 @@
             </div>
             <div class="modal-body">
 
-                @if (TempData["Error"] != null)
+                @* @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                         <div>
@@ -124,7 +125,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                }
+                } *@
                 <form asp-action="ReceiveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -147,7 +148,8 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.ReceivedBy" class="form-label"></label>
-                            <input asp-for="MoveAsset.ReceivedBy" class="form-control" value="@Guid.NewGuid()" readonly/>
+                            <input asp-for="MoveAsset.ReceivedBy" type="hidden" class="form-control" value="@ViewBag._currentUser.UserId" readonly />
+                            <input class="form-control" value="@ViewBag._currentUser.FirstName" readonly />
                         </div>
                     </div>
                     <div class="row mb-3">

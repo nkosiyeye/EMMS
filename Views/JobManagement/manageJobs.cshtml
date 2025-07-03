@@ -3,6 +3,7 @@
     ViewData["Title"] = "Manage Jobs";
     ViewData["manageJob"] = "active";
     ViewData["JobManagement"] = "active";
+    Model.Job.StartDate = DateTime.Today;
 }
 
 
@@ -53,12 +54,12 @@
                                     <td>@request.WorkStatus.Name</td>
                                     <td>
                                         <button 
-                                            class="btn btn-primary btn-sm" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#jobModal"
-                                                data-request-id="@request.WorkRequestId"
-                                                data-asset-id="@request.AssetId"
-                                            data-asset-tag="@request.Asset.AssetTagNumber">
+                                        class="btn btn-primary btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#jobModal"
+                                        data-request-id="@request.WorkRequestId"
+                                        data-asset-id="@request.AssetId"
+                                        data-asset-tag="@request.Asset.AssetTagNumber">
                                             Create Job
                                         </button>
                                         <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
@@ -85,6 +86,7 @@
                                 <th>Date</th>
                                 <th>Report</th>
                                 <th>AssignedTo</th>
+                                <th>External</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -94,11 +96,12 @@
                             {
 
                                 <tr>
-                                    <td>@job.Asset.AssetTagNumber</td>
+                                    <td>@job.Asset!.AssetTagNumber</td>
                                     <td>@job.StartDate</td>
-                                    <td>@job.FaultReport.Name</td>
-                                    <td>@job.AssignedTo</td>
-                                    <td>@job.Status.Name @(job.IsExternalProvider ? "(External)" : "")</td>
+                                    <td>@job.FaultReport!.Name</td>
+                                    <td>@job.User!.FirstName</td>
+                                    <td>@(job.IsExternalProvider ? $"{job.ExternalProvider?.Name ?? "External"}" : "No")</td>
+                                    <td>@job.Status!.Name</td>
                                     <td>
                                         <a asp-controller="JobManagement" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
                                             <i class="fa fa-eye"></i>
@@ -125,20 +128,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                @if (TempData["Error"] != null)
-                {
-                    <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
-                        <div>
-                            <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
-                            <div>
-                                @TempData["Error"]
-                            </div>
-                        </div>
-
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-
-                }
                 <form asp-action="createJobCard" asp-controller="JobManagement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
@@ -150,13 +139,14 @@
                         <div class="col-md-4">
                             <label for="assetTag" class="form-label required-field">Asset Tag</label>
                             <input asp-for="Job.WorkRequestId" id="requestId" type="hidden" />
-                            <input asp-for="Job.AssetId" id="assetId" type="hidden" />
+                            <input asp-for="Job.AssetId" id="assetId" type="hidden"/>
                             <input readonly type="text" class="form-control" id="assetTag">
                         </div>
                         <div class="col-md-4">
                             <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
-                            <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
+                            <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "In Progress").Name" disabled />
+                            <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
+                            data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
                                 @foreach (var status in Model.WorkStatuses!.Where(w => w.Name == "In Progress"))
                                 {
                                     <option value="@status.Id" selected>@status.Name</option>
@@ -169,17 +159,24 @@
                         <div class="col-md-6">
                             <label asp-for="Job.FaultReportId" for="title" class="form-label required-field"></label>
                             <select asp-for="Job.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                            data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
                                 <option selected disabled>Select Fault Report</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
-                            <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" required>
-                                <option selected disabled>Select BioMed</option>
-                                <option value="@Guid.NewGuid()">BioMed</option>
-                                @* TBD *@
-                            </select>
+                            @if (ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator)
+                            {
+                                <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" asp-items="ViewBag.Biomed" required>
+                                </select>
+
+                            }
+                            else
+                            {
+                                    <input asp-for="Job.AssignedTo" value="@ViewBag._currentUser.UserId" id="requestId" type="hidden" />
+                                <input readonly type="text" class="form-control" id="assignedTo" value="@ViewBag._currentUser.FirstName">
+                               
+                            }
                         </div>
                     </div>
 
@@ -239,6 +236,31 @@
          $(document).ready(function () {
         $('#JobTable').DataTable({
                 pageLength: 10
+            });
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            // Get the modal and the asset tag input field
+            const Modal = document.getElementById("jobModal");
+            const assetIdInput = document.getElementById("assetId");
+            const requsetIdInput = document.getElementById("requestId");
+            const assetTagInput = document.getElementById("assetTag");
+
+            // Listen for when the modal is shown
+            Modal.addEventListener("show.bs.modal", function (event) {
+                // Get the button that triggered the modal
+                const button = event.relatedTarget;
+
+                // Extract the asset ID from the data-asset-id attribute
+                const assetId = button.getAttribute("data-asset-id");
+                const assetTag = button.getAttribute("data-asset-tag");
+                const requestId = button.getAttribute("data-request-id");
+
+
+
+                // Populate the Asset Tag field in the modal
+                assetTagInput.value = assetTag;
+                assetIdInput.value = assetId;
+                requsetIdInput.value = requestId;
             });
         });
     </script>

@@ -15,24 +15,24 @@ namespace EMMS.Data.Repository
         public async Task<IEnumerable<MoveAsset>> GetAssetMovement()
         {
             var moveAssets = await _context.AssetMovement
-                                .Where(x => x.RowState == RowStatus.Active)
-                                .Include(x => x.Asset)
-                                .Include(x => x.From)
-                                .Include(x => x.Facility)
-                                .Include(x => x.MovementType)
-                                .Include(x => x.ServicePoint)
-                                .Include(x => x.Reason)
-                                .Include(x => x.FunctionalStatus)
-                                .Include(x => x.Condition)
-                                .ToListAsync();
+                .Where(x => x.RowState == RowStatus.Active)
+                .Include(x => x.Asset)
+                .Include(x => x.From)
+                .Include(x => x.Facility)
+                .Include(x => x.ServicePoint)
+                .Include(x => x.Condition)
+                .OrderByDescending(m => m.DateCreated)
+                .ThenByDescending(m => m.IsApproved)
+                .ToListAsync();
             return moveAssets;
         }
 
-        public async Task<IEnumerable<LookupItem>> GetMovementTypes()
+        public async Task<MoveAsset> GetLastMovement(Guid assetId)
         {
-            return await _context.LookupItems
-                .Where(x => x.LookupList.Name == "Movement Type" && x.RowState == RowStatus.Active)
-                .ToListAsync();
+            return await _context.AssetMovement
+                .Where(x => x.AssetId == assetId && x.RowState == RowStatus.Active)
+                .OrderByDescending(x => x.MovementDate)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<Facility>> GetFacilities()

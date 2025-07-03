@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -10,7 +11,7 @@ namespace EMMS.Models
     {
         [Key]
         [Display(Name = "Job Card Number")]
-        public int JobId { get; set; }
+        public Guid JobId { get; set; }
 
         [Required]
         [Display(Name = "Work Request ID")]
@@ -27,6 +28,8 @@ namespace EMMS.Models
         [Required]
         [Display(Name = "Assigned To")]
         public Guid? AssignedTo { get; set; }
+        [ForeignKey(nameof(AssignedTo))]
+        public virtual User? User { get; set; }
 
         [Required]
         [Display(Name = "Start Date")]
@@ -54,6 +57,12 @@ namespace EMMS.Models
         public int StatusId { get; set; }
         [ForeignKey(nameof(StatusId))]
         public virtual LookupItem? Status { get; set; }
+
+        [Display(Name = "Amount")]
+        public int? Amount { get; set; }
+
+        [Display(Name = "Invoice No")]
+        public string? InvoiceNo { get; set; }
 
 
         [Display(Name = "Remarks")]

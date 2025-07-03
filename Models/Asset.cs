@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using EMMS.CustomRequiredAttribute;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -72,11 +72,13 @@ namespace EMMS.Models
         [Display(Name = "Serviceable")]
         public bool IsServiceable { get; set; }
 
-        [Display(Name = "Service Period")]
-        public string? ServicePeriod { get; set; }
+        [Display(Name = "Next Service Date")]
+        public DateTime? NextServiceDate{ get; set; }
+        //[ForeignKey(nameof(ServicePeriodId))]
+        //public virtual LookupItem? ServicePeriodName { get; set; }
 
         [Display(Name = "Service Interval")]
-        public string? ServiceInterval { get; set; }
+        public int? ServiceInterval { get; set; }
 
         // Vendor
         [Required(ErrorMessage = "Vendor is required")]
@@ -96,23 +98,24 @@ namespace EMMS.Models
         [Required(ErrorMessage = "Status is required")]
         [Display(Name = "Status")]
         public int StatusId { get; set; }
-        [ForeignKey(nameof(StatusId))]
-        public virtual LookupItem? Status { get; set; }
+        //[ForeignKey(nameof(StatusId))]
+        //public virtual LookupItem? Status { get; set; }
 
-        //[RequiredIf("StatusId", 32, ErrorMessage = "Procurement Date is required for new assets.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New , ErrorMessage = "Procurement Date is required for new assets.")]
         [Display(Name = "Procurement Date")]
         public DateTime? ProcurementDate { get; set; }
 
-        //[RequiredIf("StatusId", 32, ErrorMessage = "Cost is required for new assets.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Cost is required for new assets  and cannot be a negative value.")]
         [Display(Name = "Cost")]
         public decimal? Cost { get; set; }
 
-        //[RequiredIf("StatusId", 32, ErrorMessage = "Lifespan Quantity is required for new assets.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Lifespan is required for new assets and cannot be a negative value.")]
         [Display(Name = "Lifespan (Years)")]
         public int? LifespanQuantity { get; set; }
 
-
         public Guid? CreatedBy { get; set; }
+        [ForeignKey(nameof(CreatedBy))]
+        public virtual User? User { get; set; }
         public DateTime? DateCreated { get; set; }
         public Guid? ModifiedBy { get; set; }
         public DateTime? DateModified { get; set; }

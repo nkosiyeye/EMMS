@@ -55,6 +55,10 @@ namespace EMMS.Models
         [Display(Name = "Close Date")]
         public DateTime? CloseDate { get; set; }
 
+        public Guid? JobId { get; set; }
+        [ForeignKey(nameof(JobId))]
+        public virtual Job? Job { get; set; }
+
 
         public Guid? CreatedBy { get; set; }
         public DateTime? DateCreated { get; set; }

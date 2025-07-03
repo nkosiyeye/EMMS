@@ -1,22 +1,27 @@
-﻿using EMMS.Data;
+﻿using EMMS.CustomAttributes;
+using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
+using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    public class AssetMovementController : Controller
+    public class AssetMovementController : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetService _assetService;
         public AssetMovementController(ApplicationDbContext context)
         {
             _context = context;
+            _assetService = new AssetService(context);
         }
         public async Task<MoveAssetViewModel> Data(MoveAsset? movemodel = null)
         {
@@ -25,15 +30,12 @@ namespace EMMS.Controllers
                 movemodel = new MoveAsset();
             }
             var _repo = new AssetMovementRepo(_context);
-            var assets = await new AssetManagement(_context).assetViewModel();
-
-            var all = await _repo.GetAssetMovement();
+            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser); 
             MoveAssetViewModel paginatedMovement = new MoveAssetViewModel
             {
-                MoveAssets = all,
+                //MoveAssets = all,
                 MoveAsset = movemodel,
                 AssetIndex = assets,
-                Conditions = await _repo.GetConditions()
             };
 
             return paginatedMovement;
@@ -41,28 +43,43 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            var model = await Data();
-            return View(model);
+            var _repo = new AssetMovementRepo(_context);
+            var data = await Data();
+            data.MoveAssets = await _repo.GetAssetMovement();//.Result.Where(m => m.FromId == CurrentUser.FacilityId);
+            data.Conditions = await _repo.GetConditions();
+            return View(data);
         }
 
         [HttpGet]
+        [RequireLogin]
         public async Task<IActionResult> moveAsset(Guid id)
         {
             var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
             var _repo = new AssetMovementRepo(_context);
-            var moveAsset = new MoveAsset()
-            {
-                AssetId = id,
+            var moveAsset = new MoveAsset();
 
-            };
+            var history = await _repo.GetLastMovement(id);
+            if(history != null)
+            {
+                moveAsset.AssetId = id;
+                moveAsset.FacilityId = history.FacilityId;           
+                
+
+            }
+            else
+            {
+                moveAsset.AssetId = id;
+
+            }
             var moveAssetViewModel = new MoveRequestViewModel()
             {
                 AssetTag = _arepo.AssetTagNumber,
                 MoveAsset = moveAsset,
 
-                MovementTypes = await _repo.GetMovementTypes(),
+               // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
@@ -74,37 +91,107 @@ namespace EMMS.Controllers
             return View(moveAssetViewModel);
         }
 
-
-        [HttpPost]
-        public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> edit(Guid id)
         {
 
+            var moveAsset = new AssetMovementRepo(_context).GetAssetMovement().Result.FirstOrDefault(m => m.MovementId == id);
+            var _repo = new AssetMovementRepo(_context);
+            var moveAssetViewModel = new MoveRequestViewModel()
+            {
+                MoveAsset = moveAsset,
+
+               // MovementTypes = await _repo.GetMovementTypes(),
+                Facilities = await _repo.GetFacilities(),
+                ServicePoints = await _repo.GetServicePoints(),
+                Reasons = await _repo.GetReasons(),
+                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
+
+            };
+
+
+            return View(moveAssetViewModel);
+
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> edit(MoveRequestViewModel asmove)
+        {
+
+            var assetMovement = asmove.MoveAsset;
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
-                var assetMovement = asmove.MoveAsset;
-                assetMovement.FromId = 2;//Update with logged in facility;
-
                 //Debug.WriteLine("assetId"+assetMovement.AssetId);
                 //assetMovement.IsApproved = false;
-                assetMovement.DateCreated = DateTime.Now;
-                assetMovement.RowState = RowStatus.Active;
-                assetMovement.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
-                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                UpdateEntity(assetMovement); 
+
+                _context.Update(assetMovement);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            var _repo = new AssetMovementRepo(_context);
+            var moveAssetViewModel = new MoveRequestViewModel()
+            {
+                Facilities = await _repo.GetFacilities(),
+                ServicePoints = await _repo.GetServicePoints(),
+                Reasons = await _repo.GetReasons(),
+                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
+
+            };
+
+
+            return View(moveAssetViewModel);
+
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
+
+            var assetMovement = asmove.MoveAsset;
+
+            if (ModelState.IsValid)
+            {
+                var _repo = new AssetMovementRepo(_context);
+
+                assetMovement.FromId = CurrentUser!.FacilityId ?? 1;
+
+                CreateEntity(assetMovement);
 
                 _context.Add(assetMovement);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return RedirectToAction(nameof(moveAsset));
-        }
-        [HttpGet]
-        public async Task<IActionResult> recieveAsset(int page = 1, int pageSize = 10)
-        {
 
-            
-            return View(await Data());
+            // Repopulate dropdowns for the view
+            var _repoReload = new AssetMovementRepo(_context);
+            var moveAssetViewModel = new MoveRequestViewModel()
+            {
+                MoveAsset = assetMovement,
+                Facilities = await _repoReload.GetFacilities(),
+                ServicePoints = await _repoReload.GetServicePoints(),
+                Reasons = await _repoReload.GetReasons(),
+                FunctionalStatuses = await _repoReload.GetFunctionalStatuses(),
+            };
+
+            return View("moveAsset", moveAssetViewModel);
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> recieveAsset()
+        {
+            var _repo = new AssetMovementRepo(_context);
+            var data = await Data();
+            data.MoveAssets = _repo.GetAssetMovement().Result.Where(m => m.FromId == CurrentUser.FacilityId);
+            data.Conditions = await _repo.GetConditions();
+            return View(data);
         }
         
         [HttpPost]
@@ -140,10 +227,11 @@ namespace EMMS.Controllers
         public async Task<IActionResult> approveMovement(Guid id)
         {
             Debug.WriteLine(id);
-
              
                 var movement = _context.AssetMovement
-                    .FirstOrDefault(m => m.MovementId == id); 
+                    .FirstOrDefault(m => m.MovementId == id);
+                var assetTag = _context.Assets
+                .FirstOrDefault(a => a.AssetId == movement.AssetId).AssetTagNumber;
 
                 if (movement == null)
                 {
@@ -154,13 +242,25 @@ namespace EMMS.Controllers
 
                 // Update movement properties
                 movement.IsApproved = true;
-                movement.ApprovedBy = Guid.NewGuid();
+                movement.ApprovedBy = CurrentUser.UserId;
+                UpdateEntity(movement);
+                var notification = new Models.Entities.Notification
+                {
+                    Message = $"Recieve Asset: {assetTag}",
+                    Type = "move",
+                    DateCreated = DateTime.Now,
+                    FacilityId = movement.FacilityId,
+                    RowState = RowStatus.Active
+                    // UserId = ... // Optionally set for a specific user
+                };
+                _context.Notifications.Add(notification);
                 _context.Update(movement);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             
         }
         [HttpGet]
+        [RequireLogin]
         public async Task<IActionResult> GatePass(Guid id)
         {
             
@@ -169,7 +269,6 @@ namespace EMMS.Controllers
                 .Include(m => m.Facility)
                 .Include(m => m.From)
                 .Include(m => m.ServicePoint)
-                .Include(m => m.FunctionalStatus)
                 .FirstOrDefaultAsync(m => m.MovementId == id);
 
             if (movement == null)

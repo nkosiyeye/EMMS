@@ -1,58 +1,53 @@
-﻿using System.Diagnostics;
+﻿using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
-using EMMS.Models.Entities;
+using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    public class AssetManagement : Controller
+    public class AssetManagement : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetService _assetService;
+        private readonly SelectList procurementStatusList = new SelectList
+            (Enum.GetValues(
+                typeof(ProcurementStatus)).Cast<ProcurementStatus>().Select(e => new { Id = (int)e, Name = e.ToString() }),
+            "Id", "Name");
+        private readonly AssetManagementRepo _repo;
+        private readonly AssetMovementRepo _mrepo;
+
         public AssetManagement(ApplicationDbContext context)
         {
             _context = context;
-            
+            _assetService = new AssetService(context);
+            _repo = new AssetManagementRepo(context);
+            _mrepo = new AssetMovementRepo(_context);
         }
-        public async Task<AssetIndexViewModel?> assetViewModel()
+
+        [HttpGet]
+        public async Task<IActionResult> GetSubCategories(int categoryId)
         {
+            var subCategories = await _context.LookupItems
+                .Where(x => x.LookupList.Name == "SubCategory" && x.ParentId == categoryId && x.RowState == RowStatus.Active)
+                .Select(x => new { x.Id, x.Name })
+                .ToListAsync();
 
-            var _repo = new AssetManagementRepo(_context);
-            var assets = await _repo.GetAssetsFromDb();
-
-            // Fetch last movement for each asset
-            var lastMovements = await _repo.GetAssetMovement();
-
-            // Map assetId to last movement
-            var lastMovementDict = lastMovements
-                .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m);
-
-            //view model to hold asset and last movement info
-            var assetViewModels = assets.Select(asset => new AssetViewModel
-            {
-                Asset = asset,
-                LastMovement = lastMovementDict.ContainsKey(asset.AssetId) ? lastMovementDict[asset.AssetId] : null
-            }).ToList();
-
-            var indexView = new AssetIndexViewModel
-            {
-                assetViewModels = assetViewModels,
-                moveAsset = new MoveAsset()
-            };
-            return indexView;
+            return Json(subCategories);
         }
+
+        [RequireLogin]
         public async Task<IActionResult> Index()
         {
-
-            return View(await assetViewModel());
+            return View(await _assetService.GetAssetIndexViewModel(CurrentUser));
         }
 
-
+        [RequireLogin]
         public async Task<IActionResult> Detail(Guid id)
         {
             var asset = await _context.Assets
@@ -62,7 +57,7 @@ namespace EMMS.Controllers
                 .Include(a => a.Manufacturer)
                 .Include(a => a.Vendor)
                 .Include(a => a.ServiceProvider)
-                .Include(a => a.Status)
+                .Include(u => u.User)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
 
             var serviceHistory = await _context.Job
@@ -75,7 +70,7 @@ namespace EMMS.Controllers
             var movementHistory = await _context.AssetMovement
                 .Where(m => m.AssetId == id)
                 .Include(m => m.Facility)
-                .Include(m => m.FunctionalStatus)
+                .Include(m => m.ServicePoint)
                 .OrderByDescending(m => m.MovementDate)
                 .ToListAsync();
 
@@ -89,10 +84,11 @@ namespace EMMS.Controllers
             return View(vm);
         }
 
+
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
         public async Task<IActionResult> registerAsset()
         {
-            var _repo = new AssetManagementRepo(_context);
-
             var viewModel = new AssetRegistrationViewModel
             {
                 asset = new Asset()
@@ -105,52 +101,146 @@ namespace EMMS.Controllers
                 Manufacturers = await _repo.GetManufacturers(),
                 Vendors = await _repo.GetVendors(),
                 ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
+                Statuses = procurementStatusList,
                 UnitOfMeasures = await _repo.GetUnitOfMeasures(),
-                LifespanPeriods = await _repo.GetLifespanPeriods()
+                LifespanPeriods = await _repo.GetLifespanPeriods(),
+                Facilities = await _mrepo.GetFacilities(),
+                ServicePoints = await _mrepo.GetServicePoints(),
             };
 
             return View(viewModel);
         }
-             
 
-        [HttpPost]
-        public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
+        [RequireLogin]
+        public async Task<IActionResult> Edit(Guid id)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
-            if (ModelState.IsValid)
-            {
-                var asset = Assetmodel.asset;
-                asset.DateCreated = DateTime.Now;
-                asset.RowState = RowStatus.Active;
-                asset.CreatedBy = Guid.NewGuid(); // TBD Replace with actual user ID
-                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                _context.Add(asset);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-
-            var _repo = new AssetManagementRepo(_context);
             var viewModel = new AssetRegistrationViewModel
             {
-                asset = new Asset()
-                {
-                    AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
-                },
+                asset = _repo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id)!,
                 Categories = await _repo.GetCategories(),
                 SubCategories = await _repo.GetSubCategories(),
                 Departments = await _repo.GetDepartments(),
                 Manufacturers = await _repo.GetManufacturers(),
                 Vendors = await _repo.GetVendors(),
                 ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
+                Statuses = procurementStatusList,
+                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                LifespanPeriods = await _repo.GetLifespanPeriods()
             };
 
-            return View(viewModel);
+            return View("edit", viewModel);
 
         }
 
+        [RequireLogin]
+        [HttpPost]
+        public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
+        { 
+            var asset = Assetmodel.asset;
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
+            if (ModelState.IsValid)
+            {
+                UpdateEntity(asset); // TBD Replace with actual user ID
+                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                _context.Update(asset);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+
+            var viewModel = new AssetRegistrationViewModel
+            {
+                asset = asset,
+                Categories = await _repo.GetCategories(),
+                SubCategories = await _repo.GetSubCategories(),
+                Departments = await _repo.GetDepartments(),
+                Manufacturers = await _repo.GetManufacturers(),
+                Vendors = await _repo.GetVendors(),
+                ServiceProviders = await _repo.GetServiceProviders(),
+                Statuses = procurementStatusList,
+                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                LifespanPeriods = await _repo.GetLifespanPeriods()
+            };
+
+            return View("edit", viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
+        {
+            var asset = Assetmodel.asset;
+            if (await IsDuplicate(asset.SerialNumber))
+            {
+                ModelState.AddModelError("asset.SerialNumber", "An asset with this serial number already exists.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                asset.AssetId = Guid.NewGuid();
+                CreateEntity(asset);
+                _context.Add(asset);
+                await _context.SaveChangesAsync();
+
+                if (Assetmodel.alreadyDeployed)
+                {   
+                    var asmove = new MoveAsset()
+                    {
+                        MovementDate = Assetmodel.dateDeployed ?? DateTime.Now,
+                        AssetId = asset.AssetId,
+                        MovementType = MovementType.Facility,
+                        FromId = Assetmodel.facilityId ?? 0,
+                        FacilityId = Assetmodel.facilityId ?? 0,
+                        ServicePointId = Assetmodel.ServicePointId,
+                        Reason = MovementReason.Deployment,
+                        FunctionalStatus = FunctionalStatus.Functional,
+                        IsApproved = true,
+                        DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
+                    };
+                    CreateEntity(asmove);
+                    _context.Add(asmove);
+                    await _context.SaveChangesAsync();
+                }
+
+                TempData["Success"] = "Equipment added successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                TempData["RegistrationError"] = string.Join("\n", errors);
+
+                var viewModel = new AssetRegistrationViewModel
+                {
+                    asset = asset, // Keep the submitted asset data
+                    Categories = await _repo.GetCategories(),
+                    SubCategories = await _repo.GetSubCategories(),
+                    Departments = await _repo.GetDepartments(),
+                    Manufacturers = await _repo.GetManufacturers(),
+                    Vendors = await _repo.GetVendors(),
+                    ServiceProviders = await _repo.GetServiceProviders(),
+                    Statuses = procurementStatusList, 
+                    UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                    LifespanPeriods = await _repo.GetLifespanPeriods(),
+                    Facilities = await _mrepo.GetFacilities(), 
+                    ServicePoints = await _mrepo.GetServicePoints(), 
+                    alreadyDeployed = Assetmodel.alreadyDeployed, 
+                    dateDeployed = Assetmodel.dateDeployed, 
+                    facilityId = Assetmodel.facilityId, 
+                    ServicePointId = Assetmodel.ServicePointId 
+                };
+
+                return View(viewModel);
+            }
+        }
+
+        async Task<bool> IsDuplicate(string serialNum)
+        {
+            Asset? asset = await _repo.GetAssetBySerialNumber(serialNum);
+            if (asset != null)
+                return true;
+
+            return false;
+        }
     }
 }

@@ -33,7 +33,7 @@ INSERT INTO LookupItems (LookupListId, Name, SortIndex, RowState) VALUES
 (@ReasonId, 'Repair', 2, 1),
 (@ReasonId, 'Replacement', 3, 1),
 (@ReasonId, 'Upgrade', 4, 1),
-(@ReasonId, 'Decommision', 5, 1),
+(@ReasonId, 'Decommission', 5, 1),
 (@ReasonId, 'Other', 6, 1);
 
 -- Functional Status

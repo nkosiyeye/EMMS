@@ -1,0 +1,70 @@
+﻿@model EMMS.Models.Admin.User
+@using EMMS.Utility;
+@using static EMMS.Models.Enumerators;
+@using Newtonsoft.Json;
+
+@{
+    Layout = "_FullScreenLayout";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-center align-content-center">
+        <div class="card col-md-12 col-lg-6 col-xl-6 mb-6">
+            <div class="card-body">
+                <main class="login-container" style="background-color:white;">
+                    <div class="d-flex justify-content-center">
+                        <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms" class="logo" />
+                    </div>
+                    <div class="login-form-container">
+                        <form asp-action="Login" class="login-form">
+                            <div class="form-group form-control-container">
+                                @Html.LabelFor(model => model.Username, htmlAttributes: new { @class = "control-label form-input-label" })
+                                @Html.EditorFor(model => model.Username, new { htmlAttributes = new { @class = "form-control form-input" } })
+                                @Html.ValidationMessageFor(model => model.Username, "", new { @class = "text-danger" })
+                            </div>
+
+                            <div class="form-group mb-3">
+                                @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "control-label form-input-label" })
+                                @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control form-input" } })
+                                @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                            </div>
+
+                            <div class="login-btn-container">
+                                <button class="btn btn-primary btn-login">Login</button>
+                            </div>
+                            <a asp-controller="Home" asp-action="UserRegistration" class="btn-link"> Register new account </a>
+
+                            <div class="reset-btn-container">
+                                <a asp-controller="Home" asp-action="Login" class="btn-link btn-reset-password"> Forgot Password ?</a>
+                            </div>
+                        </form>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Notification"] != null)
+{
+    var notification = JsonConvert.DeserializeObject<EMMS.Utility.Notification>(TempData["Notification"] as string);
+    var className = notification?.Type switch
+    {
+        NotificationType.Error => "error-notification notification",
+        NotificationType.Success => "success-notification notification",
+        _ => "notification"
+    };
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            Toastify({
+                text: "@notification?.Message",
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "center",
+                className: "@className"
+            }).showToast();
+        });
+    </script>
+}

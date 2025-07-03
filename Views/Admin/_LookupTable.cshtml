@@ -1,0 +1,68 @@
+﻿@model EMMS.ViewModels.Admin.LookupViewModel;
+@{
+
+}
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>@Model.LookupList?.Name</span>
+            <a class="btn btn-primary btn-sm" asp-controller="Admin" asp-action="AddLookupItem" asp-route-id="@Model.LookupList.LookupListId">
+                <i class="fa fa-plus me-1"></i> Add Item
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" id="table-responsive-asset">
+            <div class="table-responsive" id="table-responsive-asset">
+                <table class="table fixed-table table-striped table-bordered table-hover" id="lookupTable">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>For</th>
+                            <th>Item</th>
+                            <th>Parent</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model._lookupItems)
+                        {
+
+
+                            <tr>
+                                <td width="10%">@item.Id</td>
+                                <td width="10%">@item.LookupList.Name</td>
+                                <td width="10%">@item.Name</td>
+                                <td width="10%">@(item.ParentId != null ? item.Parent?.Name : "-")</td>
+                                <td width="10%">@item.RowState</td>
+                                <td width="5%">
+
+                                    <a style="font-size: medium;"
+                                       class="btn btn-info"
+                                       title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@item.Id">
+                                        <i class="fa fa-edit"></i> Edit
+                                    </a>
+
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#lookupTable').DataTable({
+                // Optional: customize page length, language, etc.
+                pageLength: 10
+            });
+        });
+
+    </script>
+}

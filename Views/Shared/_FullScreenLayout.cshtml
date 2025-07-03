@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - EMMS</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /><!-- Bootstrap-Select CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap-selectpicker/css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
+    @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
+    @* <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.dataTables.css" /> *@
+    <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="container-fluid h-full w-full" style="height: 100vh;">
+        <div class="row flex-nowrap" style="height: 100vh;">
+            <main class="col px-0 py-0 mb-5">
+                <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
+                    <div class="container-fluid justify-content-start">
+                        <a class="align-items-center float-start py-1" href="#">
+                            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="24" class="me-2">
+                            <span class="navbar-brand mb-0 h1" style="color: white;">EMMS</span>
+                        </a>
+                    </div>
+                </nav>
+
+                <div class="container-fluid p-4 mb-2">
+                    @RenderBody()
+                </div>
+
+
+            </main>
+        </div>
+    </div>
+
+    <div class="footer border-top-1" style="background-color:#F5F5F5">
+        <div class="d-flex justify-content-between align-items-center">
+            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="24" class="float-start ms-1">
+            <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
+            <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
+    <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
+    <script src="~/lib/DataTables/datatables.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/notification.js" asp-append-version="true"></script>
+    <script>
+        // if screen onresize is below 700 hide side bar by default
+        document.addEventListener("DOMContentLoaded", function () {
+            const sidebar = document.getElementById("sidebar");
+
+            function toggleSidebar() {
+                if (window.innerWidth < 769) {
+                    sidebar.classList.remove("show"); // Hide the sidebar
+                } else {
+                    sidebar.classList.add("show"); // Show the sidebar
+                }
+            }
+
+            // Run on page load
+            toggleSidebar();
+
+            // Run on window resize
+            window.addEventListener("resize", toggleSidebar);
+        });
+
+                document.addEventListener("DOMContentLoaded", function () {
+            const descriptionModal = document.getElementById("descriptionModal");
+            const fullDescription = document.getElementById("fullDescription");
+
+            descriptionModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget; // Button that triggered the modal
+                const description = button.getAttribute("data-description"); // Extract info from data-* attributes
+                fullDescription.textContent = description; // Update the modal's content
+            });
+        });
+                $(function () {
+            $('.selectpicker').selectpicker();
+        });
+
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="descriptionModalLabel">Full Description</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullDescription"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,20 +1,32 @@
-﻿using EMMS.Models;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Drawing.Printing;
+using EMMS.Models;
 using EMMS.Models.Entities;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.ViewModels
 {
     public class AssetRegistrationViewModel
     {
-        public Asset asset { get; set; } = new Asset();
+        public Asset asset { get; set; }
+        public bool alreadyDeployed { get; set; } = false;
+        public DateTime? dateDeployed { get; set; }
+        public int? facilityId { get; set; }
+        public int? ServicePointId { get; set; }
 
+        public IEnumerable<Facility>? Facilities { get; set; }
+        public IEnumerable<LookupItem>? ServicePoints { get; set; }
         public IEnumerable<LookupItem>? Categories { get; set; }
         public IEnumerable<LookupItem>? SubCategories { get; set; }
         public IEnumerable<LookupItem>? Departments { get; set; }
         public IEnumerable<LookupItem>? Manufacturers { get; set; }
         public IEnumerable<LookupItem>? Vendors { get; set; }
         public IEnumerable<LookupItem>? ServiceProviders { get; set; }
-        public IEnumerable<LookupItem>? Statuses { get; set; }
+        public SelectList? Statuses { get; set; }
         public IEnumerable<LookupItem>? UnitOfMeasures { get; set; }
         public IEnumerable<LookupItem>? LifespanPeriods { get; set; }
+
     }
 }

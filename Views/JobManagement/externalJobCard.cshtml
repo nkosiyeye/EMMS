@@ -1,16 +1,19 @@
 ﻿@model EMMS.ViewModels.JobViewModel;
 @{
     ViewData["Title"] = "Job";
-    ViewData["JobManagement"] = "active";
+    ViewData["JobManagement"] = "active"; 
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+    var currentUser = ViewBag._currentUser;
 }
 
 <!-- Asset Detail Section -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Work Request</span>
-        <a class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal">
+        @*  <a class="btn btn-sm btn-danger me-1" title="Close Job" data-bs-toggle="modal" data-bs-target="#closeModal">
             Close Request
-        </a>
+        </a> *@
     </div>
     <div class="card-body">
         <div class="row">
@@ -66,16 +69,33 @@
         <span>Job Card</span>
     </div>
     <div class="card-body">
-        <form>
+
+        @*   @if (TempData["Error"] != null)
+        {
+            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+
+                <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> 
+
+                @TempData["Error"]
+
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+        }  *@
+        <form asp-controller="JobManagement" asp-action="updateJobCard" method="post">
             <div class="row mb-2">
-                <div class="col-12 text-end">
-                    <button type="submit" class="btn btn-primary">Update Job Card</button>
-                </div>
+                @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo)
+                {
+                    <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
+                        <button type="submit" class="btn btn-primary">Update Job Card</button>
+                    </div>                    
+                }
             </div>
             <!-- Job Card Details -->
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label asp-for="@Model.Job!.JobId" for="jobCardNumber" class="form-label">Job Card Number</label>
+                    <input asp-for="@Model.Job!.AssetId" value="@Model.Job!.AssetId" hidden />
                     <input asp-for="@Model.Job!.JobId" type="text" class="form-control" id="jobCardNumber" placeholder="Unique Identifier" readonly>
                 </div>
 
@@ -97,11 +117,28 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
-                    <input asp-for="Job.AssignedTo" type="text" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input asp-for="Job.AssignedTo" type="hidden" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
+                    <input type="text" class="form-control" id="assignedTo" value="@Model.Job.User.FirstName" readonly>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.FaultReportId" for="status" class="form-label required-field">Fault Report</label>
-                    <input asp-for="Job.FaultReportId" type="text" class="form-control" value="@Model.Job!.FaultReport!.Name" readonly />
+                    <input asp-for="Job.FaultReportId" type="text" class="form-control" value="@Model.Job!.FaultReport!.Id" hidden />
+                    <input type="text" class="form-control" value="@Model.Job!.FaultReport!.Name" readonly />
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label asp-for="Job.ExternalProviderId" for="external" class="form-label required-field"></label>
+                    <input asp-for="Job.ExternalProviderId" class="form-control" placeholder="External" type="hidden">
+                    <input value="@Model.Job.ExternalProvider.Name" class="form-control" placeholder="External" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Job.Amount" for="amount" class="form-label required-field"></label>
+                    <input asp-for="Job.Amount" type="number" class="form-control" placeholder="Amount">
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Job.InvoiceNo" for="invoiceno" class="form-label required-field"></label>
+                    <input asp-for="Job.InvoiceNo" type="text" class="form-control" placeholder="InvoiceNo">
                 </div>
             </div>
             <div class="row mb-3">
@@ -117,7 +154,7 @@
         <div class="mb-3">
             <p><strong>External Work Done</strong></p>
             <div class="mb-2">
-                @if (TempData["Error"] != null)
+                @*  @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                         <div>
@@ -130,48 +167,45 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
-                }
-                <form asp-action="ExWorkDone" asp-controller="JobManagement" method="post">
-                    <input type="int" asp-for="ExWorkDone.JobId" value="@Model.Job.JobId" hidden/>
-                    <div class="row">
-                        <div class="col-md-2">
-                            <input asp-for="ExWorkDone.DateCompleted" type="date" class="form-control col-md-3" id="dateCompleted">
+                } *@
+                <div class="row @(Model.Job?.Status?.Name == "Completed" || Model.Job?.EndDate != null ? "d-none" : "")">
+                    <form asp-action="ExWorkDone" asp-controller="JobManagement" method="post">
+                        <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
+                        <div class="row">
+                            <div class="col-md-4">
+                                <input asp-for="WorkDone.DateCompleted" type="date" class="form-control col-md-3" id="dateCompleted">
+                            </div>
+                            <div class="col-md-4">
+                                <input asp-for="WorkDone.Details" type="text" class="form-control col-md-3" placeholder="Details">
+                            </div>
+                            <div class="col-md-2">
+                                <input asp-for="WorkDone.Hours" type="number" class="form-control col-md-3" placeholder="Hours">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <input asp-for="ExWorkDone.Details" type="text" class="form-control col-md-3" placeholder="Details">
-                        </div>
-                        <div class="col-md-2">
-                            <input asp-for="ExWorkDone.Amount" type="number" class="form-control col-md-3" placeholder="Amount">
-                        </div>
-                        <div class="col-md-2">
-                            <input asp-for="ExWorkDone.InvoiceNo" type="text" class="form-control col-md-3" placeholder="InvoiceNo">
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fa fa-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
             <table class="table table-bordered">
                 <thead>
                     <tr>
                         <th>Date</th>
                         <th>Details</th>
-                        <th>Amount</th>
-                        <th>Invoice</th>
+                        <th>Hours</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.ExWorkDoneList != null)
-                        @foreach (var workdone in Model.ExWorkDoneList)
+                    @if (Model.WorkDoneList != null)
+                        @foreach (var workdone in Model.WorkDoneList)
                         {
                             <tr>
                                 <td>@workdone.DateCompleted.ToShortDateString()</td>
                                 <td>@workdone.Details</td>
-                                <td>@workdone.Amount</td>
-                                <td>@workdone.InvoiceNo</td>
+                                <td>@workdone.Hours</td>
                             </tr>
                         }
                 </tbody>

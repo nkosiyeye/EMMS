@@ -21,7 +21,8 @@
                 <thead>
                     <tr>
                         <th>Asset Tag</th>
-                        <th>Location</th>
+                        <th>Facility</th>
+                        <th>Service Point</th>
                         <th>Since</th>
                         <th>Functional Status</th>
                         <th>Reason</th>
@@ -32,66 +33,69 @@
                 </thead>
                 <tbody>
                     @foreach (var movement in Model.MoveAssets)
-                        {
-                            <tr>
-                                <td>@movement.Asset.AssetTagNumber</td>
-                                <td>
-                                    @if (movement.Facility != null && movement.ServicePoint != null)
+                    {
+                        <tr>
+                            <td>@movement.Asset!.AssetTagNumber</td>
+                            <td>@movement.Facility!.FacilityName</td>
+                            <td>
+                                @if (movement.ServicePoint != null)
+                                {
+                                    @movement.ServicePoint.Name
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Unknown</span>
+                                }
+                            </td>
+                            <td>@movement.MovementDate</td>
+                            <td>@movement.FunctionalStatus</td>
+                            <td>@movement.Reason</td>
+                            <td>
+                                @if (!movement.IsApproved)
+                                {
+                                    if (ViewBag._currrentUserRole.ApproveAssetMovement)
                                     {
-                                        @movement.Facility.FacilityName @movement.ServicePoint.Name
-                                    }
-                                    else if (movement.Facility != null)
-                                    {
-                                        @movement.Facility.FacilityName
-                                    }
-                                    else if (movement.ServicePoint != null)
-                                    {
-                                        @movement.ServicePoint.Name
-                                    }
-                                    else
-                                    {
-                                        <span class="text-danger">Unknown</span>
-                                    }
-                                </td>
-                                <td>@movement.MovementDate</td>
-                                <td>@movement.FunctionalStatus!.Name</td>
-                                <td>@movement.Reason!.Name</td>
-                                <td>
-                                    @if (!movement.IsApproved)
-                                    {
-
-                                    <a class="btn btn-sm btn-primary" title="Approve" asp-controller="AssetMovement" asp-action="approveMovement" asp-route-id="@movement.MovementId">
-                                                Approve
-                                            </a>
+                                        <a class="btn btn-sm btn-primary" title="Approve" asp-controller="AssetMovement" asp-action="approveMovement" asp-route-id="@movement.MovementId">
+                                            Approve
+                                        </a>
                                     }
                                     else
                                     {
-                                        <span>Yes</span>
+                                        <span>No</span>
                                     }
-                                </td>
-                                <td>@(movement.DateReceived.HasValue ? "Yes" : "No")</td>
+                                }
+                                else
+                                {
+                                    <span>Yes</span>
+                                }
+                            </td>
+                            <td>@(movement.DateReceived.HasValue ? "Yes" : "No")</td>
 
-                                <td>
-                                    <a class="btn btn-sm btn-primary me-1" title="Edit" @(movement.DateReceived.HasValue ? "hidden" : "")>
-                                        <i class="fa fa-edit"></i>
-                                    </a>
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue ? "d-none" : "")"
+                                   title="Edit" 
+                                    asp-controller="AssetMovement"
+                                    asp-action="edit"
+                                    asp-route-id="@movement.MovementId">
+                                    <i class="fa fa-edit"></i>
+                                </a>
 
-                                    <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
-                                        <i class="fa fa-trash"></i>
-                                    </a>
+                                <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
+                                    <i class="fa fa-trash"></i>
+                                </a>
                                 <a class="btn btn-sm btn-secondary me-1 @(movement.IsApproved ? "" : "d-none")"
-                                               title="Gate Pass"
-                                               asp-controller="AssetMovement"
-                                               asp-action="GatePass"
-                                               asp-route-id="@movement.MovementId"
-                                               target="_blank">
-                                                <i class="fa fa-print"></i>
-                                            </a>
+                                title="Gate Pass"
+                                asp-controller="AssetMovement"
+                                asp-action="GatePass"
+                                asp-route-id="@movement.MovementId"
+                                target="_blank">
+                                    <i class="fa fa-print"></i>
+                                </a>
 
-                                </td>
-                            </tr>
-                        }
-                    
+                            </td>
+                        </tr>
+                    }
+
                 </tbody>
             </table>
         </div>
@@ -124,49 +128,54 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason?.Name != "Decommision"))
+                                @if(Model.AssetIndex.assetViewModels != null)
                                 {
+                                    @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason != Enumerators.MovementReason.Decommission))
+                                    {
 
-                                    var lastMove = asset.LastMovement;
-                                    <tr>
-                                        <td width="10%">@asset.Asset.AssetTagNumber</td>
-                                        <td width="10%">@asset.Asset.Category.Name</td>
-                                        <td width="10%">@asset.Asset.SubCategory.Name</td>
-                                        <td width="10%">@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
-                                        <td width="10%">
-                                            @if (lastMove != null)
-                                            {
-                                                @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
-                                            }
-                                            else
-                                            {
-                                                <span>-</span>
-                                            }
-                                        </td>
-                                        <td width="10%">
-                                            @if (lastMove != null)
-                                            {
-                                                @(lastMove.FunctionalStatus?.Name ?? "N/A")
-                                            }
-                                            else
-                                            {
-                                                <span>-</span>
-                                            }
-                                        </td>
-                                        @* <td width="10%">@asset.Location</td> // from movement history todo?
+                                        var lastMove = asset.LastMovement;
+                                        <tr>
+                                            <td width="10%">@asset.Asset.AssetTagNumber</td>
+                                            <td width="10%">@asset.Asset.Category.Name</td>
+                                            <td width="10%">@asset.Asset.SubCategory.Name</td>
+                                            <td width="10%">@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
+                                            <td width="10%">
+                                                @if (lastMove != null)
+                                                {
+                                                    @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </td>
+                                            <td width="10%">
+                                                @if (lastMove != null)
+                                                {
+                                                    @(lastMove.FunctionalStatus.ToString() ?? "N/A")
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </td>
+                                            @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@
-                                        <td width="5%">
+                                            <td width="5%">
 
-                                            <a style="font-size: medium;"
-                                               class="btn btn-info"
-                                               title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
-                                                <i class="fa fa-arrows-alt"></i> Move Asset
-                                            </a>
+                                                <a style="font-size: medium;"
+                                                   class="btn btn-info"
+                                                   title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-arrows-alt"></i> Move Asset
+                                                </a>
 
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
+                                            </td>
+                                        </tr>
+                                    }
+
+
+                                }                       
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -180,16 +189,15 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () {
-            $('#modalAssetTable').DataTable({
-                pageLength: 10
-            });
-        });
-
-
-        $(document).ready(function () {
+                $(document).ready(function () {
             $('#movementHistoryTable').DataTable({
-                pageLength: 10
+                pageLength: 10,
+                order: []
+            });
+
+            $('#modalAssetTable').DataTable({
+                pageLength: 10,
+                order: []
             });
         });
     </script>

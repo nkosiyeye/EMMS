@@ -1,24 +1,30 @@
-﻿@model EMMS.ViewModels.AssetIndexViewModel
+﻿@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.AssetIndexViewModel
 @{
-    var pagination = (Pagination)ViewData["Pagination"];
 
     ViewData["Title"] = "Manage Assets";
     ViewData["asset"] = "active";
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
 }
 
 <div class="card">
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Manage Asset</span>
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center action-header-container">
                 <a class="btn btn-primary btn-sm" asp-controller="AssetManagement" asp-action="registerAsset">
                     <i class="fa fa-plus me-1"></i> New Asset
                 </a>
-                <button class="btn btn-primary btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
-                    <i class="fa fa-download"></i>
-                   </button>
+                <button class="btn btn-doc btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
+                    <i class="fa fa-download"></i> Download Excel Report
+                </button>
                 <button type="button" class="btn btn-sm btn-secondary" title="Printer" onclick="printSelectedStickers()">
-                    <i class="fa-solid fa-print"></i>
+                    <i class="fa-solid fa-print"></i> Print Stickers
                 </button>
             </div>
         </div>
@@ -38,7 +44,8 @@
                             <th>Service Provider</th>
                             <th>Date</th>
                             <th>Status</th>
-                            <th>Location</th>
+                            <th>Facility</th>
+                            <th>Service Point</th>
                             <th>Functional Status</th>
                             <th>Action</th>
                         </tr>
@@ -51,7 +58,7 @@
                             <tr>
                                 <td>
                                     <input type="checkbox" class="asset-checkbox"
-                                           value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
+                                    value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
                                 </td>
                                 <td>@asset.Asset.AssetTagNumber</td>
                                 <td>@asset.Asset?.Category!.Name</td>
@@ -60,11 +67,30 @@
                                 <td>@asset.Asset.Vendor!.Name</td>
                                 <td>@asset.Asset.ServiceProvider!.Name</td>
                                 <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
-                                <td>@asset.Asset.Status!.Name</td>
+                                <td>@((ProcurementStatus)asset.Asset.StatusId)</td>
                                 <td>
                                     @if (lastMove != null)
                                     {
-                                        @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
+                                          @(lastMove.Facility?.FacilityName)
+                                        
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (lastMove != null)
+                                    {
+
+                                        @if (lastMove.ServicePoint?.Name != null)
+                                        {
+                                            @(lastMove.ServicePoint?.Name)
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger">Unknown</span>
+                                        }
                                     }
                                     else
                                     {
@@ -74,8 +100,8 @@
                                 <td width="10%">
                                     @if (lastMove != null)
                                     {
-                                        @:@(lastMove.FunctionalStatus?.Name ?? "N/A")
-                                        @if (lastMove.Reason?.Name == "Decommision")
+                                        @:@(lastMove.FunctionalStatus)
+                                        @if (lastMove.Reason == Enumerators.MovementReason.Decommission)
                                         {
                                             @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
                                         }
@@ -85,39 +111,42 @@
                                         <span>-</span>
                                     }
                                 </td>
+
                                 <td>
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fa-solid fa-ellipsis"></i>
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
-                                                <button class="dropdown-item btn btn-primary me-1" title="Edit" style="font-size: medium;">
+                                            <li class="@(lastMove != null  ? "d-none" : "")">
+                                                <a class="dropdown-item btn btn-primary me-1"
+                                                   title="Edit" style="font-size: medium;"
+                                                   asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-edit"></i> edit asset
-                                                </button>
+                                                </a>
                                             </li>
                                             <li>
                                                 <a asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
                                                     <i class="fa fa-eye"></i> view asset
                                                 </a>
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <a style="font-size: medium;"
-                                                        class="dropdown-item btn btn-warning"
-                                                        title="Move"
-                                                        asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                   class="dropdown-item btn btn-warning"
+                                                   title="Move"
+                                                   asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-arrows-alt"></i> move asset
                                                 </a>
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <a style="font-size: medium;"
-                                                        class="dropdown-item btn btn-secondary"
-                                                        title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                   class="dropdown-item btn btn-secondary"
+                                                   title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-toolbox"></i> work request
                                                 </a>
 
                                             </li>
-                                            <li class="@(lastMove?.Reason?.Name == "Decommision" ? "d-none" : "")">
+                                            <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
