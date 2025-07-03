@@ -13,8 +13,8 @@ using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    //[AuthorizeRole("Administrator")]
-    public class UsersController : Controller
+    [AuthorizeRole("Administrator")]
+    public class UsersController : BaseController
     {
         private readonly ApplicationDbContext _context;
 

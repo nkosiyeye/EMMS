@@ -190,13 +190,12 @@
                         </div>
                         <div class="row d-none" id="service-field-container">
                             <div class="col-md-6" id="interval-field-container">
-                                <label asp-for="asset.ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval</label>
+                                <label asp-for="asset.ServiceInterval" for="interval" class="form-label required-field" id="interval">Interval(In Months)</label>
                                 <input asp-for="asset.ServiceInterval" type="number" id="interval" placeholder="e.g every 6 months" class="form-control">
                             </div>
                             <div class="col-md-6" id="duration(period)-field-container">
-                                <label asp-for="asset.ServicePeriodId" for="period" class="form-label required-field" id="period">Period</label>
-                                <select asp-for="asset.ServicePeriodId" id="period" class="form-select" aria-placeholder="interval(period)" asp-items="@(new SelectList(Model.LifespanPeriods, "Id", "Name"))">
-                                </select>
+                                <label asp-for="asset.NextServiceDate" for="period" class="form-label required-field" id="period"></label>
+                                <input asp-for="asset.NextServiceDate" id="period" class="form-control" type="date" aria-placeholder="interval(period)"/>
                             </div>
                         </div>
                     </div>

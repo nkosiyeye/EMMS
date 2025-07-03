@@ -3,8 +3,8 @@
     ViewData["Title"] = "Move Assets";
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
+    Model.MoveAsset!.MovementDate = DateTime.Today;
 }
-
 
 <!-- Modal -->
 
@@ -62,6 +62,7 @@
                                     data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">
                                 <option selected disabled>Select Facility</option>
                             </select>
+                        <span asp-validation-for="MoveAsset.FacilityId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 d-none" id="servicePointField">
                             <label asp-for="MoveAsset.ServicePointId" class="form-label required-field"></label>
@@ -69,6 +70,7 @@
                                     data-live-search="true" asp-items="@(new SelectList(Model.ServicePoints, "Id", "Name"))">
                                 <option selected disabled>Select Service Point</option>
                             </select>
+                    <span asp-validation-for="MoveAsset.FacilityId" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -118,23 +120,29 @@
 @section Scripts {
     <script>
         function toggleLocationFields() {
-                            const movementType = document.getElementById("movementType").value;
-                            //console.log(movementType);
-                            const facilityField = document.getElementById("facilityField");
-                            console.log(facilityField);
-                            const servicePointField = document.getElementById("servicePointField");
-                            console.log(servicePointField);
+            const movementType = document.getElementById("movementType").value;
+            const facilityField = document.getElementById("facilityField");
+            const servicePointField = document.getElementById("servicePointField");
 
-                        if (movementType && facilityField && servicePointField) {
-                        if (movementType === "1") {
-                            facilityField.classList.remove("d-none");
-                            servicePointField.classList.add("d-none");
-                        } else if (movementType === "2") {
-                            facilityField.classList.add("d-none");
-                            servicePointField.classList.remove("d-none");
-                        }
-                    }
-                        }
+            if (movementType && facilityField && servicePointField) {
+                if (movementType === "1") { // Facility
+                    facilityField.classList.remove("d-none");
+                    servicePointField.classList.add("d-none");
+                } else if (movementType === "2") { // Service Point
+                    facilityField.classList.remove("d-none");
+                    servicePointField.classList.remove("d-none");
+                } else {
+                    // Default: hide both if needed
+                    facilityField.classList.add("d-none");
+                    servicePointField.classList.add("d-none");
+                }
+            }
+        }
+
+        // Ensure correct state on page load
+        document.addEventListener("DOMContentLoaded", function () {
+            toggleLocationFields();
+        });
     </script>
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");

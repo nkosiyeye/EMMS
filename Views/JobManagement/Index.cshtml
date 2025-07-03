@@ -24,6 +24,7 @@
                         <th>Date</th>
                         <th>Title</th>
                         <th>Description</th>
+                        <th>External</th>
                         <th>Status</th>
                         <th>Outcome</th>
                         <th>Action</th>
@@ -47,15 +48,18 @@
                                     <span>@request.Description</span>
                                 }
                             </td>
-                            @if (request.JobId != null)
-                            {
-                                <td>@request.WorkStatus!.Name @(request.Job!.IsExternalProvider ? "(ExternalJobCard)" : "")</td>
-                                
-                            }
-                            else
-                            {
+                            <td>
+                                @if(request.JobId != null)
+                                {
+                                    @(request.Job!.IsExternalProvider ? $"{request.Job!.ExternalProvider?.Name ?? "External"}" : "No")
+
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </td>
                                 <td>@request.WorkStatus!.Name</td>
-                            }
                              <td>@request.Outcome?.Name</td>
                             <td>
                                 <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.WorkStatus.Name != "Open" ? "hidden" : "")>

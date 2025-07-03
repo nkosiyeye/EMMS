@@ -73,10 +73,10 @@ namespace EMMS.Models
         [Display(Name = "Serviceable")]
         public bool IsServiceable { get; set; }
 
-        [Display(Name = "Service Period")]
-        public int? ServicePeriodId { get; set; }
-        [ForeignKey(nameof(ServicePeriodId))]
-        public virtual LookupItem? ServicePeriodName { get; set; }
+        [Display(Name = "Next Service Date")]
+        public DateTime? NextServiceDate{ get; set; }
+        //[ForeignKey(nameof(ServicePeriodId))]
+        //public virtual LookupItem? ServicePeriodName { get; set; }
 
         [Display(Name = "Service Interval")]
         public int? ServiceInterval { get; set; }

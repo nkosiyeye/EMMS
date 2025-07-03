@@ -3,6 +3,7 @@ using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Data.Repository;
 using EMMS.Models;
+using EMMS.Models.Entities;
 using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -58,11 +59,21 @@ namespace EMMS.Controllers
         {
             var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
             var _repo = new AssetMovementRepo(_context);
-            var moveAsset = new MoveAsset()
-            {
-                AssetId = id,
+            var moveAsset = new MoveAsset();
 
-            };
+            var history = await _repo.GetLastMovement(id);
+            if(history != null)
+            {
+                moveAsset.AssetId = id;
+                moveAsset.FacilityId = history.FacilityId;           
+                
+
+            }
+            else
+            {
+                moveAsset.AssetId = id;
+
+            }
             var moveAssetViewModel = new MoveRequestViewModel()
             {
                 AssetTag = _arepo.AssetTagNumber,
@@ -137,35 +148,41 @@ namespace EMMS.Controllers
 
         }
 
-
         [HttpPost]
         public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
         {
-
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
+
+            var assetMovement = asmove.MoveAsset;
+
             if (ModelState.IsValid)
             {
-                var assetMovement = asmove.MoveAsset;
-                
-                assetMovement.FromId = CurrentUser.FacilityId ?? 1;//Update with logged in facility;
-                if(assetMovement.ServicePointId != null)
-                {
-                    assetMovement.FacilityId = CurrentUser.FacilityId;
-                }
+                var _repo = new AssetMovementRepo(_context);
 
-                //Debug.WriteLine("assetId"+assetMovement.AssetId);
-                //assetMovement.IsApproved = false;
-                CreateEntity(assetMovement); // TBD Replace with actual user ID
-                //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                
+                assetMovement.FromId = CurrentUser!.FacilityId ?? 1;
+
+                CreateEntity(assetMovement);
 
                 _context.Add(assetMovement);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return RedirectToAction(nameof(moveAsset));
+
+            // Repopulate dropdowns for the view
+            var _repoReload = new AssetMovementRepo(_context);
+            var moveAssetViewModel = new MoveRequestViewModel()
+            {
+                MoveAsset = assetMovement,
+                Facilities = await _repoReload.GetFacilities(),
+                ServicePoints = await _repoReload.GetServicePoints(),
+                Reasons = await _repoReload.GetReasons(),
+                FunctionalStatuses = await _repoReload.GetFunctionalStatuses(),
+            };
+
+            return View("moveAsset", moveAssetViewModel);
         }
+
         [HttpGet]
         [RequireLogin]
         public async Task<IActionResult> recieveAsset()

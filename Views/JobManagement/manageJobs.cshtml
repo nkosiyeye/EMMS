@@ -3,6 +3,7 @@
     ViewData["Title"] = "Manage Jobs";
     ViewData["manageJob"] = "active";
     ViewData["JobManagement"] = "active";
+    Model.Job.StartDate = DateTime.Today;
 }
 
 
@@ -85,6 +86,7 @@
                                 <th>Date</th>
                                 <th>Report</th>
                                 <th>AssignedTo</th>
+                                <th>External</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -94,11 +96,12 @@
                             {
 
                                 <tr>
-                                    <td>@job.Asset.AssetTagNumber</td>
+                                    <td>@job.Asset!.AssetTagNumber</td>
                                     <td>@job.StartDate</td>
-                                    <td>@job.FaultReport.Name</td>
-                                    <td>@job.User.FirstName</td>
-                                    <td>@job.Status.Name @(job.IsExternalProvider ? "(External)" : "")</td>
+                                    <td>@job.FaultReport!.Name</td>
+                                    <td>@job.User!.FirstName</td>
+                                    <td>@(job.IsExternalProvider ? $"{job.ExternalProvider?.Name ?? "External"}" : "No")</td>
+                                    <td>@job.Status!.Name</td>
                                     <td>
                                         <a asp-controller="JobManagement" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
                                             <i class="fa fa-eye"></i>

@@ -23,7 +23,6 @@ namespace EMMS.Data.Repository
                 .Include(x => x.Manufacturer)
                 .Include(x => x.Vendor)
                 .Include(x => x.ServiceProvider)
-                .Include(x => x.ServicePeriodName)
                 .Include(x => x.Status)
                 .ToListAsync();
         }

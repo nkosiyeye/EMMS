@@ -144,7 +144,7 @@ p.card-text {
 
 .card .card-header {
     font-weight: bold;
-    font-size: small;
+    font-size: medium;
     padding: 5px 10px;
     border-radius: 0.5rem 0.5rem 0 0;
 }
