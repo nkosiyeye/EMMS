@@ -1,4 +1,5 @@
-﻿@model EMMS.ViewModels.AssetIndexViewModel
+﻿@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.AssetIndexViewModel
 @{
 
     ViewData["Title"] = "Manage Assets";
@@ -66,7 +67,7 @@
                                 <td>@asset.Asset.Vendor!.Name</td>
                                 <td>@asset.Asset.ServiceProvider!.Name</td>
                                 <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
-                                <td>@asset.Asset.Status!.Name</td>
+                                <td>@((ProcurementStatus)asset.Asset.StatusId)</td>
                                 <td>
                                     @if (lastMove != null)
                                     {

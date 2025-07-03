@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
+using System.Threading.Tasks;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
@@ -8,6 +10,7 @@ using EMMS.Models.Entities;
 using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using static EMMS.Models.Enumerators;
@@ -18,11 +21,17 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
+        private readonly SelectList procurementStatusList = new SelectList
+            (Enum.GetValues(
+                typeof(ProcurementStatus)).Cast<ProcurementStatus>().Select(e => new { Id = (int)e, Name = e.ToString() }),
+            "Id", "Name");
+        private readonly AssetManagementRepo _repo;
+
         public AssetManagement(ApplicationDbContext context)
         {
             _context = context;
             _assetService = new AssetService(context);
-
+            _repo = new AssetManagementRepo(context);
         }
         [HttpGet]
         public async Task<IActionResult> GetSubCategories(int categoryId)
@@ -37,7 +46,6 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-
             return View(await _assetService.GetAssetIndexViewModel(CurrentUser));
         }
 
@@ -51,7 +59,13 @@ namespace EMMS.Controllers
                 .Include(a => a.Manufacturer)
                 .Include(a => a.Vendor)
                 .Include(a => a.ServiceProvider)
-                .Include(a => a.Status)
+                .Include(a => a.ServicePeriodName)
+                .Include(u => u.User)
+                .FirstOrDefaultAsync(a => a.AssetId == id);
+
+            var serviceHistory = await _context.Job
+                .Where(j => j.AssetId == id)
+                .Include(j => j.FaultReport)
                 .Include(u => u.User)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
 
@@ -84,7 +98,7 @@ namespace EMMS.Controllers
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
         public async Task<IActionResult> registerAsset()
         {
-            var _repo = new AssetManagementRepo(_context);
+            
             var _mrepo = new AssetMovementRepo(_context);
 
             var viewModel = new AssetRegistrationViewModel
@@ -99,7 +113,7 @@ namespace EMMS.Controllers
                 Manufacturers = await _repo.GetManufacturers(),
                 Vendors = await _repo.GetVendors(),
                 ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
+                Statuses = procurementStatusList,
                 UnitOfMeasures = await _repo.GetUnitOfMeasures(),
                 LifespanPeriods = await _repo.GetLifespanPeriods(),
                 Facilities = await _mrepo.GetFacilities(),
@@ -112,8 +126,7 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var _repo = new AssetManagementRepo(_context);
-
+            
             var viewModel = new AssetRegistrationViewModel
             {
                 asset = _repo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id)!,
@@ -123,7 +136,7 @@ namespace EMMS.Controllers
                 Manufacturers = await _repo.GetManufacturers(),
                 Vendors = await _repo.GetVendors(),
                 ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
+                Statuses = procurementStatusList,
                 UnitOfMeasures = await _repo.GetUnitOfMeasures(),
                 LifespanPeriods = await _repo.GetLifespanPeriods()
             };
@@ -135,7 +148,7 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
         {
-            var _repo = new AssetManagementRepo(_context);
+            
             var asset = Assetmodel.asset;
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
@@ -158,31 +171,32 @@ namespace EMMS.Controllers
                 Manufacturers = await _repo.GetManufacturers(),
                 Vendors = await _repo.GetVendors(),
                 ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
+                Statuses = procurementStatusList,
                 UnitOfMeasures = await _repo.GetUnitOfMeasures(),
                 LifespanPeriods = await _repo.GetLifespanPeriods()
             };
 
             return View("edit", viewModel);
-
         }
-
 
         [HttpPost]
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
         {
+            var asset = Assetmodel.asset;
+            if (await IsDuplicate(asset.SerialNumber))
+            {
+                ModelState.AddModelError("asset.SerialNumber", "An asset with this serial number already exists.");
+            }
+
             if (ModelState.IsValid)
             {
-                var asset = Assetmodel.asset;
                 asset.AssetId = Guid.NewGuid();
                 CreateEntity(asset);
-
                 _context.Add(asset);
                 await _context.SaveChangesAsync();
 
                 if (Assetmodel.alreadyDeployed)
                 {
-
                     var _mrepo = new AssetMovementRepo(_context);
                     var asmove = new MoveAsset()
                     {
@@ -196,39 +210,53 @@ namespace EMMS.Controllers
                         FunctionalStatus = FunctionalStatus.Functional,
                         IsApproved = true,
                         DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
-
-
-
                     };
                     CreateEntity(asmove);
                     _context.Add(asmove);
                     await _context.SaveChangesAsync();
                 }
+
                 TempData["Success"] = "Equipment added successfully.";
                 return RedirectToAction(nameof(Index));
             }
-
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["RegistrationError"] = string.Join("; ", errors);
-            var _repo = new AssetManagementRepo(_context);
-            var viewModel = new AssetRegistrationViewModel
+            else
             {
-                asset = new Asset()
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                TempData["RegistrationError"] = string.Join("\n", errors);
+
+                var _mrepo = new AssetMovementRepo(_context);
+
+                var viewModel = new AssetRegistrationViewModel
                 {
-                    AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
-                },
-                Categories = await _repo.GetCategories(),
-                SubCategories = await _repo.GetSubCategories(),
-                Departments = await _repo.GetDepartments(),
-                Manufacturers = await _repo.GetManufacturers(),
-                Vendors = await _repo.GetVendors(),
-                ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = await _repo.GetStatuses(),
-            };
+                    asset = asset, // Keep the submitted asset data
+                    Categories = await _repo.GetCategories(),
+                    SubCategories = await _repo.GetSubCategories(),
+                    Departments = await _repo.GetDepartments(),
+                    Manufacturers = await _repo.GetManufacturers(),
+                    Vendors = await _repo.GetVendors(),
+                    ServiceProviders = await _repo.GetServiceProviders(),
+                    Statuses = procurementStatusList, 
+                    UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                    LifespanPeriods = await _repo.GetLifespanPeriods(),
+                    Facilities = await _mrepo.GetFacilities(), 
+                    ServicePoints = await _mrepo.GetServicePoints(), 
+                    alreadyDeployed = Assetmodel.alreadyDeployed, 
+                    dateDeployed = Assetmodel.dateDeployed, 
+                    facilityId = Assetmodel.facilityId, 
+                    ServicePointId = Assetmodel.ServicePointId 
+                };
 
-            return View(viewModel);
-
+                return View(viewModel);
+            }
         }
 
+        async Task<bool> IsDuplicate(string serialNum)
+        {
+            Asset? asset = await _repo.GetAssetBySerialNumber(serialNum);
+            if (asset != null)
+                return true;
+
+            return false;
+        }
     }
 }

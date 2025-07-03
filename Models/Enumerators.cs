@@ -55,5 +55,13 @@
             NonFunctional = 2,
             UnderMaintenance = 3
         }
+
+        public enum ProcurementStatus
+        {
+            New = 0,
+            Used = 1,
+            Refurbished = 2,
+            Decommissioned = 3
+        }
     }
 }

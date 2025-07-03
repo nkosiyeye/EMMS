@@ -91,7 +91,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("UserRoleId");
 
-                    b.ToTable("User");
+                    b.ToTable("User", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Admin.UserRole", b =>
@@ -145,7 +145,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UserRole");
+                    b.ToTable("UserRole", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Asset", b =>
@@ -254,7 +254,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("Assets");
+                    b.ToTable("Assets", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.Facility", b =>
@@ -288,7 +288,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("FacilityId");
 
-                    b.ToTable("Facilities");
+                    b.ToTable("Facilities", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.LookupItem", b =>
@@ -333,7 +333,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("LookupItems");
+                    b.ToTable("LookupItems", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.LookupList", b =>
@@ -364,7 +364,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("LookupListId");
 
-                    b.ToTable("LookupLists");
+                    b.ToTable("LookupLists", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.Notification", b =>
@@ -411,7 +411,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("FacilityId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.ExternalWorkDone", b =>
@@ -454,7 +454,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("ExternalWorkDoneId");
 
-                    b.ToTable("ExternalWorkDone");
+                    b.ToTable("ExternalWorkDone", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.Job", b =>
@@ -535,7 +535,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("WorkRequestId");
 
-                    b.ToTable("Job");
+                    b.ToTable("Job", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.MoveAsset", b =>
@@ -616,7 +616,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("ServicePointId");
 
-                    b.ToTable("AssetMovement");
+                    b.ToTable("AssetMovement", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkDone", b =>
@@ -655,7 +655,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("WorkDoneId");
 
-                    b.ToTable("WorkDone");
+                    b.ToTable("WorkDone", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkRequest", b =>
@@ -725,7 +725,7 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("WorkStatusId");
 
-                    b.ToTable("WorkRequest");
+                    b.ToTable("WorkRequest", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
