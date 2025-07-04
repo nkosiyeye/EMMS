@@ -13,5 +13,7 @@ namespace EMMS.ViewModels
         public IEnumerable<Asset>? Assets { get; set; }
 
         public IEnumerable<LookupItem>? Conditions { get; set; }
+
+        public IEnumerable<LookupItem>? Reasons { get; set; }
     }
 }

@@ -69,20 +69,37 @@
                                     <span>Yes</span>
                                 }
                             </td>
-                            <td>@(movement.DateReceived.HasValue ? "Yes" : "No")</td>
 
                             <td>
-                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue ? "d-none" : "")"
+                            @if(movement.DateRejected != null)
+                            {
+                                    <span>@($"Rejected")</span>
+
+                                
+                            }
+
+                            else
+                            {
+                                    @(movement.DateReceived.HasValue ? "Yes" : "No")
+                            }
+                            </td>
+
+                            <td>
+                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue || movement.IsApproved ? "d-none" : "")"
                                    title="Edit" 
                                     asp-controller="AssetMovement"
                                     asp-action="edit"
                                     asp-route-id="@movement.MovementId">
                                     <i class="fa fa-edit"></i>
                                 </a>
+                                <form class="@(movement.DateReceived.HasValue || movement.IsApproved ? "d-none" : "")" asp-action="deteleMovement" asp-controller="AssetMovement" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this movement?');">
+                                    <input type="hidden" name="id" value="@movement.MovementId" />
+                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button>
+                                </form>
 
-                                <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
+                                @* <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
                                     <i class="fa fa-trash"></i>
-                                </a>
+                                </a> *@
                                 <a class="btn btn-sm btn-secondary me-1 @(movement.IsApproved ? "" : "d-none")"
                                 title="Gate Pass"
                                 asp-controller="AssetMovement"

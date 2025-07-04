@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -70,9 +71,11 @@ namespace EMMS.Models
 
         [Display(Name = "Approved By")]
         public Guid? ApprovedBy { get; set; }
-      
+        [ForeignKey(nameof(ApprovedBy))]
+        public virtual User? ApprovedUser { get; set; }
 
-        
+
+
         [Display(Name = "Date Received")]
         public DateTime? DateReceived { get; set; }
 
@@ -85,6 +88,21 @@ namespace EMMS.Models
         
         [Display(Name = "Received By")]
         public Guid? ReceivedBy { get; set; }
+        [ForeignKey(nameof(ReceivedBy))]
+        public virtual User? RecievedUser { get; set; }
+
+        [Display(Name = "Date Rejected")]
+        public DateTime? DateRejected { get; set; }
+
+        [Display(Name = "Rejected By")]
+        public Guid? RejectedBy { get; set; }
+        [ForeignKey(nameof(RejectedBy))]
+        public virtual User? RejectedUser { get; set; }
+        public int? RejectedReasonId { get; set; }
+        [ForeignKey(nameof(RejectedReasonId))]
+        public virtual LookupItem? RejectedReason { get; set; }
+
+
 
         [Display(Name = "Remarks")]
         public string? Remarks { get; set; }

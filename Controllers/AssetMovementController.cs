@@ -57,36 +57,40 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> moveAsset(Guid id)
         {
-            var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
             var _repo = new AssetMovementRepo(_context);
             var moveAsset = new MoveAsset();
 
             var history = await _repo.GetLastMovement(id);
-            if(history != null)
+            if (history != null)
             {
                 moveAsset.AssetId = id;
-                moveAsset.FacilityId = history.FacilityId;           
-                
-
+                moveAsset.FacilityId = history.FacilityId;
+                moveAsset.Asset = history.Asset;
             }
             else
             {
-                moveAsset.AssetId = id;
-
+                var assetRepo = new AssetManagementRepo(_context);
+                var assets = await assetRepo.GetAssetsFromDb();
+                var asset = assets.FirstOrDefault(a => a.AssetId == id);
+                if (asset == null)
+                {
+                    TempData["MovementError"] = "Asset not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+                moveAsset.AssetId = asset.AssetId;
+                moveAsset.Asset = asset;
             }
+
             var moveAssetViewModel = new MoveRequestViewModel()
             {
-                AssetTag = _arepo.AssetTagNumber,
+                AssetTag = moveAsset!.Asset!.AssetTagNumber,
                 MoveAsset = moveAsset,
-
-               // MovementTypes = await _repo.GetMovementTypes(),
+                // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
                 FunctionalStatuses = await _repo.GetFunctionalStatuses(),
-
             };
-
 
             return View(moveAssetViewModel);
         }
@@ -100,9 +104,10 @@ namespace EMMS.Controllers
             var _repo = new AssetMovementRepo(_context);
             var moveAssetViewModel = new MoveRequestViewModel()
             {
+                AssetTag = moveAsset!.Asset!.AssetTagNumber,
                 MoveAsset = moveAsset,
 
-               // MovementTypes = await _repo.GetMovementTypes(),
+                // MovementTypes = await _repo.GetMovementTypes(),
                 Facilities = await _repo.GetFacilities(),
                 ServicePoints = await _repo.GetServicePoints(),
                 Reasons = await _repo.GetReasons(),
@@ -121,18 +126,17 @@ namespace EMMS.Controllers
         {
 
             var assetMovement = asmove.MoveAsset;
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
-                //Debug.WriteLine("assetId"+assetMovement.AssetId);
-                //assetMovement.IsApproved = false;
-                UpdateEntity(assetMovement); 
+                UpdateEntity(assetMovement!); 
 
-                _context.Update(assetMovement);
+                _context.Update(assetMovement!);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["MovementError"] = string.Join("; ", errors);
             var _repo = new AssetMovementRepo(_context);
             var moveAssetViewModel = new MoveRequestViewModel()
             {
@@ -151,16 +155,24 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
 
             var assetMovement = asmove.MoveAsset;
+            var movement = _context.AssetMovement.OrderByDescending(m => m.DateCreated)
+                   .FirstOrDefault(m => m.AssetId == asmove.MoveAsset!.AssetId);
+            if (movement != null && movement.DateReceived == null)
+            {
+                if(movement.DateRejected == null) ModelState.AddModelError("", "Asset Already has a movement pending.");
+            }
 
             if (ModelState.IsValid)
             {
                 var _repo = new AssetMovementRepo(_context);
 
-                assetMovement.FromId = CurrentUser!.FacilityId ?? 1;
+                assetMovement.FromId = CurrentUser!.FacilityId ?? 1; 
+                movement.MovementDate = assetMovement.MovementDate.Date
+                                            .AddHours(DateTime.Now.Hour)
+                                            .AddMinutes(DateTime.Now.Minute)
+                                            .AddSeconds(DateTime.Now.Second);
 
                 CreateEntity(assetMovement);
 
@@ -168,6 +180,10 @@ namespace EMMS.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["MovementError"] = string.Join("; ", errors);
 
             // Repopulate dropdowns for the view
             var _repoReload = new AssetMovementRepo(_context);
@@ -191,6 +207,7 @@ namespace EMMS.Controllers
             var data = await Data();
             data.MoveAssets = _repo.GetAssetMovement().Result.Where(m => m.FromId == CurrentUser.FacilityId);
             data.Conditions = await _repo.GetConditions();
+            data.Reasons = await _repo.GetReasons();
             return View(data);
         }
         
@@ -224,9 +241,40 @@ namespace EMMS.Controllers
 
             return View("recieveAsset",Data(movemodel:model.MoveAsset).Result);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> rejectAsset(MoveAssetViewModel model)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["Error"] = string.Join("; ", errors);
+
+            if (ModelState.IsValid)
+            {
+                var movement = await _context.AssetMovement
+                    .FirstOrDefaultAsync(m => m.MovementId == model.MoveAsset.MovementId);
+
+                if (movement == null)
+                {
+                    ModelState.AddModelError("", "Asset movement not found.");
+                    return View("recieveAsset", model);
+                }
+                var move = movement;
+
+                // Update movement properties
+                movement.DateRejected = model.MoveAsset.DateRejected;
+                movement.RejectedReasonId = model.MoveAsset.RejectedReasonId;
+                movement.RejectedBy = model.MoveAsset.RejectedBy;
+                movement.Remarks = model.MoveAsset.Remarks;
+
+                _context.Update(movement);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(recieveAsset));
+            }
+
+            return View("recieveAsset", Data(movemodel: model.MoveAsset).Result);
+        }
         public async Task<IActionResult> approveMovement(Guid id)
         {
-            Debug.WriteLine(id);
              
                 var movement = _context.AssetMovement
                     .FirstOrDefault(m => m.MovementId == id);
@@ -235,7 +283,6 @@ namespace EMMS.Controllers
 
                 if (movement == null)
                 {
-                Debug.WriteLine(movement.MovementId);
                     //ModelState.AddModelError("", "Asset movement not found.");
                     return RedirectToAction(nameof(Index));
                 }
@@ -275,6 +322,24 @@ namespace EMMS.Controllers
                 return NotFound();
 
             return View("GatePass", movement);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequireLogin]
+        public async Task<IActionResult> deteleMovement(Guid id)
+        {
+            var movement = await _context.AssetMovement.FindAsync(id);
+            if (movement == null)
+            {
+                TempData["Error"] = "Asset movement not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            _context.AssetMovement.Remove(movement);
+            await _context.SaveChangesAsync();
+            TempData["MovementSuccess"] = "Asset movement deleted successfully.";
+            return RedirectToAction(nameof(Index));
         }
 
 

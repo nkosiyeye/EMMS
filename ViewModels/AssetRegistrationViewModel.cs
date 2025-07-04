@@ -12,7 +12,11 @@ namespace EMMS.ViewModels
     {
         public Asset asset { get; set; }
         public bool alreadyDeployed { get; set; } = false;
+
+        [RequiredIf("alreadyDeployed", true, ErrorMessage = "Deployment Date is required when Already Deployed is checked.")]
         public DateTime? dateDeployed { get; set; }
+
+        [RequiredIf("alreadyDeployed", true, ErrorMessage = "Facility is required when Already Deployed is checked.")]
         public int? facilityId { get; set; }
         public int? ServicePointId { get; set; }
 

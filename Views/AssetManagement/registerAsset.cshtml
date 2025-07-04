@@ -155,6 +155,8 @@
                             <div class="col-md-8 col-lg-6">
                                 <label asp-for="asset.PlacementEndDate" for="end-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementEndDate" type="date" id="end-field" placeholder="Duration" class="form-control">
+
+                                <span asp-validation-for="asset.PlacementEndDate" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
@@ -249,15 +251,32 @@
     <script>
          document.addEventListener('DOMContentLoaded', function() {
             const categorySelector = document.getElementById('category');
-            if (categorySelector) { 
+            if (categorySelector) {
                 const selectedCategory = categorySelector.value;
-                console.log(selectedCategory);
                 if(selectedCategory) {
                     updateSubCategory(selectedCategory);
                 }
+                if(@Model.asset.SubCategoryId) {
+                    const subCategorySelect = document.getElementById('subcategory');
+                    subCategorySelect.value = @Model.asset.SubCategoryId;
+                }
+            }
+
+            // Ensure placement checkbox state is checked on load
+            const placementCheckbox = document.getElementById('placement-checkbox');
+            if (placementCheckbox) {
+                checkPlacement(placementCheckbox);
+            }
+
+            const servicableCheckbox = document.getElementById('serviceable-checkbox');
+            if (servicableCheckbox) {
+                checkServiceable(servicableCheckbox);
+            }
+            const deployedCheckbox = document.getElementById('deployed-checkbox');
+            if (deployedCheckbox) {
+                checkAlreadyDeployed(deployedCheckbox);
             }
         });
-
         function checkPlacement(checkbox) {
             const durationField = document.getElementById('duration-field-container');
             if (checkbox.checked) {

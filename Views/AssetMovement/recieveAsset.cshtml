@@ -31,7 +31,7 @@
                 <tbody>
                     @if (Model.MoveAssets is not null)
                     {
-                        @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived == null && a.IsApproved))
+                        @foreach (var reciveAsset in Model.MoveAssets.Where(a => (a.DateReceived == null && a.DateRejected == null) && a.IsApproved))
                         {
                             <tr>
                                 <td>@reciveAsset.Asset!.AssetTagNumber</td>
@@ -44,7 +44,8 @@
                                     data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
                                         Recieve
                                     </button>
-                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal" data-asset-id="@reciveAsset.MovementId">
+                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal" 
+                                    data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
                                         Reject
                                     </button>
                                 </td>
@@ -81,18 +82,18 @@
                         <th>From</th>
                         <th>Date Recieved</th>
                         <th>Functional Status</th>
-                        @* <th>Recieved By</th> *@
+                         @* <th>Recieved By</th>  *@
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived != null))
                     {
                         <tr>
-                            <td>@reciveAsset.Asset.AssetTagNumber</td>
-                            <td>@reciveAsset.From.FacilityName</td>
+                            <td>@reciveAsset.Asset?.AssetTagNumber</td>
+                            <td>@reciveAsset.From?.FacilityName</td>
                             <td>@reciveAsset.DateReceived!.Value.ToString("dd MMM yyyy")</td>
                             <td>@reciveAsset.FunctionalStatus</td>
-                            @* <td>@reciveAsset.ReceivedBy</td> *@
+                             @* <td>@(reciveAsset.ReceivedBy.HasValue ? "Yes" : "No")</td>  *@
                         </tr>
                     }
                 </tbody>
@@ -141,10 +142,10 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.ConditionId" class="form-label"></label>
-                            <select asp-for="MoveAsset.ConditionId" class="form-select selectpicker col-md-6"
+                             <select asp-for="MoveAsset.ConditionId" class="form-select selectpicker col-md-6"
                                     data-live-search="true" asp-items="@(new SelectList(Model.Conditions, "Id", "Name"))">
                                 <option selected disabled>Select Condition</option>
-                            </select>
+                            </select> 
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MoveAsset.ReceivedBy" class="form-label"></label>
@@ -181,30 +182,45 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form>
+                <form asp-action="rejectAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="rejectedDate" class="form-label required-field">Date Rejected</label>
-                            <input type="date" class="form-control" id="movementDate" required>
+                            <input asp-for="MoveAsset.DateRejected" type="date" class="form-control" id="movementDate" required>
                         </div>
                         <!-- Asset Name / Tag -->
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="rejectassetId" class="form-label required-field">Asset Name / Tag</label>
+                            <input asp-for="MoveAsset.MovementId" id="rejectmovementId" type="hidden" />
                             <input type="text" value="Patient Monitor - AS-001" class="form-control" id="rejectassetId" required readonly>
                             <!-- Populate dynamically -->
                         </div>
 
+                    </div>
+                    <div class="row mb-3">
+
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.RejectedBy" class="form-label"></label>
+                            <input asp-for="MoveAsset.RejectedBy" type="hidden" class="form-control" value="@ViewBag._currentUser.UserId" readonly />
+                            <input class="form-control" value="@ViewBag._currentUser.FirstName" readonly />
+                        </div>
+
 
                         <!-- Reason -->
-                        <div class="col-md-4">
-                            <label for="reason" class="form-label required-field">Reason</label>
-                            <select class="form-select" id="reason" required>
+                        <div class="col-md-6">
+                            <label asp-for="MoveAsset.RejectedReasonId" class="form-label required-field">Rejected Reason</label>
+                            <select asp-for="MoveAsset.RejectedReasonId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Reasons, "Id", "Name"))">
                                 <option selected disabled>Select Reason</option>
-                                <option value="faulty">Faulty</option>
-                                <option value="wrong-specification">Wrong Specification</option>
-                                <option value="old">OLD</option>
                             </select>
+                        </div>
+                        </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="MoveAsset.Remarks" class="form-label"></label>
+                            <textarea asp-for="MoveAsset.Remarks" class="form-control"></textarea>
                         </div>
                     </div>
 
@@ -217,27 +233,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-
-                document.addEventListener("DOMContentLoaded", function () {
-            // Get the modal and the asset tag input field
-            const Modal = document.getElementById("rejectModal");
-            const assetTagInput = document.getElementById("rejectassetId");
-
-            // Listen for when the modal is shown
-            Modal.addEventListener("show.bs.modal", function (event) {
-                // Get the button that triggered the modal
-                const button = event.relatedTarget;
-
-                // Extract the asset ID from the data-asset-id attribute
-                const assetId = button.getAttribute("data-asset-id");
-
-                // Populate the Asset Tag field in the modal
-                assetTagInput.value = assetId;
-            });
-        });
-    </script>
 
 </div>
 
@@ -265,6 +260,30 @@
                 movementIdInput.value = movementId;
             });
         });
+
+                    document.addEventListener("DOMContentLoaded", function () {
+                // Get the modal and the asset tag input field
+                const Modal = document.getElementById("rejectModal");
+                const assetTagInput = document.getElementById("rejectassetId");
+                const movementIdInput = document.getElementById("rejectmovementId");
+
+                // Listen for when the modal is shown
+                Modal.addEventListener("show.bs.modal", function (event) {
+                    // Get the button that triggered the modal
+                    const button = event.relatedTarget;
+
+                    // Extract the asset ID from the data-asset-id attribute
+                    //const assetId = button.getAttribute("data-asset-id");
+                    const assetId = button.getAttribute("data-asset-tag");
+                    const movementId = button.getAttribute("data-movement-id");
+
+                    // Populate the Asset Tag field in the modal
+                    assetTagInput.value = assetId;
+                    //assetTagInput.value = assetId;
+                    movementIdInput.value = movementId;
+                });
+            });
+    
             $(document).ready(function () {
                 $('#receptionHistory').DataTable({
                     // Optional: customize page length, language, etc.
