@@ -168,7 +168,17 @@
                                                     <span>-</span>
                                                 }
                                             </td>
-                                            <td width="10%">@Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)</td>
+                                            <td width="10%">
+                                                @if (lastMove != null)
+                                                {
+                                                    @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
+
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                                </td>
                                             @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@
                                             <td width="5%" class="action-container">

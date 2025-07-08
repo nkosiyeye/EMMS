@@ -18,7 +18,6 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Asset)
                 .Include(w => w.WorkStatus)
                 .Include(w => w.Outcome)
-                .Include(w => w.FaultReport)
                 .Include(w => w.Job)
                 .ToListAsync();
         }
@@ -28,6 +27,7 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Asset)
                 .Include(w => w.User)
                 .Include(w => w.Status)
+                .Include(w => w.FaultReport)
                 .Include(w => w.ExternalProvider)
                 .ToListAsync();
         }

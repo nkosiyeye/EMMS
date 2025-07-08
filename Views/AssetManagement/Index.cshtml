@@ -70,8 +70,8 @@
                                 <td>
                                     @if (lastMove != null)
                                     {
-                                          @(lastMove.Facility?.FacilityName)
-                                        
+                                        @(lastMove.Facility?.FacilityName)
+
                                     }
                                     else
                                     {
@@ -96,7 +96,17 @@
                                         <span>-</span>
                                     }
                                 </td>
-                                <td>@Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)</td>
+                                <td>
+                                    @if(lastMove != null)
+                                    {
+                                        @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
+
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>                                        
+                                    }
+                                </td>
                                 <td class="action-container">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

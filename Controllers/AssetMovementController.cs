@@ -159,9 +159,9 @@ namespace EMMS.Controllers
             var assetMovement = asmove.MoveAsset;
             var movement = _context.AssetMovement.OrderByDescending(m => m.DateCreated)
                    .FirstOrDefault(m => m.AssetId == asmove.MoveAsset!.AssetId);
-            if (movement != null && movement.DateReceived == null)
+            if (movement != null)
             {
-                if(movement.DateRejected == null) ModelState.AddModelError("", "Asset Already has a movement pending.");
+                if(movement.DateRejected == null && movement.DateReceived == null) ModelState.AddModelError("", "Asset Already has a movement pending.");
             }
 
             if (ModelState.IsValid)

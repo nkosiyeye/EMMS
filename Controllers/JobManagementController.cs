@@ -111,7 +111,6 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 var work = workRequestView.WorkRequest;
-                Debug.WriteLine($"WorkRequest: {work!.FaultReportId}");//TBD Update with logged in facility;
                 work.RequestedBy = CurrentUser.UserId;
                 CreateEntity(work);; // TBD Replace with actual user ID
                                                  // Add notification
