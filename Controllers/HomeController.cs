@@ -83,11 +83,10 @@ namespace EMMS.Controllers
         [RequireLogin]
         public IActionResult Index()
         {
-                //Debug.WriteLine("-----------------" + (user?.UserRole?.UserType == Enumerators.UserType.Administrator).ToString());
-                var indexModel = new IndexModel(new AssetManagementRepo(_context), new JobManagementRepo(_context), new Service.AssetService(_context));
-                indexModel.currentUser = CurrentUser!;
-                indexModel.OnGet();
-                return View(indexModel);
+            var indexModel = new IndexModel(new AssetManagementRepo(_context), new JobManagementRepo(_context), new Service.AssetService(_context));
+            indexModel.currentUser = CurrentUser!;
+            indexModel.OnGet();
+            return View(indexModel);
         }
 
         public IActionResult Privacy()

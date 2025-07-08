@@ -1,8 +1,16 @@
 /* ===========================
    Global Styles
 =========================== */
+:root {
+    --color-green: #228B22;
+    --color-blue: #3b82f6;
+    --color-yellow: #ff7e0d;
+    --color-red: #ff1616;
+    --brand-blue: #0d6efd;
+}
+
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Montserrat', sans-serif;
     width: 100vw;
     height: 100vh;
     overflow-y: hidden; /* Prevent vertical scrolling on body */
@@ -215,6 +223,42 @@ textarea::placeholder {
 
 .submit-btn-container {
     margin: 10px 0 20px;
+}
+
+.status-btn {
+    padding: 2px 5px;
+    text-align: center;
+    border-radius: 1rem;
+    border: none;
+    color: white;
+}
+
+.status-new {
+    background-color: var(--color-green);
+}
+
+.status-info {
+    background-color: var(--color-blue);
+}
+
+.status-warning {
+    background-color: var(--color-yellow);
+}
+
+.status-danger {
+    background-color: var(--color-red);
+}
+
+.action-container {
+    text-align: center;
+}
+
+.table-cta-btn {
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: .5rem;
+    background-color: var(--brand-blue);
+    color: white;
 }
 
 /* ===========================

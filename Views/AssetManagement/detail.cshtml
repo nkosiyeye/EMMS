@@ -45,7 +45,27 @@
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@((ProcurementStatus)Model.Asset.StatusId)</dd>
+                    @{
+                        var procStatus = (ProcurementStatus)Model.Asset.StatusId;
+                        switch (procStatus)
+                        {
+                            case ProcurementStatus.New:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-new">@procStatus</div></dd>
+                                break;
+                            case ProcurementStatus.Used:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-info">@procStatus</div></dd>
+                                break;
+                            case ProcurementStatus.Refurbished:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-warning">@procStatus</div></dd>
+                                break;
+                            case ProcurementStatus.Decommissioned:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@procStatus</div></dd>
+                                break;
+                            default:
+                                <dd class="col-sm-6 border p-1 m-0">-</dd>
+                                break;
+                        }
+                    }
                 </dl>
             </div>
             <div class="col-md-4">  
@@ -81,10 +101,9 @@
                     <dt class="col-sm-6 border p-1 m-0">Placement</dt>
                     <dd class="col-sm-6 border p-1 m-0">
                         @(Model.Asset.IsPlacement ?
-                                        "Yes " + Model.Asset.PlacementStartDate!.Value.ToString("dd/MM/yyyy") + " to " + Model.Asset.PlacementEndDate!.Value.ToString("dd/MM/yyyy")
+                                    Model.Asset.PlacementStartDate!.Value.ToString("dd/MM/yyyy") + " to " + Model.Asset.PlacementEndDate!.Value.ToString("dd/MM/yyyy")
                                     : "No"
                                     )
-                        @* @(Html.DisplayFor(model => model.Asset.IsPlacement ? "Yes" : "No")) *@
                     </dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Donated</dt>
@@ -100,7 +119,24 @@
                     <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.Facility?.FacilityName ?? Model.MovementHistory?.FirstOrDefault()?.ServicePoint?.Name ?? "-")</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@(Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus.ToString() ?? "-")</dd>
+                    @{
+                        var funcStatus = Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus;
+                        switch (funcStatus)
+                        {
+                            case FunctionalStatus.Functional:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-new">@funcStatus</div></dd>
+                                break;
+                            case FunctionalStatus.NonFunctional:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@funcStatus</div></dd>
+                                break;
+                            case FunctionalStatus.UnderMaintenance:
+                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-warning">@funcStatus</div></dd>
+                                break;
+                            default:
+                                <dd class="col-sm-6 border p-1 m-0">-</dd>
+                                break;
+                        }
+                    }
 
                     <dt class="col-sm-6 border p-1 m-0">Servicable</dt>
                     <dd class="col-sm-6 border p-1 m-0">
@@ -112,8 +148,7 @@
                     {
                         <dt class="col-sm-6 border p-1 m-0">Next Service Date</dt>
                         <dd class="col-sm-6 border p-1 m-0"> 
-                            @Model.Asset.NextServiceDate!.Value.ToString("dd/MM/yyyy")
-
+                            @(DateOnly.FromDateTime((DateTime)Model.Asset?.NextServiceDate!))
                         </dd>
                     }
                 </dl>
@@ -206,7 +241,25 @@
                                     @("Unknown")
                                 }
                             </td>
-                            <td>@move.FunctionalStatus</td>
+                            @{
+                                var moveStatus = move.FunctionalStatus;
+                                switch (moveStatus)
+                                {
+                                    case FunctionalStatus.Functional:
+                                        <td><div class="status-btn status-new">@moveStatus</div></td>
+                                        break;
+                                    case FunctionalStatus.NonFunctional:
+                                        <td><div class="status-btn status-danger">@moveStatus</div></td>
+                                        break;
+                                    case FunctionalStatus.UnderMaintenance:
+                                        <td><div class="status-btn status-warning">@moveStatus</div></td>
+                                        break;
+                                    default:
+                                        <td>-</td>
+                                        break;
+                                }
+                            }
+                            @* <td>@move.FunctionalStatus</td> *@
                             <td>
                                 @* TBD Replace with actual user *@
                                 @(move.ReceivedBy?.ToString() ?? "N/A")

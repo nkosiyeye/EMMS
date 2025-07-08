@@ -43,6 +43,31 @@ namespace EMMS.Service
 
             return indexView;
         }
+
+        public async Task<AssetIndexViewModel?> GetAssetDueServiceViewModel()
+        {
+            var _repo = new AssetManagementRepo(_context);
+            var assets = _repo.GetAssetsDueService().Result.OrderByDescending(a => a.NextServiceDate);
+            var lastMovements = await _repo.GetAssetMovement();
+
+            var lastMovementDict = lastMovements
+                .Where(m => m != null)
+                .ToDictionary(m => m.AssetId, m => m);
+
+            var assetViewModels = assets.Select(asset => new AssetViewModel
+            {
+                Asset = asset,
+                LastMovement = lastMovementDict.ContainsKey(asset.AssetId) ? lastMovementDict[asset.AssetId] : null
+            }).ToList();
+
+            var indexView = new AssetIndexViewModel
+            {
+                assetViewModels = assetViewModels,
+                moveAsset = new MoveAsset()
+            };
+
+            return indexView;
+        }
     }
 
 }

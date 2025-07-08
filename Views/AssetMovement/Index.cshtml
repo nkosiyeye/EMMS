@@ -1,4 +1,5 @@
 ﻿@using EMMS.ViewModels
+@using static EMMS.Models.Enumerators
 @model MoveAssetViewModel;
 @{
     ViewData["Title"] = "Move Assets";
@@ -23,7 +24,7 @@
                         <th>Asset Tag</th>
                         <th>Facility</th>
                         <th>Service Point</th>
-                        <th>Since</th>
+                        <th>Date Moved</th>
                         <th>Functional Status</th>
                         <th>Reason</th>
                         <th>Approved</th>
@@ -47,8 +48,23 @@
                                     <span class="text-danger">Unknown</span>
                                 }
                             </td>
-                            <td>@movement.MovementDate</td>
-                            <td>@movement.FunctionalStatus</td>
+                            <td>@(DateOnly.FromDateTime(movement.MovementDate))</td>
+                            @{
+                                var funcStatus = movement.FunctionalStatus;
+                                switch (funcStatus) {
+                                    case FunctionalStatus.Functional:
+                                        <td><div class="status-btn status-new">@funcStatus</div></td>
+                                        break;
+                                    case FunctionalStatus.NonFunctional:
+                                        <td><div class="status-btn status-danger">@funcStatus</div></td>
+                                        break;
+                                    case FunctionalStatus.UnderMaintenance:
+                                        <td><div class="status-btn status-warning">@funcStatus</div></td>
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
                             <td>@movement.Reason</td>
                             <td>
                                 @if (!movement.IsApproved)
@@ -178,10 +194,10 @@
                                             </td>
                                             @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@
-                                            <td width="5%">
+                                            <td width="5%" class="action-container">
 
-                                                <a style="font-size: medium;"
-                                                   class="btn btn-info"
+                                                <a
+                                                   class="table-cta-btn"
                                                    title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-arrows-alt"></i> Move Asset
                                                 </a>
@@ -189,8 +205,6 @@
                                             </td>
                                         </tr>
                                     }
-
-
                                 }                       
                                 </tbody>
                         </table>

@@ -2,7 +2,9 @@
 using EMMS.Models;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using NuGet.ContentModel;
 using static EMMS.Models.Enumerators;
+using Asset = EMMS.Models.Asset;
 
 namespace EMMS.Data.Repository
 {
@@ -110,6 +112,18 @@ namespace EMMS.Data.Repository
                 .FirstOrDefaultAsync(a => a.SerialNumber == serialNum && a.RowState == RowStatus.Active);
 
             return asset;
+        }
+
+        public async Task<IEnumerable<Asset>> GetAssetsDueService(int period = 4)
+        {
+            DateTime today = DateTime.Today;
+            DateTime twoMonthsFromNow = today.AddMonths(period);
+
+            var dueAssets = await _context.Assets
+                .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= twoMonthsFromNow)
+                .ToListAsync();
+
+            return dueAssets;
         }
     }
 }

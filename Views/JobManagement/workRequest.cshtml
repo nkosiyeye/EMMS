@@ -14,7 +14,7 @@
         </div>
     </div>
     <div class="card-body">
-        @if (TempData["Error"] != null)
+        @if (TempData["Error"] != null && TempData["Error"]?.ToString() != "")
         {
             <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
                 <div>
@@ -48,7 +48,7 @@
                     <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
                     <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "Open").Name" disabled />
                     <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
-                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
+                    data-live-search="true">
                         @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
                         {
                             <option value="@status.Id" selected>@status.Name</option>                            

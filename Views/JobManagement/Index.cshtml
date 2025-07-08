@@ -21,11 +21,12 @@
                 <thead>
                     <tr>
                         <th>Asset ID</th>
-                        <th>Date</th>
-                        <th>Title</th>
-                        <th>Description</th>
+                        <th>Asset</th>
+                        <th>Date Requested</th>
+                        <th>Work Request</th>
+                        <th>Fault Description</th>
                         <th>External</th>
-                        <th>Status</th>
+                        <th>Request Status</th>
                         <th>Outcome</th>
                         <th>Action</th>
                     </tr>
@@ -35,7 +36,8 @@
                     {
                         <tr>
                             <td>@request.Asset.AssetTagNumber</td>
-                            <td>@request.RequestDate</td>
+                            <td>@request.Asset.ItemName</td>
+                            <td>@(DateOnly.FromDateTime(request.RequestDate))</td>
                             <td>@request.FaultReport!.Name</td>
                             <td>
                                 @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)

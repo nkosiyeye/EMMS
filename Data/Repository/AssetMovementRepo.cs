@@ -33,7 +33,7 @@ namespace EMMS.Data.Repository
             return await _context.AssetMovement
                 .Where(x => x.AssetId == assetId && x.RowState == RowStatus.Active)
                 .Include(x => x.Asset)
-                .OrderByDescending(x => x.MovementDate)
+                .OrderByDescending(x => x.DateCreated)
                 .FirstOrDefaultAsync();
         }
 

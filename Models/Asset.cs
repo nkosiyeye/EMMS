@@ -104,7 +104,7 @@ namespace EMMS.Models
         [Display(Name = "Procurement Date")]
         public DateTime? ProcurementDate { get; set; }
 
-        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Cost is required for new assets  and cannot be a negative value.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Cost is required for new assets and cannot be a negative value.")]
         [Display(Name = "Cost")]
         public decimal? Cost { get; set; }
 
