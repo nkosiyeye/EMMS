@@ -1,4 +1,5 @@
-﻿@using EMMS.ViewModels
+﻿@using EMMS.Utility
+@using EMMS.ViewModels
 @using static EMMS.Models.Enumerators
 @model MoveAssetViewModel;
 @{
@@ -49,22 +50,7 @@
                                 }
                             </td>
                             <td>@(DateOnly.FromDateTime(movement.MovementDate))</td>
-                            @{
-                                var funcStatus = movement.FunctionalStatus;
-                                switch (funcStatus) {
-                                    case FunctionalStatus.Functional:
-                                        <td><div class="status-btn status-new">@funcStatus</div></td>
-                                        break;
-                                    case FunctionalStatus.NonFunctional:
-                                        <td><div class="status-btn status-danger">@funcStatus</div></td>
-                                        break;
-                                    case FunctionalStatus.UnderMaintenance:
-                                        <td><div class="status-btn status-warning">@funcStatus</div></td>
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
+                            <td>@Format.DisplayFunctionalStatus(movement.FunctionalStatus)</td>
                             <td>@movement.Reason</td>
                             <td>
                                 @if (!movement.IsApproved)
@@ -182,16 +168,7 @@
                                                     <span>-</span>
                                                 }
                                             </td>
-                                            <td width="10%">
-                                                @if (lastMove != null)
-                                                {
-                                                    @(lastMove.FunctionalStatus.ToString() ?? "N/A")
-                                                }
-                                                else
-                                                {
-                                                    <span>-</span>
-                                                }
-                                            </td>
+                                            <td width="10%">@Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)</td>
                                             @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@
                                             <td width="5%" class="action-container">

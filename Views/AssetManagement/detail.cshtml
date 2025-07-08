@@ -45,27 +45,28 @@
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
 
                     <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                    @{
-                        var procStatus = (ProcurementStatus)Model.Asset.StatusId;
-                        switch (procStatus)
-                        {
-                            case ProcurementStatus.New:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-new">@procStatus</div></dd>
-                                break;
-                            case ProcurementStatus.Used:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-info">@procStatus</div></dd>
-                                break;
-                            case ProcurementStatus.Refurbished:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-warning">@procStatus</div></dd>
-                                break;
-                            case ProcurementStatus.Decommissioned:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@procStatus</div></dd>
-                                break;
-                            default:
-                                <dd class="col-sm-6 border p-1 m-0">-</dd>
-                                break;
+                    <dd class="col-sm-6 border p-1 m-0">
+                        @{
+                            var procStatus = (ProcurementStatus)Model.Asset.StatusId;
+                            switch (procStatus)
+                            {
+                                case ProcurementStatus.New:
+                                    <div class="status-btn status-new">@procStatus</div>
+                                    break;
+                                case ProcurementStatus.Used:
+                                    <div class="status-btn status-info">@procStatus</div>
+                                    break;
+                                case ProcurementStatus.Refurbished:
+                                    <div class="status-btn status-warning">@procStatus</div>
+                                    break;
+                                case ProcurementStatus.Decommissioned:
+                                    <div class="status-btn status-danger">@procStatus</div>
+                                    break;
+                                default:
+                                    break;
+                            }
                         }
-                    }
+                    </dd>
                 </dl>
             </div>
             <div class="col-md-4">  

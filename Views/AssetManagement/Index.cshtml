@@ -66,27 +66,7 @@
                                 <td>@(asset.Asset!.IsPlacement! ? "Yes" : "No")</td>
                                 <td>@asset.Asset.Vendor!.Name</td>
                                 <td>@asset.Asset.ServiceProvider!.Name</td>
-                                @{
-                                    var procStatus = (ProcurementStatus)asset.Asset.StatusId;
-                                    switch (procStatus)
-                                    {
-                                        case ProcurementStatus.New:
-                                            <td><div class="status-btn status-new">@procStatus</div></td>
-                                            break;
-                                        case ProcurementStatus.Used:
-                                            <td><div class="status-btn status-info">@procStatus</div></td>
-                                            break;
-                                        case ProcurementStatus.Refurbished:
-                                            <td><div class="status-btn status-warning">@procStatus</div></td>
-                                            break;
-                                        case ProcurementStatus.Decommissioned:
-                                            <td><div class="status-btn status-danger">@procStatus</div></td>
-                                            break;
-                                        default:
-                                            <td><div>-</div></td>
-                                            break;
-                                    }
-                                }
+                                <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
                                 <td>
                                     @if (lastMove != null)
                                     {
@@ -116,24 +96,7 @@
                                         <span>-</span>
                                     }
                                 </td>
-                                @{
-                                    var funcStatus = lastMove?.FunctionalStatus;
-                                    switch (funcStatus)
-                                    {
-                                        case FunctionalStatus.Functional:
-                                            <td><div class="status-btn status-new">@funcStatus</div></td>
-                                            break;
-                                        case FunctionalStatus.NonFunctional:
-                                            <td><div class="status-btn status-danger">@funcStatus</div></td>
-                                            break;
-                                        case FunctionalStatus.UnderMaintenance:
-                                            <td><div class="status-btn status-warning">@funcStatus</div></td>
-                                            break;
-                                        default:
-                                            <td>-</td>
-                                            break;
-                                    }
-                                }
+                                <td>@Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)</td>
                                 <td class="action-container">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
