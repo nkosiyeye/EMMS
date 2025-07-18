@@ -86,23 +86,7 @@
                                                 <td>@asset.Asset?.SubCategory!.Name</td>
                                                 <td>@asset.Asset.Vendor!.Name</td>
                                                 <td>@asset.Asset.ServiceProvider!.Name</td>
-                                                @{
-                                                    var procStatus = (ProcurementStatus)asset.Asset.StatusId;
-                                                    switch (procStatus) {
-                                                        case ProcurementStatus.New:
-                                                            <td><div class="status-btn status-new">@procStatus</div></td>
-                                                            break;
-                                                        case ProcurementStatus.Used:
-                                                            <td><div class="status-btn status-info">@procStatus</div></td>
-                                                            break;
-                                                        case ProcurementStatus.Refurbished:
-                                                            <td><div class="status-btn status-warning">@procStatus</div></td>
-                                                            break;
-                                                        case ProcurementStatus.Decommissioned:
-                                                            <td><div class="status-btn status-danger">@procStatus</div></td>
-                                                            break;
-                                                    }
-                                                }
+                                                <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
                                                 <td>
                                                     @if (lastMove != null)
                                                     {
@@ -113,24 +97,7 @@
                                                         <span>-</span>
                                                     }
                                                 </td>
-                                                @{
-                                                    var funcStatus = lastMove?.FunctionalStatus;
-                                                    switch (funcStatus)
-                                                    {
-                                                        case FunctionalStatus.Functional:
-                                                            <td><div class="status-btn status-new">@funcStatus</div></td>
-                                                            break;
-                                                        case FunctionalStatus.NonFunctional:
-                                                            <td><div class="status-btn status-danger">@funcStatus</div></td>
-                                                            break;
-                                                        case FunctionalStatus.UnderMaintenance:
-                                                            <td><div class="status-btn status-warning">@funcStatus</div></td>
-                                                            break;
-                                                        default:
-                                                            <td>-</td>
-                                                            break;
-                                                    }
-                                                }
+                                                <td>@Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus) </td>
                                                 <td>@(asset.Asset?.NextServiceDate != null ? DateOnly.FromDateTime((DateTime)asset.Asset.NextServiceDate) : '-')</td>
                                                 <td class="action-container">
                                                     <div class="dropdown">
@@ -153,15 +120,9 @@
                                                             <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                                 <a style="font-size: medium;"
                                                                    class="dropdown-item btn btn-secondary"
-                                                                   title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                                   asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
                                                                     <i class="fa fa-toolbox"></i> service request
                                                                 </a>
-
-                                                            </li>
-                                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                                <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
-                                                                    <i class="fa fa-trash"></i> delete asset
-                                                                </button>
                                                             </li>
                                                         </ul>
                                                     </div>
@@ -177,96 +138,6 @@
                     </div>
                 </div>
         </div>
-        @* <div class="col-lg-12 col-md-12 mb-3">
-            <div class="card shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Notifications</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="notification-body">
-                            <ul class="notification-list list-unstyled mb-0" id="notificationList">
-                                @if (Model.notifications != null && Model.notifications.Any())
-                                {
-                                    foreach (var item in Model.notifications)
-                                    {
-                                        <li class="notification-item d-flex align-items-center py-2 border-bottom">
-                                            <div class="notification-icon me-3">
-                                                @if (item.Type == "work")
-                                                {
-                                                    <i class="fas fa-tools text-primary"></i>
-                                                }
-                                                else if (item.Type == "job")
-                                                {
-                                                    <i class="fas fa-briefcase text-success"></i>
-                                                }
-                                                else if (item.Type == "asset")
-                                                {
-                                                    <i class="fas fa-box text-info"></i>
-                                                }
-                                                else if (item.Type == "move")
-                                                {
-                                                    <i class="fa-solid fa-arrows-turn-to-dots"></i>
-                                                }
-                                                else
-                                                {
-                                                    <i class="fas fa-bell text-secondary"></i>
-                                                }
-                                            </div>
-                                            <div class="notification-content flex-grow-1">
-                                                <p class="notification-message mb-1">@item.Message</p>
-                                                <span class="notification-time small text-muted">@item.DateCreated?.ToShortDateString()</span>
-                                            </div>
-                                            <div class="notification-actions ms-3">
-                                                @if (item.Type == "work")
-                                                {
-                                                    <a class="notification-action mark-read" title="View Work Request"
-                                                       href="@Url.Action("Index", "JobManagement")">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                }
-                                                else if (item.Type == "job")
-                                                {
-                                                    <a class="notification-action mark-read" title="View Job"
-                                                       href="@Url.Action("Index", "JobManagement")">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                }
-                                                else if (item.Type == "asset")
-                                                {
-                                                    <a class="notification-action mark-read" title="View Asset"
-                                                       href="@Url.Action("Index", "AssetManagement")">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                }
-                                                else if (item.Type == "move")
-                                                {
-                                                    <a class="notification-action mark-read" title="Receive Asset"
-                                                       href="@Url.Action("recieveAsset", "AssetMovement")">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                }
-                                                else
-                                                {
-                                                    <span class="notification-action mark-read" title="No action">
-                                                        <i class="fas fa-eye-slash"></i>
-                                                    </span>
-                                                }
-                                            </div>
-                                        </li>
-                                    }
-                                }
-                                else
-                                {
-                                    <li class="text-center text-muted py-4">
-                                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
-                                        <div>No notifications yet</div>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-        </div> *@
     </div>
 </div>
 @section Scripts {

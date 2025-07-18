@@ -169,7 +169,7 @@ namespace EMMS.Controllers
                 var _repo = new AssetMovementRepo(_context);
 
                 assetMovement.FromId = CurrentUser!.FacilityId ?? 1; 
-                movement.MovementDate = assetMovement.MovementDate.Date
+                assetMovement.MovementDate = assetMovement.MovementDate.Date
                                             .AddHours(DateTime.Now.Hour)
                                             .AddMinutes(DateTime.Now.Minute)
                                             .AddSeconds(DateTime.Now.Second);

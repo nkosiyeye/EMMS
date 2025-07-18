@@ -34,6 +34,18 @@ namespace EMMS.Data.Repository
             .ToListAsync();
         }
 
+        public async Task<String?> GetAssetLocation(Guid assetId)
+        {
+            var assetMovement = await _context.AssetMovement
+                                        .Where(m => m.AssetId == assetId)
+                                        .Include(m => m.Facility)
+                                        .Include(m => m.ServicePoint)
+                                        .OrderByDescending(m => m.MovementDate)
+                                        .FirstOrDefaultAsync();
+
+            return assetMovement.Facility.FacilityName;
+        }
+
         public async Task<List<MoveAsset?>> GetAssetMovement()
         {
             return await _context.AssetMovement

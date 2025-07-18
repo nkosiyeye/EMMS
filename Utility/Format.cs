@@ -30,7 +30,7 @@ namespace EMMS.Utility
             }
         }
 
-        public static IHtmlContent DisplayFunctionalStatus(FunctionalStatus funcStatus)
+        public static IHtmlContent DisplayFunctionalStatus(FunctionalStatus? funcStatus)
         {
             switch (funcStatus)
             {
