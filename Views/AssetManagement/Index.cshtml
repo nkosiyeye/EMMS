@@ -76,10 +76,10 @@
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
                                 <td>
-                                    @if (lastMove != null)
+                                     @if (lastMove != null)
                                     {
 
                                         @if (lastMove.ServicePoint?.Name != null)
@@ -94,13 +94,13 @@
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
                                 <td>
-                                    @if(lastMove != null)
+                                     @if(lastMove != null)
                                     {
 
-                                        @if (lastMove.Reason != Enumerators.MovementReason.Decommission)
+                                        @if (lastMove.Reason != null && lastMove.Reason != Enumerators.MovementReason.Decommission)
                                         {
 
                                             @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
@@ -115,7 +115,7 @@
                                     else
                                     {
                                         <span>-</span>                                        
-                                    }
+                                    } 
                                 </td>
                                 <td class="action-container">
                                     <div class="dropdown">
@@ -151,11 +151,11 @@
                                                 </a>
 
                                             </li>
-                                            <li class="@(lastMove != null || lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                            @* <li class="@(lastMove != null || lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
-                                            </li>
+                                            </li> *@
                                         </ul>
                                     </div>
 
