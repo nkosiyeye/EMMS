@@ -173,6 +173,12 @@ namespace EMMS.Controllers
                                             .AddHours(DateTime.Now.Hour)
                                             .AddMinutes(DateTime.Now.Minute)
                                             .AddSeconds(DateTime.Now.Second);
+                //if (assetMovement.Reason == MovementReason.Decommission)
+                //{
+                //    var asset = await _context.Assets
+                //        .FirstOrDefaultAsync(a => a.AssetId == assetMovement.AssetId);
+                //    asset.StatusId = (int)ProcurementStatus.Decommissioned;
+                //}
 
                 CreateEntity(assetMovement);
 

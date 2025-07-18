@@ -1,4 +1,5 @@
 ﻿@using static EMMS.Models.Enumerators
+@using EMMS.Utility
 @model EMMS.ViewModels.AssetDetailViewModel
 
 @*
@@ -44,7 +45,7 @@
                     <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
                     <dd class="col-sm-6 border p-1 m-0">@( Model.Asset.ProcurementDate?.ToString("dd/MM/yyyy"))</dd>
 
-                    <dt class="col-sm-6 border p-1 m-0">Status</dt>
+                    <dt class="col-sm-6 border p-1 m-0">Procument Status</dt>
                     <dd class="col-sm-6 border p-1 m-0">
                         @{
                             var procStatus = (ProcurementStatus)Model.Asset.StatusId;
@@ -121,21 +122,31 @@
 
                     <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
                     @{
-                        var funcStatus = Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus;
-                        switch (funcStatus)
+
+                        @if (Model.MovementHistory?.FirstOrDefault()?.Reason == MovementReason.Decommission)
                         {
-                            case FunctionalStatus.Functional:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-new">@funcStatus</div></dd>
-                                break;
-                            case FunctionalStatus.NonFunctional:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@funcStatus</div></dd>
-                                break;
-                            case FunctionalStatus.UnderMaintenance:
-                                <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-warning">@funcStatus</div></dd>
-                                break;
-                            default:
-                                <dd class="col-sm-6 border p-1 m-0">-</dd>
-                                break;
+                            
+                            <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@Format.DisplayProcurementStatus(ProcurementStatus.Decommissioned)</div></dd>
+
+                        }
+                        else
+                        {
+                            var funcStatus = Model.MovementHistory?.FirstOrDefault()?.FunctionalStatus;
+                            switch (funcStatus)
+                            {
+                                case FunctionalStatus.Functional:
+                                    <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-new">@funcStatus</div></dd>
+                                    break;
+                                case FunctionalStatus.NonFunctional:
+                                    <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-danger">@funcStatus</div></dd>
+                                    break;
+                                case FunctionalStatus.UnderMaintenance:
+                                    <dd class="col-sm-6 border p-1 m-0"><div class="status-btn status-warning">@funcStatus</div></dd>
+                                    break;
+                                default:
+                                    <dd class="col-sm-6 border p-1 m-0">-</dd>
+                                    break;
+                            }
                         }
                     }
 
@@ -210,6 +221,7 @@
                         <th>Date</th>
                         <th>Facility</th>
                         <th>Service Point</th>
+                        <th>Reason</th>
                         <th>Functional Status</th>
                         <th>Recieved By</th>
                     </tr>
@@ -242,6 +254,7 @@
                                     @("Unknown")
                                 }
                             </td>
+                            <td>@move.Reason</td>
                             @{
                                 var moveStatus = move.FunctionalStatus;
                                 switch (moveStatus)

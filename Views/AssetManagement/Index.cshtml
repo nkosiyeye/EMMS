@@ -43,7 +43,7 @@
                             <th>Placement</th>
                             <th>Vendor</th>
                             <th>Service Provider</th>
-                            <th>Status</th>
+                            <th>Procument Status</th>
                             <th>Facility</th>
                             <th>Service Point</th>
                             <th>Functional Status</th>
@@ -99,7 +99,17 @@
                                 <td>
                                     @if(lastMove != null)
                                     {
-                                        @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
+
+                                        @if (lastMove.Reason != Enumerators.MovementReason.Decommission)
+                                        {
+
+                                            @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
+
+                                        }
+                                        else
+                                        {
+                                            @Format.DisplayProcurementStatus(ProcurementStatus.Decommissioned)
+                                        }
 
                                     }
                                     else
@@ -141,7 +151,7 @@
                                                 </a>
 
                                             </li>
-                                            <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                            <li class="@(lastMove != null || lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
