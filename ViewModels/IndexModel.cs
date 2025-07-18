@@ -37,7 +37,7 @@ namespace EMMS.ViewModels
             //DecommissionedAssets = _assetRepo.GetAssetsFromDb().Result.Where().Count();
             CompletedJobs = _jobRepo.GetJobfromDbs().Result.Where(j => j.EndDate != null && j.FacilityId == currentUser.FacilityId).Count();
             PendingJobs = _jobRepo.GetWorkRequests().Result.Where(w => w.Outcome == null && w.FacilityId == currentUser.FacilityId).Count();
-            assets =  _assetService.GetAssetDueServiceViewModel().Result.assetViewModels;
+            assets =  _assetService.GetAssetDueServiceViewModel().Result.assetViewModels.Where(a => a.LastMovement?.Reason != Models.Enumerators.MovementReason.Decommission);
             //assets = _assetRepo.GetAssetsDueService();
         }
     }
