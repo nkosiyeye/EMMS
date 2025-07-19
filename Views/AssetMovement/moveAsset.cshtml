@@ -127,9 +127,13 @@
                 } else if (movementType === "2") { // Service Point
                     facilityField.classList.remove("d-none");
                     servicePointField.classList.remove("d-none");
-                } else {
-                    // Default: hide both if needed
+                } else if (movementType === "3") { // Facility
                     facilityField.classList.remove("d-none");
+                    servicePointField.classList.add("d-none");
+                }
+                else {
+                    // Default: hide both if needed
+                    facilityField.classList.add("d-none");
                     servicePointField.classList.add("d-none");
                 }
             }
