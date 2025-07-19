@@ -113,6 +113,8 @@
 
 @section Scripts {
     <script>
+        const selectedFacilityId = @Model.MoveAsset.FacilityId;
+
         function toggleLocationFields() {
             const movementType = document.getElementById("movementType").value;
             const facilityField = document.getElementById("facilityField");
@@ -150,6 +152,11 @@
                         option.text = item.facilityName;
                         facilitySelect.appendChild(option);
                     });
+
+                    // Set the selected value if it exists
+                    if (selectedFacilityId && selectedFacilityId !== "0") {
+                        facilitySelect.value = selectedFacilityId;
+                    }
                     // Refresh the selectpicker UI if using Bootstrap Select
                     if ($(facilitySelect).hasClass('selectpicker')) {
                         $(facilitySelect).selectpicker('refresh');
@@ -174,6 +181,11 @@
             movementTypeSelect.addEventListener("change", onMovementTypeChange);
             // Optionally, trigger on load if value is pre-selected
             onMovementTypeChange();
+        }
+
+        if(@Model.MoveAsset.FacilityId != null) {
+            const facilitySelect = document.getElementById('facility');
+            facilitySelect.value = @Model.MoveAsset.FacilityId;
         }
         });
     </script>
