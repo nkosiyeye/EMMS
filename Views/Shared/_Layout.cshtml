@@ -31,8 +31,10 @@
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
                             <a class="align-items-center float-start py-1" href="#">
-                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2">
-                                <span class="navbar-brand mb-1 h1" style="color: white;">EMMS</span>
+                                @* <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2"> *@
+                                <span class="fw-bold text-white" style="font-size: larger;">
+                                    EMMS
+                                </span>
                             </a>
                         </div>
                     </nav>
@@ -82,9 +84,14 @@
             <main class="col px-0 py-0 mb-5">
                 <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
                     <div class="container-fluid d-flex items-center">
-                        <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
-                            <i class="fa-solid fa-bars"></i>
-                        </a>
+                        <div class="d-flex align-items-center">
+                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                                <i class="fa-solid fa-bars"></i>
+                            </a>
+                            <span class="fw-bold text-white" style="font-size: smaller;">
+                                @(currentUser!.Facility?.FacilityName)
+                            </span>
+                        </div>
                         <div class="d-flex align-items-center">
                             <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                 <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
@@ -155,6 +162,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
     <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
     <script src="~/lib/DataTables/datatables.min.js"></script>
+    <script src="~/js/xlsx.full.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script>
