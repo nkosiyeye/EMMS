@@ -99,7 +99,7 @@
     </script>
     @if (TempData["Notification"] != null)
     {
-        var notification = JsonConvert.DeserializeObject<EMMS.Utility.Notification>(TempData["Notification"] as string);
+        var notification = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"] as string);
         var className = notification?.Type switch
         {
             NotificationType.Error => "error-notification notification",
