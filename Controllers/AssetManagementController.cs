@@ -163,6 +163,7 @@ namespace EMMS.Controllers
                         Reason = MovementReason.Deployment,
                         FunctionalStatus = FunctionalStatus.Functional,
                         IsApproved = true,
+                        ApprovedBy = CurrentUser!.UserId,
                         DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
                         DateCreated = DateTime.Now,
                         CreatedBy = CurrentUser!.UserId,

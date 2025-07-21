@@ -246,6 +246,56 @@ function fnExcelReport() {
 
     return sa;
 }
+function exportToExcel() {
+    var table = $('#assetTable').DataTable();
+    var allRows = table.rows().nodes(); // Get all HTML rows
+    var headers = [];
+
+
+    // Get headers from thead, skipping first column and Procurement Status column
+    $('#assetTable thead th').each(function (index) {
+        // Skip first column (index 0) and column with text "Procurement Status"
+        var headerText = $(this).text().trim();
+        if (index !== 0 && headerText !== "Procurement Status") {
+            headers.push(headerText);
+        }
+    });
+
+    var data = [];
+    data.push(headers); // Add headers
+
+    // Loop through each row
+    $(allRows).each(function () {
+        var rowData = [];
+
+        $(this).find('td').each(function (colIndex) {
+            var headerText = $('#assetTable thead th').eq(colIndex).text().trim();
+
+            // Skip first column and "Procurement Status"
+            if (colIndex !== 0 && headerText !== "Procurement Status") {
+                rowData.push($(this).text().trim());
+            }
+
+            // Handle Procurement Status specially: extract plain text from div
+            if (headerText === "Procurement Status") {
+                var statusText = $(this).text().trim();
+                rowData.push(statusText);
+            }
+        });
+
+        data.push(rowData);
+    });
+
+    // Create worksheet and workbook
+    var worksheet = XLSX.utils.aoa_to_sheet(data);
+    var workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Assets");
+
+    // Download as Excel file
+    XLSX.writeFile(workbook, 'EMMSAssets.xlsx');
+}
+
+
        
       
 

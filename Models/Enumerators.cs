@@ -37,7 +37,7 @@
         {
             Facility = 1,
             ServicePoint = 2,
-            Site = 3,
+            OffSite = 3,
         }
         public enum MovementReason : byte
         {
@@ -47,7 +47,8 @@
             Upgrade = 4,
             Decommission = 5,
             Deployment = 6,
-            Other = 6
+            Installation = 7,
+            Other = 8
         }
         public enum FunctionalStatus : byte
         {

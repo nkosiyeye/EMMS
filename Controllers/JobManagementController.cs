@@ -326,15 +326,18 @@ namespace EMMS.Controllers
             var _repo = new JobManagementRepo(_context);
             var work = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == id);
             var job = _repo.GetJobfromDbs().Result.FirstOrDefault(j => j.WorkRequestId == id);
+            if (job != null)
+            {
+                job.EndDate = workRequestView.WorkRequest.CloseDate ?? DateTime.Now;
+                job.StatusId = workRequestView.WorkRequest.WorkStatusId;
+                job.DateModified = DateTime.Now;
+                _context.Update(job!);
+            }
             work.OutcomeId = workRequestView.WorkRequest.OutcomeId;
             work.CloseDate = workRequestView.WorkRequest.CloseDate;
             work.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-            job.EndDate = workRequestView.WorkRequest.CloseDate;
-            job.StatusId = workRequestView.WorkRequest.WorkStatusId;
             work.DateModified = DateTime.Now;
-            job.DateModified = DateTime.Now;
 
-            _context.Update(job!);
             _context.Update(work!);
             await _context.SaveChangesAsync();
 

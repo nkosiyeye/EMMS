@@ -9,6 +9,7 @@ using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Drawing.Printing;
 using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 
@@ -51,6 +52,19 @@ namespace EMMS.Controllers
             data.MoveAssets = await _repo.GetAssetMovement();//.Result.Where(m => m.FromId == CurrentUser.FacilityId);
             data.Conditions = await _repo.GetConditions();
             return View(data);
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetFacilites(bool isOffSite)
+        {
+
+            var _repo = new AssetMovementRepo(_context);
+            var facilities = await _context.Facilities
+                .Where(x => (x.isOffSite ?? false) == isOffSite && x.RowState == RowStatus.Active)
+                .Select(x => new { x.FacilityId, x.FacilityName })
+                .ToListAsync();
+            Debug.WriteLine(facilities);
+
+            return Json(facilities);
         }
 
         [HttpGet]

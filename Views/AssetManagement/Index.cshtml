@@ -21,7 +21,7 @@
                 <a class="btn btn-primary btn-sm" asp-controller="AssetManagement" asp-action="registerAsset">
                     <i class="fa fa-plus me-1"></i> New Asset
                 </a>
-                <button class="btn btn-doc btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
+                <button class="btn btn-doc btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="exportToExcel()">
                     <i class="fa fa-download"></i> Download Excel Report
                 </button>
                 <button type="button" class="btn btn-sm btn-secondary" title="Printer" onclick="printSelectedStickers()">
@@ -46,7 +46,7 @@
                             <th>Procument Status</th>
                             <th>Facility</th>
                             <th>Service Point</th>
-                            <th>Functional Status</th>
+                            <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -74,10 +74,10 @@
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
                                 <td>
-                                    @if (lastMove != null)
+                                     @if (lastMove != null)
                                     {
                                         @if (lastMove.ServicePoint?.Name != null)
                                         {
@@ -91,10 +91,10 @@
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
                                 <td>
-                                    @if(lastMove != null)
+                                     @if(lastMove != null)
                                     {
                                         @if (lastMove?.Reason != Enumerators.MovementReason.Decommission)
                                         {
@@ -108,7 +108,7 @@
                                     else
                                     {
                                         <span>-</span>                                        
-                                    }
+                                    } 
                                 </td>
                                 <td class="action-container">
                                     <div class="dropdown">
@@ -147,7 +147,7 @@
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
-                                            </li>
+                                            </li> *@
                                         </ul>
                                     </div>
 
