@@ -71,7 +71,7 @@ namespace EMMS.Controllers
             if (searchUser != null && PasswordManager.VerifyPassword(user.Password, searchUser.Password))
                 SaveUserSession(searchUser);
             else
-                TempData["Notification"] = JsonConvert.SerializeObject(new EMMS.Utility.Notification("Invalid username or password", NotificationType.Error));
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("Invalid username or password", NotificationType.Error));
 
             return RedirectToAction(nameof(Index));
         }

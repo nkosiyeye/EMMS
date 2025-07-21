@@ -53,7 +53,6 @@
                     <tbody>
                         @foreach (var asset in Model.assetViewModels!)
                         {
-
                             var lastMove = asset.LastMovement;
                             <tr>
                                 <td>
@@ -71,7 +70,6 @@
                                     @if (lastMove != null)
                                     {
                                         @(lastMove.Facility?.FacilityName)
-
                                     }
                                     else
                                     {
@@ -81,7 +79,6 @@
                                 <td>
                                     @if (lastMove != null)
                                     {
-
                                         @if (lastMove.ServicePoint?.Name != null)
                                         {
                                             @(lastMove.ServicePoint?.Name)
@@ -99,18 +96,14 @@
                                 <td>
                                     @if(lastMove != null)
                                     {
-
-                                        @if (lastMove.Reason != Enumerators.MovementReason.Decommission)
+                                        @if (lastMove?.Reason != Enumerators.MovementReason.Decommission)
                                         {
-
-                                            @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
-
+                                            @Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus)
                                         }
                                         else
                                         {
                                             @Format.DisplayProcurementStatus(ProcurementStatus.Decommissioned)
                                         }
-
                                     }
                                     else
                                     {
@@ -149,9 +142,8 @@
                                                    title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-toolbox"></i> work request
                                                 </a>
-
                                             </li>
-                                            <li class="@(lastMove != null || lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                            <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
                                                     <i class="fa fa-trash"></i> delete asset
                                                 </button>
@@ -165,9 +157,7 @@
                     </tbody>
                 </table>
             </div>
-          
     </div> 
-
 </div>
 </div>
 

@@ -2,9 +2,9 @@
 
 namespace EMMS.Utility
 {
-    public class Notification
+    public class ToastNotification
     {
-        public Notification(string message, NotificationType type)
+        public ToastNotification(string message, NotificationType type)
         {
             Message = message;
             Type = type;

@@ -21,6 +21,11 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Job)
                 .ToListAsync();
         }
+        public async Task<WorkRequest?> GetWorkRequestByAssetId(Guid assetId)
+        {
+            return await _context.WorkRequest.Include(w => w.WorkStatus).Where(w => w.AssetId == assetId && w.WorkStatus.Name == "Open" || w.WorkStatus.Name == "In Progress").FirstOrDefaultAsync();
+        }
+
         public async Task<IEnumerable<Job>> GetJobfromDbs()
         {
             return await _context.Job

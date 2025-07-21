@@ -1,4 +1,5 @@
 ﻿@using EMMS.Utility
+@using Newtonsoft.Json
 @using static EMMS.Models.Enumerators
 @model EMMS.ViewModels.IndexModel;
 
@@ -120,7 +121,7 @@
                                                             <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                                 <a style="font-size: medium;"
                                                                    class="dropdown-item btn btn-secondary"
-                                                                   asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                                   asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
                                                                     <i class="fa fa-toolbox"></i> service request
                                                                 </a>
                                                             </li>
@@ -140,6 +141,29 @@
         </div>
     </div>
 </div>
+@if (TempData["Notification"] != null)
+{
+    var notification = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"] as string);
+    var className = notification?.Type switch
+    {
+        NotificationType.Error => "error-notification notification",
+        NotificationType.Success => "success-notification notification",
+        _ => "notification"
+    };
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            Toastify({
+                text: "@notification?.Message",
+                duration: 100000,
+                close: true,
+                gravity: "top",
+                position: "center",
+                className: "error-notification notification"
+            }).showToast();
+        });
+    </script>
+}  
 @section Scripts {
     <script>
         $(document).ready(function () {
@@ -149,3 +173,5 @@
         });
     </script>
 }
+
+

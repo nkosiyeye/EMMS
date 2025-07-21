@@ -74,8 +74,6 @@ namespace EMMS.Models
         [ForeignKey(nameof(ApprovedBy))]
         public virtual User? ApprovedUser { get; set; }
 
-
-
         [Display(Name = "Date Received")]
         public DateTime? DateReceived { get; set; }
 
@@ -101,8 +99,6 @@ namespace EMMS.Models
         public int? RejectedReasonId { get; set; }
         [ForeignKey(nameof(RejectedReasonId))]
         public virtual LookupItem? RejectedReason { get; set; }
-
-
 
         [Display(Name = "Remarks")]
         public string? Remarks { get; set; }

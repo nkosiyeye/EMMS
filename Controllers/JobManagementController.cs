@@ -1,16 +1,18 @@
-﻿using System.Diagnostics;
-using System.Threading.Tasks;
-using EMMS.CustomAttributes;
+﻿using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
 using EMMS.Service;
+using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
@@ -119,7 +121,6 @@ namespace EMMS.Controllers
                     DateCreated = DateTime.Now,
                     FacilityId = work.FacilityId,
                     RowState = RowStatus.Active
-                    // UserId = ... // Optionally set for a specific https://localhost:7244/AssetManagementuser
                 };
                 _context.Notifications.Add(notification);
 
@@ -130,11 +131,20 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
         }
 
-        public async Task AutomateServiceRequest(Guid id)
+        public async Task<IActionResult> AutomateServiceRequest(Guid id)
         {
             var _arepo = new AssetManagementRepo(_context);
             var _repo = new JobManagementRepo(_context);
+            
+            var activeRequest = await _repo.GetWorkRequestByAssetId(id);    
+            if (activeRequest != null)
+            {
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("An active work request exists for this asset.", NotificationType.Success));
+                return RedirectToAction("Index", "Home");
 
+            }
+
+            var asset = await _arepo.GetAssetById(id);
             var assetLocation = await _arepo.GetAssetLocation(id);
             var WorkStatuses = await _repo.GetWorkStatus();
             var workStatus = WorkStatuses.FirstOrDefault(w => w.Name == "Open");
@@ -143,7 +153,8 @@ namespace EMMS.Controllers
             {
                 AssetId = id,
                 RequestDate = DateTime.Now,
-                Description = "Service request for asset ",
+                Description = "Service request for asset",
+                FacilityId = (int)assetLocation,
                 WorkStatusId = workStatus.Id,
                 RequestedBy = CurrentUser!.UserId,
                 CreatedBy = CurrentUser!.UserId,
@@ -153,9 +164,12 @@ namespace EMMS.Controllers
 
             var workAssetViewModel = new WorkRequestViewModel()
             {
-                //AssetTag = _arepo.AssetTagNumber,
+                AssetTag = asset?.AssetTagNumber,
                 WorkRequest = workRequest,
             };
+
+            await WorkRequest(workAssetViewModel);
+            return RedirectToAction(nameof(Index));
         }
 
         [RequireLogin]
@@ -264,6 +278,7 @@ namespace EMMS.Controllers
 
             return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone!.JobId });
         }
+
         [HttpPost]
         public async Task<IActionResult> ExWorkDone(JobViewModel wView)
         {
@@ -285,6 +300,7 @@ namespace EMMS.Controllers
 
             return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone!.JobId });
         }
+
         [RequireLogin]
         public async Task<IActionResult> externalJobCard(Guid id)
         {

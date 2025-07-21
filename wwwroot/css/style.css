@@ -28,8 +28,26 @@ main{
     overflow-y: auto;
     background:whitesmoke;
 }
+
 .logo {
     width: 11rem;
+}
+
+
+.notification {
+    padding: 1rem 5rem !important;
+    border-radius: 10px !important;
+    max-width: 60%;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.error-notification {
+    background: #C61D29 !important;
+}
+
+.success-notification {
+    background: #199767 !important;
 }
 
 

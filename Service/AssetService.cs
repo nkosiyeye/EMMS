@@ -47,7 +47,7 @@ namespace EMMS.Service
         public async Task<AssetIndexViewModel?> GetAssetDueServiceViewModel()
         {
             var _repo = new AssetManagementRepo(_context);
-            var assets = _repo.GetAssetsDueService().Result.OrderByDescending(a => a.NextServiceDate);
+            var assets = await _repo.GetAssetsDueService();
             var lastMovements = await _repo.GetAssetMovement();
 
             var lastMovementDict = lastMovements

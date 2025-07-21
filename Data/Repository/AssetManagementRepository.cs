@@ -34,7 +34,7 @@ namespace EMMS.Data.Repository
             .ToListAsync();
         }
 
-        public async Task<String?> GetAssetLocation(Guid assetId)
+        public async Task<int?> GetAssetLocation(Guid assetId)
         {
             var assetMovement = await _context.AssetMovement
                                         .Where(m => m.AssetId == assetId)
@@ -43,7 +43,13 @@ namespace EMMS.Data.Repository
                                         .OrderByDescending(m => m.MovementDate)
                                         .FirstOrDefaultAsync();
 
-            return assetMovement.Facility.FacilityName;
+            return assetMovement?.Facility?.FacilityId;
+        }
+
+        public async Task<Asset?> GetAssetById(Guid assetId)
+        {
+            return await _context.Assets
+                .FirstOrDefaultAsync(a => a.AssetId == assetId && a.RowState == RowStatus.Active);
         }
 
         public async Task<List<MoveAsset?>> GetAssetMovement()
@@ -55,6 +61,7 @@ namespace EMMS.Data.Repository
                                 .Select(g => g.OrderByDescending(m => m.MovementDate).FirstOrDefault(g => g.DateReceived != null))
                                 .ToListAsync();
         }
+
         public async Task<IEnumerable<LookupItem>> GetCategories()
         {
             var categories = await _context.LookupItems
@@ -62,6 +69,7 @@ namespace EMMS.Data.Repository
                                 .ToListAsync();
             return categories;
         }
+
         public async Task<IEnumerable<LookupItem>> GetSubCategories()
         {
             return await _context.LookupItems
@@ -133,6 +141,7 @@ namespace EMMS.Data.Repository
 
             var dueAssets = await _context.Assets
                 .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= twoMonthsFromNow)
+                .OrderByDescending(a => a.NextServiceDate)
                 .ToListAsync();
 
             return dueAssets;
