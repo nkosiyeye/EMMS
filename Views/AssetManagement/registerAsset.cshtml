@@ -132,8 +132,8 @@
             </div>
             <!-- Placement -->
             <h5 class="mb-3 mt-3 form-subheading">Placement & Serviceability</h5>
-            <div class="row mb-3">
-                <div class="col-md-12 col-lg-12 col-xl-4">
+            <div class="row">
+                <div class="mb-3 col-md-12 col-lg-12 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsPlacement" type="checkbox" class="form-check-input" id="placement-checkbox" onchange="checkPlacement(this)">
@@ -155,12 +155,14 @@
                             <div class="col-md-8 col-lg-6">
                                 <label asp-for="asset.PlacementEndDate" for="end-field" class="form-label required-field"></label>
                                 <input asp-for="asset.PlacementEndDate" type="date" id="end-field" placeholder="Duration" class="form-control">
+
+                                <span asp-validation-for="asset.PlacementEndDate" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <!-- Donated -->
-                <div class="col-md-12 col-lg-6 col-xl-4">
+                <div class="mb-3 col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsDonated" class="form-check-input" type="checkbox" id="donatedCheck">
@@ -174,7 +176,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-12 col-lg-6 col-xl-4">
+                <div class="mb-3 col-md-12 col-lg-6 col-xl-4">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="asset.IsServiceable" input type="checkbox" class="form-check-input" id="serviceable-checkbox" onchange="checkServiceable(this)">
@@ -199,7 +201,7 @@
                 </div>
             </div>
             <div class="row mb-3">
-                <div class="col-md-12 col-lg-12 col-xl-6">
+                <div class="col-md-12 col-lg-12 col-xl-12">
                     <div class="border rounded p-3">
                         <div class="form-check">
                             <input asp-for="@Model.alreadyDeployed" type="checkbox" class="form-check-input" id="deployed-checkbox" onchange="checkAlreadyDeployed(this)">
@@ -212,11 +214,11 @@
                             </div>
                         </div>
                         <div class="row mb-1 d-none" id="isdeployed-field-container">
-                            <div class="col-md-8 col-lg-6">
+                            <div class="col-md-8 col-lg-6 col-xl-4">
                                 <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
                                 <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
                             </div>
-                            <div class="col-md-8 col-lg-6" id="facilityField">
+                            <div class="col-md-8 col-lg-6 col-xl-4" id="facilityField">
                                 <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
                                 <select asp-for="@Model.facilityId" class="form-select selectpicker col-md-6"
                                         data-live-search="true" asp-items="@(new SelectList(Model?.Facilities, "FacilityId", "FacilityName"))">
@@ -224,8 +226,8 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-6 d-none" id="servicePointField">
-                                <label asp-for="@Model.ServicePointId" class="form-label required-field"></label>
+                            <div class="col-md-8 col-lg-6 col-xl-4" id="servicePointField">
+                                <label asp-for="@Model.ServicePointId" class="form-label">Service Point</label>
                                 <select asp-for="@Model.ServicePointId" class="form-select selectpicker col-md-6"
                                         data-live-search="true" asp-items="@(new SelectList(Model?.ServicePoints, "Id", "Name"))">
                                     <option selected disabled>Select Service Point</option>
@@ -249,15 +251,32 @@
     <script>
          document.addEventListener('DOMContentLoaded', function() {
             const categorySelector = document.getElementById('category');
-            if (categorySelector) { 
+            if (categorySelector) {
                 const selectedCategory = categorySelector.value;
-                console.log(selectedCategory);
                 if(selectedCategory) {
                     updateSubCategory(selectedCategory);
                 }
+                if(@Model.asset.SubCategoryId) {
+                    const subCategorySelect = document.getElementById('subcategory');
+                    subCategorySelect.value = @Model.asset.SubCategoryId;
+                }
+            }
+
+            // Ensure placement checkbox state is checked on load
+            const placementCheckbox = document.getElementById('placement-checkbox');
+            if (placementCheckbox) {
+                checkPlacement(placementCheckbox);
+            }
+
+            const servicableCheckbox = document.getElementById('serviceable-checkbox');
+            if (servicableCheckbox) {
+                checkServiceable(servicableCheckbox);
+            }
+            const deployedCheckbox = document.getElementById('deployed-checkbox');
+            if (deployedCheckbox) {
+                checkAlreadyDeployed(deployedCheckbox);
             }
         });
-
         function checkPlacement(checkbox) {
             const durationField = document.getElementById('duration-field-container');
             if (checkbox.checked) {

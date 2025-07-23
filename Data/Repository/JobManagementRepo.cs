@@ -18,16 +18,21 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Asset)
                 .Include(w => w.WorkStatus)
                 .Include(w => w.Outcome)
-                .Include(w => w.FaultReport)
                 .Include(w => w.Job)
                 .ToListAsync();
         }
+        public async Task<WorkRequest?> GetWorkRequestByAssetId(Guid assetId)
+        {
+            return await _context.WorkRequest.Include(w => w.WorkStatus).Where(w => w.AssetId == assetId && w.WorkStatus.Name == "Open" || w.WorkStatus.Name == "In Progress").FirstOrDefaultAsync();
+        }
+
         public async Task<IEnumerable<Job>> GetJobfromDbs()
         {
             return await _context.Job
                 .Include(w => w.Asset)
                 .Include(w => w.User)
                 .Include(w => w.Status)
+                .Include(w => w.FaultReport)
                 .Include(w => w.ExternalProvider)
                 .ToListAsync();
         }

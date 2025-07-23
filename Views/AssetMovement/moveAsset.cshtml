@@ -13,20 +13,16 @@
                 <h1 class="modal-title fs-5" id="exampleModalLabel">Move Asset</h1>
             </div>
             <div class="card-body">
-               @*  @if (TempData["Error"] != null)
-                {
-                    <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
-                        <div>
-                            <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
-                            <div>
-                                @TempData["Error"]
-                            </div>
-                        </div>
 
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+        @if (TempData["MovementError"] != null)
+        {
+            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+                @TempData["MovementError"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
 
-                } *@
+        }
+             
                 <form asp-action="MoveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -58,9 +54,7 @@
                         <div class="col-md-6" id="facilityField">
                              <input asp-for="MoveAsset.FromId" value="@ViewBag._currentUser.FacilityId" class="form-control" type="int" hidden/>
                             <label asp-for="MoveAsset.FacilityId" class="form-label required-field"></label>
-                            <select asp-for="MoveAsset.FacilityId" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.Facilities, "FacilityId", "FacilityName"))">
-                                <option selected disabled>Select Facility</option>
+                            <select asp-for="MoveAsset.FacilityId" id="facility" class="form-select selectpicker col-md-6" data-live-search="true">
                             </select>
                         <span asp-validation-for="MoveAsset.FacilityId" class="text-danger"></span>
                         </div>
@@ -119,6 +113,8 @@
 
 @section Scripts {
     <script>
+        const selectedFacilityId = @Model.MoveAsset.FacilityId;
+
         function toggleLocationFields() {
             const movementType = document.getElementById("movementType").value;
             const facilityField = document.getElementById("facilityField");
@@ -131,7 +127,11 @@
                 } else if (movementType === "2") { // Service Point
                     facilityField.classList.remove("d-none");
                     servicePointField.classList.remove("d-none");
-                } else {
+                } else if (movementType === "3") { // Facility
+                    facilityField.classList.remove("d-none");
+                    servicePointField.classList.add("d-none");
+                }
+                else {
                     // Default: hide both if needed
                     facilityField.classList.add("d-none");
                     servicePointField.classList.add("d-none");
@@ -139,9 +139,58 @@
             }
         }
 
+                function updateFacilityDropdown(isOffSite) {
+            const facilitySelect = document.getElementById('facility');
+            console.log(facilitySelect);
+
+            // Clear current options
+            facilitySelect.innerHTML = '<option selected disabled>Select Facility</option>';
+
+            fetch(`/AssetMovement/GetFacilites?isOffSite=${isOffSite}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    data.forEach(function (item) {
+                        var option = document.createElement('option');
+                        option.value = item.facilityId;
+                        option.text = item.facilityName;
+                        facilitySelect.appendChild(option);
+                    });
+
+                    // Set the selected value if it exists
+                    if (selectedFacilityId && selectedFacilityId !== "0") {
+                        facilitySelect.value = selectedFacilityId;
+                    }
+                    // Refresh the selectpicker UI if using Bootstrap Select
+                    if ($(facilitySelect).hasClass('selectpicker')) {
+                        $(facilitySelect).selectpicker('refresh');
+                    }
+                });
+        }
+                function onMovementTypeChange() {
+            const movementType = document.getElementById("movementType").value;
+            // Assuming: 3 = Site, 1 = Facility, 2 = ServicePoint (adjust as per your enum)
+            if (movementType === "3") { // Site
+                updateFacilityDropdown(true);
+            } else {
+                updateFacilityDropdown(false);
+            }
+            toggleLocationFields();
+        }
+
         // Ensure correct state on page load
         document.addEventListener("DOMContentLoaded", function () {
-            toggleLocationFields();
+                const movementTypeSelect = document.getElementById("movementType");
+        if (movementTypeSelect) {
+            movementTypeSelect.addEventListener("change", onMovementTypeChange);
+            // Optionally, trigger on load if value is pre-selected
+            onMovementTypeChange();
+        }
+
+        if(@Model.MoveAsset.FacilityId != null) {
+            const facilitySelect = document.getElementById('facility');
+            facilitySelect.value = @Model.MoveAsset.FacilityId;
+        }
         });
     </script>
     @{

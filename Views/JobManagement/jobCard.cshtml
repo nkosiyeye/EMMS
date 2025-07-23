@@ -31,31 +31,24 @@
                     <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
                 </dl>
             </div>
-
-            <div class="col-md-3">
-                <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Title</dt>
-                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest!.FaultReport!.Name</dd>
-                </dl>
-            </div>
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Requested By</dt>
                     <dd class="col-sm-6 border p-2 m-0">User A</dd>
                 </dl>
             </div>
-        </div>
-        <div class="row g-0">
-            <div class="col-md-9">
-                <dl class="row">
-                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
-                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
-                </dl>
-            </div>
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Outcome</dt>
                     <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Outcome?.Name</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="row g-0">
+            <div class="col-md-12">
+                <dl class="row">
+                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
+                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
                 </dl>
             </div>
         </div>

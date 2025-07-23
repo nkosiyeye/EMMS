@@ -11,7 +11,7 @@ using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
-    public class AssetManagement : BaseController
+    public class AssetManagementController : BaseController
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
@@ -22,7 +22,7 @@ namespace EMMS.Controllers
         private readonly AssetManagementRepo _repo;
         private readonly AssetMovementRepo _mrepo;
 
-        public AssetManagement(ApplicationDbContext context)
+        public AssetManagementController(ApplicationDbContext context)
         {
             _context = context;
             _assetService = new AssetService(context);
@@ -89,24 +89,11 @@ namespace EMMS.Controllers
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
         public async Task<IActionResult> registerAsset()
         {
-            var viewModel = new AssetRegistrationViewModel
+            var asset = new Asset()
             {
-                asset = new Asset()
-                {
-                    AssetTagNumber = "AS-"+(_repo.GetAssetsFromDb().Result.Count()+1).ToString("D3"),
-                },
-                Categories = await _repo.GetCategories(),
-                SubCategories = await _repo.GetSubCategories(),
-                Departments = await _repo.GetDepartments(),
-                Manufacturers = await _repo.GetManufacturers(),
-                Vendors = await _repo.GetVendors(),
-                ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = procurementStatusList,
-                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
-                LifespanPeriods = await _repo.GetLifespanPeriods(),
-                Facilities = await _mrepo.GetFacilities(),
-                ServicePoints = await _mrepo.GetServicePoints(),
+                AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
             };
+            var viewModel = await GetBaseAssetRegView(asset);
 
             return View(viewModel);
         }
@@ -114,19 +101,8 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var viewModel = new AssetRegistrationViewModel
-            {
-                asset = _repo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id)!,
-                Categories = await _repo.GetCategories(),
-                SubCategories = await _repo.GetSubCategories(),
-                Departments = await _repo.GetDepartments(),
-                Manufacturers = await _repo.GetManufacturers(),
-                Vendors = await _repo.GetVendors(),
-                ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = procurementStatusList,
-                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
-                LifespanPeriods = await _repo.GetLifespanPeriods()
-            };
+            var asset = _repo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id)!;
+            var viewModel = await GetBaseAssetRegView(asset);
 
             return View("edit", viewModel);
 
@@ -149,19 +125,7 @@ namespace EMMS.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var viewModel = new AssetRegistrationViewModel
-            {
-                asset = asset,
-                Categories = await _repo.GetCategories(),
-                SubCategories = await _repo.GetSubCategories(),
-                Departments = await _repo.GetDepartments(),
-                Manufacturers = await _repo.GetManufacturers(),
-                Vendors = await _repo.GetVendors(),
-                ServiceProviders = await _repo.GetServiceProviders(),
-                Statuses = procurementStatusList,
-                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
-                LifespanPeriods = await _repo.GetLifespanPeriods()
-            };
+            var viewModel = await GetBaseAssetRegView(asset);  
 
             return View("edit", viewModel);
         }
@@ -178,6 +142,10 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 asset.AssetId = Guid.NewGuid();
+                asset.CreatedBy = CurrentUser!.UserId;
+                asset.DateCreated = DateTime.Now;
+                asset.RowState = RowStatus.Active;
+
                 CreateEntity(asset);
                 _context.Add(asset);
                 await _context.SaveChangesAsync();
@@ -195,7 +163,10 @@ namespace EMMS.Controllers
                         Reason = MovementReason.Deployment,
                         FunctionalStatus = FunctionalStatus.Functional,
                         IsApproved = true,
+                        ApprovedBy = CurrentUser!.UserId,
                         DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
+                        DateCreated = DateTime.Now,
+                        CreatedBy = CurrentUser!.UserId,
                     };
                     CreateEntity(asmove);
                     _context.Add(asmove);
@@ -241,6 +212,25 @@ namespace EMMS.Controllers
                 return true;
 
             return false;
+        }
+
+        async Task<AssetRegistrationViewModel> GetBaseAssetRegView (Asset asset)
+        {
+            return new AssetRegistrationViewModel
+            {
+                asset = asset,
+                Categories = await _repo.GetCategories(),
+                SubCategories = await _repo.GetSubCategories(),
+                Departments = await _repo.GetDepartments(),
+                Manufacturers = await _repo.GetManufacturers(),
+                Vendors = await _repo.GetVendors(),
+                ServiceProviders = await _repo.GetServiceProviders(),
+                Statuses = procurementStatusList,
+                UnitOfMeasures = await _repo.GetUnitOfMeasures(),
+                LifespanPeriods = await _repo.GetLifespanPeriods(),
+                Facilities = await _mrepo.GetFacilities(),
+                ServicePoints = await _mrepo.GetServicePoints(),
+            };
         }
     }
 }

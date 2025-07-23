@@ -1,16 +1,18 @@
-﻿using System.Diagnostics;
-using System.Threading.Tasks;
-using EMMS.CustomAttributes;
+﻿using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
 using EMMS.Service;
+using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
@@ -25,7 +27,6 @@ namespace EMMS.Controllers
             _assetService = new AssetService(context);
         }
         
-
         public async Task<WorkRequestViewModel> WorkRequestData( WorkRequest? workmodel = null)
         {
             if (workmodel is null)
@@ -66,7 +67,6 @@ namespace EMMS.Controllers
             };
 
             return paginatedJob;
-
         }
 
         [HttpGet]
@@ -80,6 +80,7 @@ namespace EMMS.Controllers
             data.WorkStatuses = await _repo.GetWorkStatus();
             return View(data);
         }
+
         [HttpGet]
         [RequireLogin]
         public async Task<IActionResult> workRequest(Guid id)
@@ -89,7 +90,6 @@ namespace EMMS.Controllers
             var workRequest = new WorkRequest()
             {
                 AssetId = id
-
             };
             var workAssetViewModel = new WorkRequestViewModel()
             {
@@ -97,12 +97,11 @@ namespace EMMS.Controllers
                 WorkRequest = workRequest,
                 FaultReports = await _repo.GetFaultReports(),
                 WorkStatuses = await _repo.GetWorkStatus(),
-
             };
-
 
             return View(workAssetViewModel);
         }
+
         [HttpPost]
         public async Task<IActionResult> WorkRequest(WorkRequestViewModel workRequestView)
         {
@@ -111,10 +110,8 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 var work = workRequestView.WorkRequest;
-                Debug.WriteLine($"WorkRequest: {work!.FaultReportId}");//TBD Update with logged in facility;
                 work.RequestedBy = CurrentUser.UserId;
-                CreateEntity(work);; // TBD Replace with actual user ID
-                                                 // Add notification
+                CreateEntity(work);
                 var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
 
                 var notification = new Models.Entities.Notification
@@ -124,7 +121,6 @@ namespace EMMS.Controllers
                     DateCreated = DateTime.Now,
                     FacilityId = work.FacilityId,
                     RowState = RowStatus.Active
-                    // UserId = ... // Optionally set for a specific user
                 };
                 _context.Notifications.Add(notification);
 
@@ -134,12 +130,55 @@ namespace EMMS.Controllers
             }
             return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
         }
+
+        public async Task<IActionResult> AutomateServiceRequest(Guid id)
+        {
+            var _arepo = new AssetManagementRepo(_context);
+            var _repo = new JobManagementRepo(_context);
+            
+            var activeRequest = await _repo.GetWorkRequestByAssetId(id);    
+            if (activeRequest != null)
+            {
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("An active work request exists for this asset.", NotificationType.Success));
+                return RedirectToAction("Index", "Home");
+
+            }
+
+            var asset = await _arepo.GetAssetById(id);
+            var assetLocation = await _arepo.GetAssetLocation(id);
+            var WorkStatuses = await _repo.GetWorkStatus();
+            var workStatus = WorkStatuses.FirstOrDefault(w => w.Name == "Open");
+
+            var workRequest = new WorkRequest()
+            {
+                AssetId = id,
+                RequestDate = DateTime.Now,
+                Description = "Service request for asset",
+                FacilityId = (int)assetLocation,
+                WorkStatusId = workStatus.Id,
+                RequestedBy = CurrentUser!.UserId,
+                CreatedBy = CurrentUser!.UserId,
+                DateCreated = DateTime.Now,
+                RowState = RowStatus.Active,
+            };
+
+            var workAssetViewModel = new WorkRequestViewModel()
+            {
+                AssetTag = asset?.AssetTagNumber,
+                WorkRequest = workRequest,
+            };
+
+            await WorkRequest(workAssetViewModel);
+            return RedirectToAction(nameof(Index));
+        }
+
         [RequireLogin]
         public async Task<IActionResult> manageJobs()
         {
             ViewData["Biomed"] = new SelectList(_context.User.Where(f => f.RowState == RowStatus.Active && f.UserRole.UserType == Enumerators.UserType.Biomed), "UserId", "FirstName");
             return View(await JobData());
         }
+
         [RequireLogin]
         public async Task<IActionResult> createJobCard(JobViewModel jobView)
         {
@@ -165,12 +204,13 @@ namespace EMMS.Controllers
             }
             return View("manageJobs",await JobData());
         }
+
         public async Task<IActionResult> jobCard(Guid id)
         {
             var _repo = new JobManagementRepo(_context);
             var job = _repo.GetJobfromDbs().Result.FirstOrDefault(j => j.JobId == id);
             JobViewModel jobView = new JobViewModel()
-            {
+            {  
                 WorkRequest = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == job!.WorkRequestId),
                 Job = job!,
                 WorkStatuses = await _repo.GetWorkStatus(),
@@ -182,10 +222,10 @@ namespace EMMS.Controllers
             };
             return View(jobView);
         }
+
         [HttpPost]
         public async Task<IActionResult> updateJobCard(JobViewModel jobView)
         {
-
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
 
@@ -238,6 +278,7 @@ namespace EMMS.Controllers
 
             return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone!.JobId });
         }
+
         [HttpPost]
         public async Task<IActionResult> ExWorkDone(JobViewModel wView)
         {
@@ -259,6 +300,7 @@ namespace EMMS.Controllers
 
             return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone!.JobId });
         }
+
         [RequireLogin]
         public async Task<IActionResult> externalJobCard(Guid id)
         {
@@ -284,15 +326,18 @@ namespace EMMS.Controllers
             var _repo = new JobManagementRepo(_context);
             var work = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == id);
             var job = _repo.GetJobfromDbs().Result.FirstOrDefault(j => j.WorkRequestId == id);
+            if (job != null)
+            {
+                job.EndDate = workRequestView.WorkRequest.CloseDate ?? DateTime.Now;
+                job.StatusId = workRequestView.WorkRequest.WorkStatusId;
+                job.DateModified = DateTime.Now;
+                _context.Update(job!);
+            }
             work.OutcomeId = workRequestView.WorkRequest.OutcomeId;
             work.CloseDate = workRequestView.WorkRequest.CloseDate;
             work.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-            job.EndDate = workRequestView.WorkRequest.CloseDate;
-            job.StatusId = workRequestView.WorkRequest.WorkStatusId;
             work.DateModified = DateTime.Now;
-            job.DateModified = DateTime.Now;
 
-            _context.Update(job!);
             _context.Update(work!);
             await _context.SaveChangesAsync();
 

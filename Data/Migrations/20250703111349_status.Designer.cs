@@ -4,6 +4,7 @@ using EMMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EMMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250703111349_status")]
+    partial class status
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,9 +286,6 @@ namespace EMMS.Data.Migrations
 
                     b.Property<byte>("RowState")
                         .HasColumnType("tinyint");
-
-                    b.Property<bool?>("isOffSite")
-                        .HasColumnType("bit");
 
                     b.HasKey("FacilityId");
 
@@ -566,9 +566,6 @@ namespace EMMS.Data.Migrations
                     b.Property<DateTime?>("DateReceived")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateRejected")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("FacilityId")
                         .HasColumnType("int");
 
@@ -599,12 +596,6 @@ namespace EMMS.Data.Migrations
                     b.Property<Guid?>("ReceivedBy")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("RejectedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("RejectedReasonId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Remarks")
                         .HasColumnType("nvarchar(max)");
 
@@ -616,8 +607,6 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("MovementId");
 
-                    b.HasIndex("ApprovedBy");
-
                     b.HasIndex("AssetId");
 
                     b.HasIndex("ConditionId");
@@ -625,12 +614,6 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("FacilityId");
 
                     b.HasIndex("FromId");
-
-                    b.HasIndex("ReceivedBy");
-
-                    b.HasIndex("RejectedBy");
-
-                    b.HasIndex("RejectedReasonId");
 
                     b.HasIndex("ServicePointId");
 
@@ -705,6 +688,9 @@ namespace EMMS.Data.Migrations
                     b.Property<int>("FacilityId")
                         .HasColumnType("int");
 
+                    b.Property<int>("FaultReportId")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("JobId")
                         .HasColumnType("uniqueidentifier");
 
@@ -731,6 +717,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("AssetId");
 
                     b.HasIndex("FacilityId");
+
+                    b.HasIndex("FaultReportId");
 
                     b.HasIndex("JobId");
 
@@ -1108,10 +1096,6 @@ namespace EMMS.Data.Migrations
 
             modelBuilder.Entity("EMMS.Models.MoveAsset", b =>
                 {
-                    b.HasOne("EMMS.Models.Admin.User", "ApprovedUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedBy");
-
                     b.HasOne("EMMS.Models.Asset", "Asset")
                         .WithMany()
                         .HasForeignKey("AssetId")
@@ -1134,23 +1118,9 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("EMMS.Models.Admin.User", "RecievedUser")
-                        .WithMany()
-                        .HasForeignKey("ReceivedBy");
-
-                    b.HasOne("EMMS.Models.Admin.User", "RejectedUser")
-                        .WithMany()
-                        .HasForeignKey("RejectedBy");
-
-                    b.HasOne("EMMS.Models.Entities.LookupItem", "RejectedReason")
-                        .WithMany()
-                        .HasForeignKey("RejectedReasonId");
-
                     b.HasOne("EMMS.Models.Entities.LookupItem", "ServicePoint")
                         .WithMany()
                         .HasForeignKey("ServicePointId");
-
-                    b.Navigation("ApprovedUser");
 
                     b.Navigation("Asset");
 
@@ -1159,12 +1129,6 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Facility");
 
                     b.Navigation("From");
-
-                    b.Navigation("RecievedUser");
-
-                    b.Navigation("RejectedReason");
-
-                    b.Navigation("RejectedUser");
 
                     b.Navigation("ServicePoint");
                 });
@@ -1180,6 +1144,12 @@ namespace EMMS.Data.Migrations
                     b.HasOne("EMMS.Models.Entities.Facility", "Facility")
                         .WithMany()
                         .HasForeignKey("FacilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "FaultReport")
+                        .WithMany()
+                        .HasForeignKey("FaultReportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1200,6 +1170,8 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Asset");
 
                     b.Navigation("Facility");
+
+                    b.Navigation("FaultReport");
 
                     b.Navigation("Job");
 

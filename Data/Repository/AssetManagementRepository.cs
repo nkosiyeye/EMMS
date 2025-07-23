@@ -2,7 +2,9 @@
 using EMMS.Models;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using NuGet.ContentModel;
 using static EMMS.Models.Enumerators;
+using Asset = EMMS.Models.Asset;
 
 namespace EMMS.Data.Repository
 {
@@ -32,6 +34,24 @@ namespace EMMS.Data.Repository
             .ToListAsync();
         }
 
+        public async Task<int?> GetAssetLocation(Guid assetId)
+        {
+            var assetMovement = await _context.AssetMovement
+                                        .Where(m => m.AssetId == assetId)
+                                        .Include(m => m.Facility)
+                                        .Include(m => m.ServicePoint)
+                                        .OrderByDescending(m => m.MovementDate)
+                                        .FirstOrDefaultAsync();
+
+            return assetMovement?.Facility?.FacilityId;
+        }
+
+        public async Task<Asset?> GetAssetById(Guid assetId)
+        {
+            return await _context.Assets
+                .FirstOrDefaultAsync(a => a.AssetId == assetId && a.RowState == RowStatus.Active);
+        }
+
         public async Task<List<MoveAsset?>> GetAssetMovement()
         {
             return await _context.AssetMovement
@@ -41,6 +61,7 @@ namespace EMMS.Data.Repository
                                 .Select(g => g.OrderByDescending(m => m.MovementDate).FirstOrDefault(g => g.DateReceived != null))
                                 .ToListAsync();
         }
+
         public async Task<IEnumerable<LookupItem>> GetCategories()
         {
             var categories = await _context.LookupItems
@@ -48,6 +69,7 @@ namespace EMMS.Data.Repository
                                 .ToListAsync();
             return categories;
         }
+
         public async Task<IEnumerable<LookupItem>> GetSubCategories()
         {
             return await _context.LookupItems
@@ -110,6 +132,19 @@ namespace EMMS.Data.Repository
                 .FirstOrDefaultAsync(a => a.SerialNumber == serialNum && a.RowState == RowStatus.Active);
 
             return asset;
+        }
+
+        public async Task<IEnumerable<Asset>> GetAssetsDueService(int period = 4)
+        {
+            DateTime today = DateTime.Today;
+            DateTime twoMonthsFromNow = today.AddMonths(period);
+
+            var dueAssets = await _context.Assets
+                .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= twoMonthsFromNow)
+                .OrderByDescending(a => a.NextServiceDate)
+                .ToListAsync();
+
+            return dueAssets;
         }
     }
 }

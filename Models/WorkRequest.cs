@@ -21,13 +21,6 @@ namespace EMMS.Models
         [Display(Name = "Request Date")]
         public DateTime RequestDate { get; set; }
 
-
-        [Required(ErrorMessage = "Fault Report is required")]
-        [Display(Name = "FaultReport")]
-        public int FaultReportId { get; set; }
-        [ForeignKey(nameof(FaultReportId))]
-        public virtual LookupItem? FaultReport { get; set; }
-
         [Required(ErrorMessage = "Description is required")]
         [Display(Name = "Description")]
         public string? Description { get; set; }

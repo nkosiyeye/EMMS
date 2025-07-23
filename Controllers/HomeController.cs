@@ -71,7 +71,7 @@ namespace EMMS.Controllers
             if (searchUser != null && PasswordManager.VerifyPassword(user.Password, searchUser.Password))
                 SaveUserSession(searchUser);
             else
-                TempData["Notification"] = JsonConvert.SerializeObject(new EMMS.Utility.Notification("Invalid username or password", NotificationType.Error));
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("Invalid username or password", NotificationType.Error));
 
             return RedirectToAction(nameof(Index));
         }
@@ -83,11 +83,10 @@ namespace EMMS.Controllers
         [RequireLogin]
         public IActionResult Index()
         {
-                //Debug.WriteLine("-----------------" + (user?.UserRole?.UserType == Enumerators.UserType.Administrator).ToString());
-                var indexModel = new IndexModel(new AssetManagementRepo(_context), new JobManagementRepo(_context), new Service.AssetService(_context));
-                indexModel.currentUser = CurrentUser!;
-                indexModel.OnGet();
-                return View(indexModel);
+            var indexModel = new IndexModel(new AssetManagementRepo(_context), new JobManagementRepo(_context), new Service.AssetService(_context));
+            indexModel.currentUser = CurrentUser!;
+            indexModel.OnGet();
+            return View(indexModel);
         }
 
         public IActionResult Privacy()

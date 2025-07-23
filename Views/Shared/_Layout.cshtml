@@ -16,8 +16,10 @@
     <link rel="stylesheet" href="~/lib/bootstrap-selectpicker/css/bootstrap-select.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
     @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     @* <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.dataTables.css" /> *@
     <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
@@ -30,8 +32,10 @@
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
                             <a class="align-items-center float-start py-1" href="#">
-                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2">
-                                <span class="navbar-brand mb-1 h1" style="color: white;">EMMS</span>
+                                @* <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2"> *@
+                                <span class="fw-bold text-white" style="font-size: larger;">
+                                    EMMS
+                                </span>
                             </a>
                         </div>
                     </nav>
@@ -81,9 +85,14 @@
             <main class="col px-0 py-0 mb-5">
                 <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
                     <div class="container-fluid d-flex items-center">
-                        <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
-                            <i class="fa-solid fa-bars"></i>
-                        </a>
+                        <div class="d-flex align-items-center">
+                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                                <i class="fa-solid fa-bars"></i>
+                            </a>
+                            <span class="fw-bold text-white" style="font-size: smaller;">
+                                @(currentUser!.Facility?.FacilityName)
+                            </span>
+                        </div>
                         <div class="d-flex align-items-center">
                             <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                 <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
@@ -150,10 +159,12 @@
             <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
     <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
     <script src="~/lib/DataTables/datatables.min.js"></script>
+    <script src="~/js/xlsx.full.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script>

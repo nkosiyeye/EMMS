@@ -1,4 +1,5 @@
-﻿@using static EMMS.Models.Enumerators
+﻿@using EMMS.Utility
+@using static EMMS.Models.Enumerators
 @model EMMS.ViewModels.AssetIndexViewModel
 @{
 
@@ -20,7 +21,7 @@
                 <a class="btn btn-primary btn-sm" asp-controller="AssetManagement" asp-action="registerAsset">
                     <i class="fa fa-plus me-1"></i> New Asset
                 </a>
-                <button class="btn btn-doc btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
+                <button class="btn btn-doc btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="exportToExcel()">
                     <i class="fa fa-download"></i> Download Excel Report
                 </button>
                 <button type="button" class="btn btn-sm btn-secondary" title="Printer" onclick="printSelectedStickers()">
@@ -42,18 +43,16 @@
                             <th>Placement</th>
                             <th>Vendor</th>
                             <th>Service Provider</th>
-                            <th>Date</th>
-                            <th>Status</th>
+                            <th>Procument Status</th>
                             <th>Facility</th>
                             <th>Service Point</th>
-                            <th>Functional Status</th>
+                            <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var asset in Model.assetViewModels!)
                         {
-
                             var lastMove = asset.LastMovement;
                             <tr>
                                 <td>
@@ -61,28 +60,25 @@
                                     value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
                                 </td>
                                 <td>@asset.Asset.AssetTagNumber</td>
-                                <td>@asset.Asset?.Category!.Name</td>
+                                <td>@(Format.FormatCategory(asset.Asset?.Category!.Name))</td>
                                 <td>@asset.Asset?.SubCategory!.Name</td>
                                 <td>@(asset.Asset!.IsPlacement! ? "Yes" : "No")</td>
                                 <td>@asset.Asset.Vendor!.Name</td>
                                 <td>@asset.Asset.ServiceProvider!.Name</td>
-                                <td>@asset.Asset.ProcurementDate?.ToShortDateString()</td>
-                                <td>@((ProcurementStatus)asset.Asset.StatusId)</td>
+                                <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
                                 <td>
                                     @if (lastMove != null)
                                     {
-                                          @(lastMove.Facility?.FacilityName)
-                                        
+                                        @(lastMove.Facility?.FacilityName)
                                     }
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
                                 <td>
-                                    @if (lastMove != null)
+                                     @if (lastMove != null)
                                     {
-
                                         @if (lastMove.ServicePoint?.Name != null)
                                         {
                                             @(lastMove.ServicePoint?.Name)
@@ -95,24 +91,26 @@
                                     else
                                     {
                                         <span>-</span>
-                                    }
+                                    } 
                                 </td>
-                                <td width="10%">
-                                    @if (lastMove != null)
+                                <td>
+                                     @if(lastMove != null)
                                     {
-                                        @:@(lastMove.FunctionalStatus)
-                                        @if (lastMove.Reason == Enumerators.MovementReason.Decommission)
+                                        @if (lastMove?.Reason != Enumerators.MovementReason.Decommission)
                                         {
-                                            @:<span style="background-color:red;color:white;padding:2px 6px;border-radius:3px;">Decommissioned</span>
+                                            @Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus)
+                                        }
+                                        else
+                                        {
+                                            @Format.DisplayProcurementStatus(ProcurementStatus.Decommissioned)
                                         }
                                     }
                                     else
                                     {
-                                        <span>-</span>
-                                    }
+                                        <span>-</span>                                        
+                                    } 
                                 </td>
-
-                                <td>
+                                <td class="action-container">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fa-solid fa-ellipsis"></i>
@@ -144,7 +142,6 @@
                                                    title="work request" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
                                                     <i class="fa fa-toolbox"></i> work request
                                                 </a>
-
                                             </li>
                                             <li class="@(lastMove != null && lastMove.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
                                                 <button style="font-size: medium;" class="dropdown-item btn  btn-danger" title="Delete">
@@ -160,9 +157,7 @@
                     </tbody>
                 </table>
             </div>
-          
     </div> 
-
 </div>
 </div>
 

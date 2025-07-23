@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Job";
     ViewData["JobManagement"] = "active"; 
+    
+    Model.WorkDone.DateCompleted = DateTime.Today;
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser;
@@ -31,31 +33,25 @@
                     <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
                 </dl>
             </div>
-
-            <div class="col-md-3">
-                <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Title</dt>
-                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest!.FaultReport!.Name</dd>
-                </dl>
-            </div>
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Company</dt>
                     <dd class="col-sm-6 border p-2 m-0">@(Model.Job.ExternalProvider?.Name ?? "-")</dd>
                 </dl>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-9">
-                <dl class="row">
-                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
-                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
-                </dl>
-            </div>
+
             <div class="col-md-3">
                 <dl class="row">
                     <dt class="col-sm-6 border p-2 m-0">Outcome</dt>
                     <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Outcome?.Name</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <dl class="row">
+                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
+                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
                 </dl>
             </div>
         </div>

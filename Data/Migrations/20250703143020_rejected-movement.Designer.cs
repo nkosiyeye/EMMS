@@ -4,6 +4,7 @@ using EMMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EMMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250703143020_rejected-movement")]
+    partial class rejectedmovement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,9 +286,6 @@ namespace EMMS.Data.Migrations
 
                     b.Property<byte>("RowState")
                         .HasColumnType("tinyint");
-
-                    b.Property<bool?>("isOffSite")
-                        .HasColumnType("bit");
 
                     b.HasKey("FacilityId");
 
@@ -705,6 +705,9 @@ namespace EMMS.Data.Migrations
                     b.Property<int>("FacilityId")
                         .HasColumnType("int");
 
+                    b.Property<int>("FaultReportId")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("JobId")
                         .HasColumnType("uniqueidentifier");
 
@@ -731,6 +734,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("AssetId");
 
                     b.HasIndex("FacilityId");
+
+                    b.HasIndex("FaultReportId");
 
                     b.HasIndex("JobId");
 
@@ -1183,6 +1188,12 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "FaultReport")
+                        .WithMany()
+                        .HasForeignKey("FaultReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("EMMS.Models.Job", "Job")
                         .WithMany()
                         .HasForeignKey("JobId");
@@ -1200,6 +1211,8 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Asset");
 
                     b.Navigation("Facility");
+
+                    b.Navigation("FaultReport");
 
                     b.Navigation("Job");
 

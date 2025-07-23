@@ -58,12 +58,13 @@ namespace EMMS.Models
         [Display(Name = "Placement")]
         public bool IsPlacement { get; set; }
 
+
+        [RequiredIf("IsPlacement", true, ErrorMessage = "Placement Start Date is required when Placement is checked.")]
         [Display(Name = "Placement Start Date")]
-       // [RequiredIfAttribute("IsPlacement",true, ErrorMessage = "Placement Start Date is required when Placement is checked.")]
         public DateTime? PlacementStartDate { get; set; }
 
+        [RequiredIf("IsPlacement", true, ErrorMessage = "Placement End Date is required when Placement is checked.")]
         [Display(Name = "Placement End Date")]
-        //[RequiredIfAttribute("IsPlacement",true, ErrorMessage = "Placement End Date is required when Placement is checked.")]
         public DateTime? PlacementEndDate { get; set; }
 
         [Display(Name = "Donated")]
@@ -72,11 +73,11 @@ namespace EMMS.Models
         [Display(Name = "Serviceable")]
         public bool IsServiceable { get; set; }
 
+        [RequiredIf("IsServiceable", true, ErrorMessage = "Next Service Date is required when Servicable is checked.")]
         [Display(Name = "Next Service Date")]
         public DateTime? NextServiceDate{ get; set; }
-        //[ForeignKey(nameof(ServicePeriodId))]
-        //public virtual LookupItem? ServicePeriodName { get; set; }
 
+        [RequiredIf("IsServiceable", true, ErrorMessage = "Service Interval is required when Servicable is checked.")]
         [Display(Name = "Service Interval")]
         public int? ServiceInterval { get; set; }
 
@@ -98,14 +99,12 @@ namespace EMMS.Models
         [Required(ErrorMessage = "Status is required")]
         [Display(Name = "Status")]
         public int StatusId { get; set; }
-        //[ForeignKey(nameof(StatusId))]
-        //public virtual LookupItem? Status { get; set; }
 
         [RequiredIf("StatusId", (int)ProcurementStatus.New , ErrorMessage = "Procurement Date is required for new assets.")]
         [Display(Name = "Procurement Date")]
         public DateTime? ProcurementDate { get; set; }
 
-        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Cost is required for new assets  and cannot be a negative value.")]
+        [RequiredIf("StatusId", (int)ProcurementStatus.New, ErrorMessage = "Cost is required for new assets and cannot be a negative value.")]
         [Display(Name = "Cost")]
         public decimal? Cost { get; set; }
 

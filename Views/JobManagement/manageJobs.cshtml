@@ -27,7 +27,6 @@
                             <tr>
                                 <th>Asset ID</th>
                                 <th>Date</th>
-                                <th>Title</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -39,7 +38,6 @@
                                 <tr>
                                     <td>@request.Asset.AssetTagNumber</td>
                                     <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
-                                    <td>@request.FaultReport.Name</td>
                                     <td>
                                         @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
                                         {
