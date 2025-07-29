@@ -43,7 +43,7 @@ namespace EMMS.Models.Admin
 
         [Required]
         [Display(Name = "Facility")]
-        public int? FacilityId { get; set; }
+        public int FacilityId { get; set; }
 
         [ForeignKey("FacilityId")]
         public virtual Facility? Facility { get; set; }

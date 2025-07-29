@@ -1,5 +1,7 @@
 using EMMS.Controllers;
 using EMMS.Data;
+using EMMS.Data.Repository;
+using EMMS.Service;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +17,9 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddTransient<SessionController>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<AssetManagementRepo>();
+builder.Services.AddScoped<JobManagementRepo>();
+builder.Services.AddScoped<AssetService>();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();

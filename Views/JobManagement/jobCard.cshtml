@@ -16,39 +16,35 @@
         </a> *@
     </div>
     <div class="card-body">
-        <div class="row g-0">
-            <div class="col-md-3">
+        <div class="row">
+            <div class="col-md-6">
                 <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Asset ID</dt>
-                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Asset.AssetTagNumber</dd>
+                    <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
+                    <dd class="col-sm-6 border p-1 m-0"><a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@Model.WorkRequest.AssetId">@Model.WorkRequest.Asset.AssetTagNumber</a></dd>
+
+
+                    <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.ItemName</dd>               
+
+
+                    <dt class="col-sm-6 border p-1 m-0">Date</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>          
+
+
 
                 </dl>
-            </div>
-            <div class="col-md-3">
-                <dl class="row">
 
-                    <dt class="col-sm-6 border p-2 m-0">Date</dt>
-                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
-                </dl>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Requested By</dt>
-                    <dd class="col-sm-6 border p-2 m-0">User A</dd>
-                </dl>
-            </div>
-            <div class="col-md-3">
-                <dl class="row">
-                    <dt class="col-sm-6 border p-2 m-0">Outcome</dt>
-                    <dd class="col-sm-6 border p-2 m-0">@Model.WorkRequest.Outcome?.Name</dd>
-                </dl>
-            </div>
-        </div>
-        <div class="row g-0">
-            <div class="col-md-12">
-                <dl class="row">
-                    <dt class="col-sm-3 border p-2 m-0">Fault Description</dt>
-                    <dd class="col-sm-9 border p-2 m-0">@Model.WorkRequest.Description</dd>
+                    <dt class="col-sm-6 border p-1 m-0">Requested By</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.RequestedByUser?.FirstName</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Fault Description</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Description</dd>
+
+                    <dt class="col-sm-6 border p-1 m-0">Outcome</dt>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Outcome?.Name</dd>
                 </dl>
             </div>
         </div>
@@ -61,7 +57,7 @@
         <span>Job Card</span>
     </div>
     <div class="card-body">
-       @*  @if (TempData["Error"] != null)
+        @*  @if (TempData["Error"] != null)
         {
             <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
 
@@ -74,13 +70,13 @@
 
         } *@
         <form asp-controller="JobManagement" asp-action="updateJobCard" method="post">
-            
-                @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo)
-                {
-                    <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
-                        <button type="submit" class="btn btn-primary">Update Job Card</button>
-                    </div>                    
-                }
+
+            @if (isBiomed && currentUser.UserId == Model.Job?.AssignedTo)
+            {
+                <div class="col-12 text-end @(Model.Job?.EndDate != null ? "d-none" : "")">
+                    <button type="submit" class="btn btn-primary">Update Job Card</button>
+                </div>                    
+            }
             <!-- Job Card Details -->
             <div class="row mb-3">
                 <div class="col-md-4">
@@ -95,22 +91,27 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
-                    <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6"
-                            data-live-search="true" asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))">
-                    </select>
+                    @if (Model.Job?.Status?.Name == "Completed" || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)
+                    {
+                        <input class="form-control" type="text" value="@Model.Job.Status.Name" disabled />
+
+                    }
+                    else
+                    {
+                        <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6"
+                                data-live-search="true" asp-items="@(new SelectList(Model.WorkStatuses.Where(w => w.Name.Contains("In") || w.Name.Contains("Completed")), "Id", "Name"))">
+                        </select>
+                        
+                    }
                 </div>
             </div>
             <div class="row mb-3">
-                <div class="col-md-4">
-                    <label for="location" class="form-label">Location</label> @*TBD Get the service point of asset*@
-                    <input type="text" class="form-control" id="location" placeholder="Name" readonly>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
                     <input asp-for="Job.AssignedTo" type="hidden" class="form-control" id="assignedTo" placeholder="Employee's Name" readonly>
                     <input type="text" class="form-control" id="assignedTo" value="@Model.Job.User.FirstName" readonly>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <label asp-for="Job.FaultReportId" for="status" class="form-label required-field">Fault Report</label>
                     <input asp-for="Job.FaultReportId" type="text" class="form-control" value="@Model.Job!.FaultReport!.Id" hidden />
                     <input type="text" class="form-control" value="@Model.Job!.FaultReport!.Name" readonly />
@@ -143,7 +144,7 @@
                     </div>
 
                 } *@
-                <div class="row @(Model.Job?.Status?.Name == "Completed" || Model.Job?.EndDate != null ? "d-none" : "")">
+                <div class="row @(Model.Job?.Status?.Name == "Completed" || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo ? "d-none" : "")">
                     <form asp-action="workDone" asp-controller="JobManagement" method="post">
                         <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
                         <div class="row">

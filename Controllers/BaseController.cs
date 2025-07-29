@@ -9,13 +9,16 @@ using static EMMS.Models.Enumerators;
 public class BaseController : Controller
 {
     protected User? CurrentUser { get; private set; }
+    protected bool isAdmin { get; private set; }
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         var userJson = HttpContext.Session.GetString(Constant.UserSessionString);
         if (!string.IsNullOrWhiteSpace(userJson))
         {
+
             CurrentUser = JsonConvert.DeserializeObject<User>(userJson);
+            isAdmin = CurrentUser?.UserRole.UserType == UserType.Administrator;
             ViewData["_currrentUserRole"] = CurrentUser?.UserRole;
             ViewData["_currentUser"] = CurrentUser;
         }

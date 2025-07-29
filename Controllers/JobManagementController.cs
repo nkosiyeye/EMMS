@@ -54,10 +54,13 @@ namespace EMMS.Controllers
             var _repo = new JobManagementRepo(_context);
             var _Assetrepo = new AssetManagementRepo(_context);
             var all = await _repo.GetJobfromDbs();
+            var filteredJobs = all.Where(w => w.FacilityId == CurrentUser.FacilityId || w.AssignedTo == CurrentUser.UserId);
+            var allWork = await _repo.GetWorkRequests();
+            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
             JobViewModel paginatedJob = new JobViewModel
             {
-                Jobs = _repo.GetJobfromDbs().Result.Where(w => w.FacilityId == CurrentUser.FacilityId || w.AssignedTo == CurrentUser.UserId),
-                WorkRequests = _repo.GetWorkRequests().Result.Where(w => w.FacilityId == CurrentUser.FacilityId),
+                Jobs = !isAdmin ? filteredJobs : all,
+                WorkRequests = !isAdmin ? filteredWork : allWork,
                 Job = jobmodel,
                 //Asset = await assets.GetAssetsFromDb(),
                 FaultReports = await _repo.GetFaultReports(),
@@ -74,8 +77,10 @@ namespace EMMS.Controllers
         public async Task<IActionResult> Index()
         {
             var _repo = new JobManagementRepo(_context);
+            var allWork = await _repo.GetWorkRequests();
+            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
             var data = await WorkRequestData();
-            data.WorkRequests = await _repo.GetWorkRequests();//.Result.Where(w => w.FacilityId == CurrentUser.FacilityId);
+            data.WorkRequests = !isAdmin ? filteredWork : allWork;//.Result.Where(w => w.FacilityId == CurrentUser.FacilityId);
             data.Outcomes = await _repo.GetOutcomes();
             data.WorkStatuses = await _repo.GetWorkStatus();
             return View(data);
@@ -105,11 +110,16 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> WorkRequest(WorkRequestViewModel workRequestView)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
+
+            var work = workRequestView.WorkRequest;
+            var workrequest = _context.WorkRequest.OrderByDescending(m => m.DateCreated)
+                   .FirstOrDefault(m => m.AssetId == work!.AssetId);
+            if (workrequest != null)
+            {
+                if (workrequest.CloseDate == null) ModelState.AddModelError("", "Asset Already has a workrequest in progress.");
+            }
             if (ModelState.IsValid)
             {
-                var work = workRequestView.WorkRequest;
                 work.RequestedBy = CurrentUser.UserId;
                 CreateEntity(work);
                 var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
@@ -128,6 +138,9 @@ namespace EMMS.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["WorkRequestError"] = string.Join("; ", errors);
             return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
         }
 

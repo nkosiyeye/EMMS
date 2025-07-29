@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EMMS.Controllers
 {
@@ -181,18 +182,22 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 var _repo = new AssetMovementRepo(_context);
+                var history = await _repo.GetLastMovement(assetMovement!.AssetId);
+                if(history != null)
+                {
+                    assetMovement.FromId = history.FacilityId;
 
-                assetMovement.FromId = CurrentUser!.FacilityId ?? 1; 
-                assetMovement.MovementDate = assetMovement.MovementDate.Date
-                                            .AddHours(DateTime.Now.Hour)
-                                            .AddMinutes(DateTime.Now.Minute)
-                                            .AddSeconds(DateTime.Now.Second);
-                //if (assetMovement.Reason == MovementReason.Decommission)
-                //{
-                //    var asset = await _context.Assets
-                //        .FirstOrDefaultAsync(a => a.AssetId == assetMovement.AssetId);
-                //    asset.StatusId = (int)ProcurementStatus.Decommissioned;
-                //}
+                }
+                else 
+                {
+
+                    assetMovement.FromId = CurrentUser.FacilityId;
+
+                }
+                    assetMovement.MovementDate = assetMovement.MovementDate.Date
+                                                .AddHours(DateTime.Now.Hour)
+                                                .AddMinutes(DateTime.Now.Minute)
+                                                .AddSeconds(DateTime.Now.Second);
 
                 CreateEntity(assetMovement);
 
@@ -225,7 +230,11 @@ namespace EMMS.Controllers
         {
             var _repo = new AssetMovementRepo(_context);
             var data = await Data();
-            data.MoveAssets = _repo.GetAssetMovement().Result.Where(m => m.FromId == CurrentUser.FacilityId);
+            var allMovements = await _repo.GetAssetMovement();
+            data.MoveAssets = isAdmin
+                ? allMovements
+                : allMovements.Where(m => m.FacilityId == CurrentUser.FacilityId);
+        
             data.Conditions = await _repo.GetConditions();
             data.Reasons = await _repo.GetReasons();
             return View(data);

@@ -21,7 +21,8 @@
                 <thead>
                     <tr>
                         <th>Asset ID</th>
-                        <th>From</th>
+                        <th>Facility</th>
+                        <th>Service Point</th>
                         <th>Date Sent</th>
                         <th>Functional Status</th>
                         <th>Reason</th>
@@ -36,6 +37,7 @@
                             <tr>
                                 <td>@reciveAsset.Asset!.AssetTagNumber</td>
                                 <td>@reciveAsset.From!.FacilityName</td>
+                                <td>@reciveAsset.ServicePoint?.Name</td>
                                 <td>@reciveAsset.MovementDate.ToString("dd MMM yyyy")</td>
                                 <td>@reciveAsset.FunctionalStatus.ToString()</td>
                                 <td>@reciveAsset.Reason</td>
@@ -56,7 +58,7 @@
                     else
                     {
                         <tr>
-							<td colspan="6" class="text-center">No pending asset receipts</td>
+                            <td colspan="6" class="text-center">No pending asset receipts</td>
                         </tr>
                     }
                 </tbody>
@@ -79,19 +81,41 @@
                 <thead>
                     <tr>
                         <th>Asset ID</th>
-                        <th>From</th>
+                        <th>Facility</th>
+                        <th>Service Point</th>
                         <th>Date Recieved</th>
+                        <th>Date Rejected</th>
                         <th>Functional Status</th>
-                         @* <th>Recieved By</th>  *@
+                        @* <th>Recieved By</th>  *@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived != null))
+                    @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived != null || a.DateRejected != null))
                     {
                         <tr>
                             <td>@reciveAsset.Asset?.AssetTagNumber</td>
                             <td>@reciveAsset.From?.FacilityName</td>
-                            <td>@reciveAsset.DateReceived!.Value.ToString("dd MMM yyyy")</td>
+                            <td>@reciveAsset.ServicePoint?.Name</td>
+                            <td>
+                                @if(reciveAsset.DateReceived != null)
+                                {
+                                    @reciveAsset.DateReceived.Value.ToString("dd MMM yyyy")
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </td>
+                            <td>
+                                @if (reciveAsset.DateRejected != null)
+                                {
+                                    @reciveAsset.DateRejected.Value.ToString("dd MMM yyyy");
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </td>
                             <td>@reciveAsset.FunctionalStatus</td>
                              @* <td>@(reciveAsset.ReceivedBy.HasValue ? "Yes" : "No")</td>  *@
                         </tr>

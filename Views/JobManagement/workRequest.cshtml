@@ -14,16 +14,10 @@
         </div>
     </div>
     <div class="card-body">
-        @if (TempData["Error"] != null && TempData["Error"]?.ToString() != "")
+        @if (TempData["WorkRequestError"] != null)
         {
-            <div class="row alert alert-primary d-flex align-items-center alert-dismissible fade show" role="alert">
-                <div>
-                    <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg>
-                    <div>
-                        @TempData["Error"]
-                    </div>
-                </div>
-
+            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+                @TempData["WorkRequestError"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 

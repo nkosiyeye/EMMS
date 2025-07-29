@@ -6,6 +6,8 @@
     ViewData["Title"] = "Move Assets";
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isManager = ViewBag._currrentUserRole.UserType == Enumerators.UserType.FacilityManager;
 }
 
 <div class="card mb-12">
@@ -55,7 +57,7 @@
                             <td>
                                 @if (!movement.IsApproved)
                                 {
-                                    if (ViewBag._currrentUserRole.ApproveAssetMovement)
+                                    if (isManager || isAdmin )
                                     {
                                         <a class="btn btn-sm btn-primary" title="Approve" asp-controller="AssetMovement" asp-action="approveMovement" asp-route-id="@movement.MovementId">
                                             Approve

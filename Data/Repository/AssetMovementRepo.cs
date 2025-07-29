@@ -3,6 +3,7 @@ using EMMS.Models;
 using static EMMS.Models.Enumerators;
 using Microsoft.EntityFrameworkCore;
 using EMMS.Data.Migrations;
+using EMMS.Models.Admin;
 
 namespace EMMS.Data.Repository
 {
@@ -15,8 +16,10 @@ namespace EMMS.Data.Repository
         }
         public async Task<IEnumerable<MoveAsset>> GetAssetMovement()
         {
-            var moveAssets = await _context.AssetMovement
-                .Where(x => x.RowState == RowStatus.Active)
+            var query = _context.AssetMovement
+                        .Where(x => x.RowState == RowStatus.Active);
+
+            var moveAssets = await query
                 .Include(x => x.Asset)
                 .Include(x => x.From)
                 .Include(x => x.Facility)
@@ -25,6 +28,7 @@ namespace EMMS.Data.Repository
                 .OrderByDescending(m => m.DateCreated)
                 .ThenByDescending(m => m.IsApproved)
                 .ToListAsync();
+
             return moveAssets;
         }
 
