@@ -1,9 +1,13 @@
 ﻿@using EMMS.ViewModels
+@using EMMS.Models.Admin
 @model WorkRequestViewModel
 @{
     ViewData["Title"] = "Move Assets";
     ViewData["workRequest"] = "active";
     ViewData["JobManagement"] = "active";
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+    var currentUser = ViewBag._currentUser as User;
 }
 
 <div class="card mb-12">
@@ -77,7 +81,7 @@
                                     data-bs-toggle="modal" 
                                         data-bs-target="#closeModal"
                                         data-request-id="@request.WorkRequestId"
-                                    @(request.Outcome != null ? "hidden" : "")>
+                                    @(request.Outcome != null || currentUser!.UserId != request.RequestedBy || !isAdmin  ? "hidden" : "")>
                                         Close Request
                                     </button>
                                 </td>

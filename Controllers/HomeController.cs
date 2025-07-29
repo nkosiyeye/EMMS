@@ -12,17 +12,22 @@ using static EMMS.Models.Enumerators;
 using Microsoft.EntityFrameworkCore;
 using EMMS.CustomAttributes;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using EMMS.Service;
 
 namespace EMMS.Controllers
 {
     public class HomeController : BaseController
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<HomeController> _logger;
+        private readonly AssetManagementRepo _assetRepo;
+        private readonly JobManagementRepo _jobRepo;
+        private readonly AssetService _assetService;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+        public HomeController(AssetManagementRepo assetRepo, JobManagementRepo jobRepo, AssetService assetService, ApplicationDbContext context)
         {
-            _logger = logger;                
+            _assetRepo = assetRepo;
+            _jobRepo = jobRepo;
+            _assetService = assetService;
             _context = context;
         }
         public IActionResult UserRegistration()
@@ -81,12 +86,46 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(Index));
         }
         [RequireLogin]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var indexModel = new IndexModel(new AssetManagementRepo(_context), new JobManagementRepo(_context), new Service.AssetService(_context));
-            indexModel.currentUser = CurrentUser!;
-            indexModel.OnGet();
-            return View(indexModel);
+            var model = new IndexModel
+            {
+                currentUser = CurrentUser
+            };
+
+            var allNotifications = await _assetRepo.GetNotifications();
+            model.notifications = isAdmin
+                ? allNotifications
+                : allNotifications.Where(n => n.FacilityId == CurrentUser.FacilityId).Take(5);
+
+            var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+
+            // Filter due service assets (exclude decommissioned)
+            var dueAssets = (await _assetService.GetAssetDueServiceViewModel()).assetViewModels
+                .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
+
+            // If not admin, filter by user's facility
+            model.assets = dueAssets;
+
+            model.TotalAssets = assetViewModel.assetViewModels.Count();
+
+            // Completed Jobs
+            var completedJobs = (await _jobRepo.GetJobfromDbs())
+                .Where(j => j.EndDate != null);
+
+            model.CompletedJobs = isAdmin
+                ? completedJobs.Count()
+                : completedJobs.Count(j => j.FacilityId == CurrentUser.FacilityId);
+
+            // Pending Work Requests
+            var pendingJobs = (await _jobRepo.GetWorkRequests())
+                .Where(w => w.Outcome == null);
+
+            model.PendingJobs = isAdmin
+                ? pendingJobs.Count()
+                : pendingJobs.Count(w => w.FacilityId == CurrentUser.FacilityId);
+
+            return View(model);
         }
 
         public IActionResult Privacy()

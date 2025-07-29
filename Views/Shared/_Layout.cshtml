@@ -4,7 +4,8 @@
 
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
-	var currentUser = ViewBag._currentUser as User;
+    var isManager = ViewBag._currrentUserRole.UserType == Enumerators.UserType.FacilityManager;
+    var currentUser = ViewBag._currentUser as User;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +13,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - EMMS</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /><!-- Bootstrap-Select CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-selectpicker/css/bootstrap-select.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
     @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
@@ -90,7 +91,15 @@
                                 <i class="fa-solid fa-bars"></i>
                             </a>
                             <span class="fw-bold text-white" style="font-size: smaller;">
-                                @(currentUser!.Facility?.FacilityName)
+                                @if (!isAdmin)
+                                {
+                                    @(currentUser!.Facility?.FacilityName)
+
+                                }
+                                else
+                                {
+                                    @(currentUser!.UserRole?.Name)
+                                }
                             </span>
                         </div>
                         <div class="d-flex align-items-center">

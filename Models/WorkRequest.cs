@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
 using static EMMS.Models.Enumerators;
@@ -39,6 +40,9 @@ namespace EMMS.Models
 
         [Display(Name = "Requested By")]
         public Guid? RequestedBy { get; set; }
+
+        [ForeignKey(nameof(RequestedBy))]
+        public virtual User? RequestedByUser { get; set; }
 
         [Display(Name = "Facility")]
         public int FacilityId { get; set; }
