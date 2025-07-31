@@ -7,62 +7,68 @@
 }
 
 
-<div class="card mb-12">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Job Management</span>
-        </div>
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Job Management</strong></span>
     </div>
     <div class="card-body">
-        <!-- Work Requests -->
-        <div class="card">
+
+        <!-- Work Requests Table -->
+        <div class="card mb-3">
             <div class="card-header">
-                Work Requests
+                <strong>Work Requests</strong>
             </div>
             <div class="card-body">
-
-                <div class="table-wrapper">
+                <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
-                        <thead>
+                        <thead class="table-dark">
                             <tr>
-                                <th>Asset ID</th>
-                                <th>Date</th>
+                                <th>Asset Tag</th>
+                                <th>Date Requested</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var request in Model.WorkRequests.Where(w => w.WorkStatus.Name == "Open"))
+                            @foreach (var request in Model.WorkRequests.Where(w => w.WorkStatus?.Name == "Open"))
                             {
                                 <tr>
-                                    <td>@request.Asset.AssetTagNumber</td>
+                                    <td>@request.Asset?.AssetTagNumber</td>
                                     <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
                                     <td>
-                                        @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                        @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
                                         {
-                                            <span>@request.Description.Substring(0, 20)...</span>
-                                            <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                            <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="text-info read-more"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#descriptionModal"
+                                               data-description="@request.Description">
+                                                Read More
+                                            </a>
                                         }
                                         else
                                         {
                                             <span>@request.Description</span>
                                         }
                                     </td>
-                                    <td>@request.WorkStatus.Name</td>
+                                    <td>@request.WorkStatus?.Name</td>
                                     <td>
-                                        <button 
-                                        class="btn btn-primary btn-sm" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#jobModal"
-                                        data-request-id="@request.WorkRequestId"
-                                        data-asset-id="@request.AssetId"
-                                        data-asset-tag="@request.Asset.AssetTagNumber">
-                                            Create Job
-                                        </button>
-                                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
-                                            Cancel
-                                        </button>
+                                        <div class="btn-group">
+                                            <button class="btn btn-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#jobModal"
+                                                    data-request-id="@request.WorkRequestId"
+                                                    data-asset-id="@request.AssetId"
+                                                    data-asset-tag="@request.Asset?.AssetTagNumber">
+                                                Create Job
+                                            </button>
+                                            <button class="btn btn-danger btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#cancelModal">
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -72,19 +78,21 @@
             </div>
         </div>
 
-        <!-- Jobs -->
-        <div class="card mt-2">
-            <div class="card-header">Job History</div>
+        <!-- Job History Table -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <strong>Job History</strong>
+            </div>
             <div class="card-body">
-                <div class="table-wrapper">
+                <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="JobTable">
-                        <thead>
+                        <thead class="table-dark">
                             <tr>
-                                <th>Asset ID</th>
-                                <th>Date</th>
-                                <th>Report</th>
-                                <th>AssignedTo</th>
-                                <th>External</th>
+                                <th>Asset Tag</th>
+                                <th>Start Date</th>
+                                <th>Fault Report</th>
+                                <th>Assigned To</th>
+                                <th>External Provider</th>
                                 <th>Status</th>
                                 <th>Action</th>
                             </tr>
@@ -92,16 +100,23 @@
                         <tbody>
                             @foreach (var job in Model.Jobs)
                             {
-
                                 <tr>
-                                    <td>@job.Asset!.AssetTagNumber</td>
-                                    <td>@job.StartDate</td>
-                                    <td>@job.FaultReport!.Name</td>
-                                    <td>@job.User!.FirstName</td>
-                                    <td>@(job.IsExternalProvider ? $"{job.ExternalProvider?.Name ?? "External"}" : "No")</td>
-                                    <td>@job.Status!.Name</td>
+                                    <td>@job.Asset?.AssetTagNumber</td>
+                                    <td>@job.StartDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@job.FaultReport?.Name</td>
+                                    <td>@job.User?.FirstName</td>
                                     <td>
-                                        <a asp-controller="JobManagement" asp-action="@(job.IsExternalProvider ? "externalJobCard": "jobCard")" asp-route-id="@job.JobId" class="btn btn-sm btn-info me-1" title="View">
+                                        @(job.IsExternalProvider
+                                            ? job.ExternalProvider?.Name ?? "<span class='text-muted'>External</span>"
+                                            : "No")
+                                    </td>
+                                    <td>@job.Status?.Name</td>
+                                    <td>
+                                        <a class="btn btn-sm btn-info"
+                                           asp-controller="JobManagement"
+                                           asp-action="@(job.IsExternalProvider ? "externalJobCard" : "jobCard")"
+                                           asp-route-id="@job.JobId"
+                                           title="View Job">
                                             <i class="fa fa-eye"></i>
                                         </a>
                                     </td>
@@ -115,6 +130,7 @@
 
     </div>
 </div>
+
 
 
 <!-- Job Card Modal -->

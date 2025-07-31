@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Linq;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Models.Admin;
@@ -29,6 +30,7 @@ namespace EMMS.Controllers.Admin
             };
             return View(viewModel);
         }
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> Index(int id)
         {
             var viewModel = new LookupViewModel();
@@ -45,6 +47,7 @@ namespace EMMS.Controllers.Admin
             return View("_LookupTable", viewModel);
         }
         [HttpGet]
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> AddLookupItem(int id)
         {
             var lookupList = await _context.LookupLists.FirstOrDefaultAsync(l => l.LookupListId == id);
@@ -64,6 +67,7 @@ namespace EMMS.Controllers.Admin
 
 
         [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> AddLookupItem(LookupViewModel vModel)
         {
             var lookup = vModel._lookupItem;
@@ -88,7 +92,7 @@ namespace EMMS.Controllers.Admin
 
             return RedirectToAction(nameof(AddLookupItem), new { id = lookup.LookupListId });
         }
-
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> EditLookupItem(int id)
         {
             var lookupItem = await _context.LookupItems
@@ -106,7 +110,7 @@ namespace EMMS.Controllers.Admin
             };
             return View(viewModel);
         }
-
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> UserRoles()
         {
             var userRoles = await _context.UserRole
@@ -116,6 +120,7 @@ namespace EMMS.Controllers.Admin
         }
 
         [HttpGet]
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> createUserRole()
         {
             var userRole = new UserRole();       
@@ -123,6 +128,7 @@ namespace EMMS.Controllers.Admin
         }
 
         [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> createUserRole(UserRole uRole)
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();

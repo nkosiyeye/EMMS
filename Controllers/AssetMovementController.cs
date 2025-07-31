@@ -20,62 +20,60 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
+
         public AssetMovementController(ApplicationDbContext context)
         {
             _context = context;
             _assetService = new AssetService(context);
         }
-        public async Task<MoveAssetViewModel> Data(MoveAsset? movemodel = null)
+
+        private AssetMovementRepo GetRepo() => new AssetMovementRepo(_context);
+
+        private async Task<MoveAssetViewModel> LoadViewModel(MoveAsset? moveModel = null)
         {
-            if (movemodel is null)
+            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser);
+            return new MoveAssetViewModel
             {
-                movemodel = new MoveAsset();
-            }
-            var _repo = new AssetMovementRepo(_context);
-            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser); 
-            MoveAssetViewModel paginatedMovement = new MoveAssetViewModel
-            {
-                //MoveAssets = all,
-                MoveAsset = movemodel,
-                AssetIndex = assets,
+                MoveAsset = moveModel ?? new MoveAsset(),
+                AssetIndex = assets
             };
-
-            return paginatedMovement;
-
         }
 
         [HttpGet]
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            var _repo = new AssetMovementRepo(_context);
-            var data = await Data();
-            data.MoveAssets = await _repo.GetAssetMovement();//.Result.Where(m => m.FromId == CurrentUser.FacilityId);
-            data.Conditions = await _repo.GetConditions();
+            var repo = GetRepo();
+            var data = await LoadViewModel();
+            var movements = await repo.GetAssetMovement();
+
+            data.MoveAssets = isAdmin
+                ? movements
+                : movements.Where(m => m.FromId == CurrentUser.FacilityId);
+
+            data.Conditions = await repo.GetConditions();
             return View(data);
         }
+
         [HttpGet]
         public async Task<IActionResult> GetFacilites(bool isOffSite)
         {
-
-            var _repo = new AssetMovementRepo(_context);
             var facilities = await _context.Facilities
                 .Where(x => (x.isOffSite ?? false) == isOffSite && x.RowState == RowStatus.Active)
                 .Select(x => new { x.FacilityId, x.FacilityName })
                 .ToListAsync();
-            Debug.WriteLine(facilities);
 
             return Json(facilities);
         }
 
         [HttpGet]
         [RequireLogin]
-        public async Task<IActionResult> moveAsset(Guid id)
+        public async Task<IActionResult> MoveAsset(Guid id)
         {
-            var _repo = new AssetMovementRepo(_context);
+            var repo = GetRepo();
             var moveAsset = new MoveAsset();
+            var history = await repo.GetLastMovement(id);
 
-            var history = await _repo.GetLastMovement(id);
             if (history != null)
             {
                 moveAsset.AssetId = id;
@@ -84,9 +82,8 @@ namespace EMMS.Controllers
             }
             else
             {
-                var assetRepo = new AssetManagementRepo(_context);
-                var assets = await assetRepo.GetAssetsFromDb();
-                var asset = assets.FirstOrDefault(a => a.AssetId == id);
+                var asset = (await new AssetManagementRepo(_context).GetAssetsFromDb())
+                    .FirstOrDefault(a => a.AssetId == id);
                 if (asset == null)
                 {
                     TempData["MovementError"] = "Asset not found.";
@@ -96,250 +93,199 @@ namespace EMMS.Controllers
                 moveAsset.Asset = asset;
             }
 
-            var moveAssetViewModel = new MoveRequestViewModel()
+            var viewModel = new MoveRequestViewModel
             {
-                AssetTag = moveAsset!.Asset!.AssetTagNumber,
+                AssetTag = moveAsset.Asset.AssetTagNumber,
                 MoveAsset = moveAsset,
-                // MovementTypes = await _repo.GetMovementTypes(),
-                Facilities = await _repo.GetFacilities(),
-                ServicePoints = await _repo.GetServicePoints(),
-                Reasons = await _repo.GetReasons(),
-                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
+                Facilities = await repo.GetFacilities(),
+                ServicePoints = await repo.GetServicePoints(),
+                Reasons = await repo.GetReasons(),
+                FunctionalStatuses = await repo.GetFunctionalStatuses()
             };
 
-            return View(moveAssetViewModel);
+            return View(viewModel);
         }
 
         [HttpGet]
         [RequireLogin]
-        public async Task<IActionResult> edit(Guid id)
+        public async Task<IActionResult> Edit(Guid id)
         {
+            var repo = GetRepo();
+            var moveAsset = (await repo.GetAssetMovement()).FirstOrDefault(m => m.MovementId == id);
 
-            var moveAsset = new AssetMovementRepo(_context).GetAssetMovement().Result.FirstOrDefault(m => m.MovementId == id);
-            var _repo = new AssetMovementRepo(_context);
-            var moveAssetViewModel = new MoveRequestViewModel()
+            var viewModel = new MoveRequestViewModel
             {
-                AssetTag = moveAsset!.Asset!.AssetTagNumber,
+                AssetTag = moveAsset.Asset.AssetTagNumber,
                 MoveAsset = moveAsset,
-
-                // MovementTypes = await _repo.GetMovementTypes(),
-                Facilities = await _repo.GetFacilities(),
-                ServicePoints = await _repo.GetServicePoints(),
-                Reasons = await _repo.GetReasons(),
-                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
-
+                Facilities = await repo.GetFacilities(),
+                ServicePoints = await repo.GetServicePoints(),
+                Reasons = await repo.GetReasons(),
+                FunctionalStatuses = await repo.GetFunctionalStatuses()
             };
 
-
-            return View(moveAssetViewModel);
-
+            return View(viewModel);
         }
 
         [HttpPost]
         [RequireLogin]
-        public async Task<IActionResult> edit(MoveRequestViewModel asmove)
+        public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
-
-            var assetMovement = asmove.MoveAsset;
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                UpdateEntity(assetMovement!); 
-
-                _context.Update(assetMovement!);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return View(model);
             }
 
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["MovementError"] = string.Join("; ", errors);
-            var _repo = new AssetMovementRepo(_context);
-            var moveAssetViewModel = new MoveRequestViewModel()
-            {
-                Facilities = await _repo.GetFacilities(),
-                ServicePoints = await _repo.GetServicePoints(),
-                Reasons = await _repo.GetReasons(),
-                FunctionalStatuses = await _repo.GetFunctionalStatuses(),
-
-            };
-
-
-            return View(moveAssetViewModel);
-
+            UpdateEntity(model.MoveAsset);
+            _context.Update(model.MoveAsset);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
-        public async Task<IActionResult> MoveAsset(MoveRequestViewModel asmove)
+        public async Task<IActionResult> MoveAsset(MoveRequestViewModel model)
         {
+            var assetMovement = model.MoveAsset;
+            var repo = GetRepo();
+            var existing = _context.AssetMovement
+                .OrderByDescending(m => m.DateCreated)
+                .FirstOrDefault(m => m.AssetId == assetMovement.AssetId);
 
-            var assetMovement = asmove.MoveAsset;
-            var movement = _context.AssetMovement.OrderByDescending(m => m.DateCreated)
-                   .FirstOrDefault(m => m.AssetId == asmove.MoveAsset!.AssetId);
-            if (movement != null)
+
+            if (existing != null && existing.DateRejected == null && existing.DateReceived == null)
             {
-                if(movement.DateRejected == null && movement.DateReceived == null) ModelState.AddModelError("", "Asset Already has a movement pending.");
+                ModelState.AddModelError("", "Asset already has a movement pending.");
+            }
+            var workrequest = _context.WorkRequest.OrderByDescending(m => m.DateCreated)
+                   .FirstOrDefault(m => m.AssetId == assetMovement.AssetId);
+            if (workrequest != null && workrequest.CloseDate == null)
+            {
+
+                ModelState.AddModelError("", "Cant Move an Asset that has a workrequest in progress.");
+            }
+            
+
+            if (!ModelState.IsValid)
+            {
+                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                model.Facilities = await repo.GetFacilities();
+                model.ServicePoints = await repo.GetServicePoints();
+                model.Reasons = await repo.GetReasons();
+                model.FunctionalStatuses = await repo.GetFunctionalStatuses();
+                return View("MoveAsset", model);
             }
 
-            if (ModelState.IsValid)
-            {
-                var _repo = new AssetMovementRepo(_context);
-                var history = await _repo.GetLastMovement(assetMovement!.AssetId);
-                if(history != null)
-                {
-                    assetMovement.FromId = history.FacilityId;
+            var history = await repo.GetLastMovement(assetMovement.AssetId);
+            assetMovement.FromId = history?.FacilityId ?? CurrentUser.FacilityId;
+            assetMovement.MovementDate = assetMovement.MovementDate.Date
+                .AddHours(DateTime.Now.Hour)
+                .AddMinutes(DateTime.Now.Minute)
+                .AddSeconds(DateTime.Now.Second);
 
-                }
-                else 
-                {
-
-                    assetMovement.FromId = CurrentUser.FacilityId;
-
-                }
-                    assetMovement.MovementDate = assetMovement.MovementDate.Date
-                                                .AddHours(DateTime.Now.Hour)
-                                                .AddMinutes(DateTime.Now.Minute)
-                                                .AddSeconds(DateTime.Now.Second);
-
-                CreateEntity(assetMovement);
-
-                _context.Add(assetMovement);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-
-
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["MovementError"] = string.Join("; ", errors);
-
-            // Repopulate dropdowns for the view
-            var _repoReload = new AssetMovementRepo(_context);
-            var moveAssetViewModel = new MoveRequestViewModel()
-            {
-                MoveAsset = assetMovement,
-                Facilities = await _repoReload.GetFacilities(),
-                ServicePoints = await _repoReload.GetServicePoints(),
-                Reasons = await _repoReload.GetReasons(),
-                FunctionalStatuses = await _repoReload.GetFunctionalStatuses(),
-            };
-
-            return View("moveAsset", moveAssetViewModel);
+            CreateEntity(assetMovement);
+            _context.Add(assetMovement);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]
         [RequireLogin]
-        public async Task<IActionResult> recieveAsset()
+        public async Task<IActionResult> RecieveAsset()
         {
-            var _repo = new AssetMovementRepo(_context);
-            var data = await Data();
-            var allMovements = await _repo.GetAssetMovement();
+            var repo = GetRepo();
+            var data = await LoadViewModel();
+            var movements = await repo.GetAssetMovement();
+
             data.MoveAssets = isAdmin
-                ? allMovements
-                : allMovements.Where(m => m.FacilityId == CurrentUser.FacilityId);
-        
-            data.Conditions = await _repo.GetConditions();
-            data.Reasons = await _repo.GetReasons();
+                ? movements
+                : movements.Where(m => m.FacilityId == CurrentUser.FacilityId);
+
+            data.Conditions = await repo.GetConditions();
+            data.Reasons = await repo.GetReasons();
             return View(data);
         }
-        
+
         [HttpPost]
         public async Task<IActionResult> ReceiveAsset(MoveAssetViewModel model)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
-
-            if (ModelState.IsValid)
-            { 
-                var movement = _context.AssetMovement
-                    .FirstOrDefault(m => m.MovementId == model.MoveAsset.MovementId); 
-
-                if (movement == null)
-                {
-                    ModelState.AddModelError("", "Asset movement not found.");
-                    return View("recieveAsset", model);
-                }
-
-                // Update movement properties
-                movement.DateReceived = model.MoveAsset.DateReceived;
-                movement.Condition = model.MoveAsset.Condition;
-                movement.ReceivedBy = model.MoveAsset.ReceivedBy;
-                movement.Remarks = model.MoveAsset.Remarks;
-
-                _context.Update(movement);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(recieveAsset));
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return View("RecieveAsset", await LoadViewModel(model.MoveAsset));
             }
 
-            return View("recieveAsset",Data(movemodel:model.MoveAsset).Result);
+            var movement = await _context.AssetMovement.FindAsync(model.MoveAsset.MovementId);
+            if (movement == null)
+            {
+                ModelState.AddModelError("", "Asset movement not found.");
+                return View("RecieveAsset", model);
+            }
+
+            movement.DateReceived = model.MoveAsset.DateReceived;
+            movement.Condition = model.MoveAsset.Condition;
+            movement.ReceivedBy = model.MoveAsset.ReceivedBy;
+            movement.Remarks = model.MoveAsset.Remarks;
+
+            _context.Update(movement);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(RecieveAsset));
         }
 
         [HttpPost]
-        public async Task<IActionResult> rejectAsset(MoveAssetViewModel model)
+        public async Task<IActionResult> RejectAsset(MoveAssetViewModel model)
         {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
-
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var movement = await _context.AssetMovement
-                    .FirstOrDefaultAsync(m => m.MovementId == model.MoveAsset.MovementId);
-
-                if (movement == null)
-                {
-                    ModelState.AddModelError("", "Asset movement not found.");
-                    return View("recieveAsset", model);
-                }
-                var move = movement;
-
-                // Update movement properties
-                movement.DateRejected = model.MoveAsset.DateRejected;
-                movement.RejectedReasonId = model.MoveAsset.RejectedReasonId;
-                movement.RejectedBy = model.MoveAsset.RejectedBy;
-                movement.Remarks = model.MoveAsset.Remarks;
-
-                _context.Update(movement);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(recieveAsset));
+                TempData["Error"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return View("RecieveAsset", await LoadViewModel(model.MoveAsset));
             }
 
-            return View("recieveAsset", Data(movemodel: model.MoveAsset).Result);
+            var movement = await _context.AssetMovement.FindAsync(model.MoveAsset.MovementId);
+            if (movement == null)
+            {
+                ModelState.AddModelError("", "Asset movement not found.");
+                return View("RecieveAsset", model);
+            }
+
+            movement.DateRejected = model.MoveAsset.DateRejected;
+            movement.RejectedReasonId = model.MoveAsset.RejectedReasonId;
+            movement.RejectedBy = model.MoveAsset.RejectedBy;
+            movement.Remarks = model.MoveAsset.Remarks;
+
+            _context.Update(movement);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(RecieveAsset));
         }
-        public async Task<IActionResult> approveMovement(Guid id)
+
+        public async Task<IActionResult> ApproveMovement(Guid id)
         {
-             
-                var movement = _context.AssetMovement
-                    .FirstOrDefault(m => m.MovementId == id);
-                var assetTag = _context.Assets
-                .FirstOrDefault(a => a.AssetId == movement.AssetId).AssetTagNumber;
+            var movement = await _context.AssetMovement.FindAsync(id);
+            if (movement == null) return RedirectToAction(nameof(Index));
 
-                if (movement == null)
-                {
-                    //ModelState.AddModelError("", "Asset movement not found.");
-                    return RedirectToAction(nameof(Index));
-                }
+            movement.IsApproved = true;
+            movement.ApprovedBy = CurrentUser.UserId;
+            UpdateEntity(movement);
 
-                // Update movement properties
-                movement.IsApproved = true;
-                movement.ApprovedBy = CurrentUser.UserId;
-                UpdateEntity(movement);
-                var notification = new Models.Entities.Notification
-                {
-                    Message = $"Recieve Asset: {assetTag}",
-                    Type = "move",
-                    DateCreated = DateTime.Now,
-                    FacilityId = movement.FacilityId,
-                    RowState = RowStatus.Active
-                    // UserId = ... // Optionally set for a specific user
-                };
-                _context.Notifications.Add(notification);
-                _context.Update(movement);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            
+            var asset = await _context.Assets.FindAsync(movement.AssetId);
+            var notification = new Models.Entities.Notification
+            {
+                Message = $"Receive Asset: {asset?.AssetTagNumber}",
+                Type = "move",
+                DateCreated = DateTime.Now,
+                FacilityId = movement.FacilityId,
+                RowState = RowStatus.Active
+            };
+
+            _context.Notifications.Add(notification);
+            _context.Update(movement);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
+
         [HttpGet]
         [RequireLogin]
         public async Task<IActionResult> GatePass(Guid id)
         {
-            
             var movement = await _context.AssetMovement
                 .Include(m => m.Asset)
                 .Include(m => m.Facility)
@@ -347,16 +293,13 @@ namespace EMMS.Controllers
                 .Include(m => m.ServicePoint)
                 .FirstOrDefaultAsync(m => m.MovementId == id);
 
-            if (movement == null)
-                return NotFound();
-
-            return View("GatePass", movement);
+            return movement == null ? NotFound() : View("GatePass", movement);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        [RequireLogin]
-        public async Task<IActionResult> deteleMovement(Guid id)
+        //[ValidateAntiForgeryToken]
+        //[RequireLogin]
+        public async Task<IActionResult> deleteMovement(Guid id)
         {
             var movement = await _context.AssetMovement.FindAsync(id);
             if (movement == null)
@@ -370,7 +313,6 @@ namespace EMMS.Controllers
             TempData["MovementSuccess"] = "Asset movement deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
-
-
     }
+
 }

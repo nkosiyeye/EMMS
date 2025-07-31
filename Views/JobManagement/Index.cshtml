@@ -13,39 +13,43 @@
 <div class="card mb-12">
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Work Requests</span>
+            <strong>Work Requests</strong>
             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestModal">
                 <i class="fa fa-plus me-1"></i> Request
             </button>
         </div>
     </div>
     <div class="card-body">
-        <div class="table-wrapper">
+        <div class="table-responsive">
             <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
-                <thead>
+                <thead class="table-dark">
                     <tr>
-                        <th>Asset ID</th>
-                        <th>Asset</th>
-                        <th>Date Requested</th>
+                        <th>Asset Tag</th>
+                        <th>Item Name</th>
+                        <th>Requested By</th>
+                        <th>Request Date</th>
                         <th>Fault Description</th>
                         <th>External</th>
-                        <th>Request Status</th>
+                        <th>Status</th>
                         <th>Outcome</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var request in @Model.WorkRequests)
+                    @foreach (var request in Model.WorkRequests)
                     {
                         <tr>
                             <td>@request.Asset.AssetTagNumber</td>
                             <td>@request.Asset.ItemName</td>
-                            <td>@(DateOnly.FromDateTime(request.RequestDate))</td>
+                            <td>@request.RequestedByUser.FirstName</td>
+                            <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
                             <td>
-                                @if (!string.IsNullOrEmpty(request.Description) && request.Description.Length > 20)
+                                @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
                                 {
-                                    <span>@request.Description.Substring(0, 20)...</span>
-                                    <a href="javascript:void(0);" class="read-more" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">Read More</a>
+                                    <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
+                                    <a href="javascript:void(0);" class="read-more text-info" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">
+                                        Read More
+                                    </a>
                                 }
                                 else
                                 {
@@ -53,46 +57,65 @@
                                 }
                             </td>
                             <td>
-                                @if(request.JobId != null)
+                                @if (request.JobId != null)
                                 {
-                                    @(request.Job!.IsExternalProvider ? $"{request.Job!.ExternalProvider?.Name ?? "External"}" : "No")
-
+                                    @(request.Job!.IsExternalProvider
+                                                ? request.Job.ExternalProvider?.Name ?? "External"
+                                                : "No")
                                 }
                                 else
                                 {
-                                    <span>N/A</span>
+                                    <span class="text-muted">N/A</span>
                                 }
                             </td>
-                                <td>@request.WorkStatus!.Name</td>
-                             <td>@request.Outcome?.Name</td>
+                            <td>@request.WorkStatus?.Name</td>
                             <td>
-                                <a class="btn btn-sm btn-primary me-1" title="Edit" @(request.WorkStatus.Name != "Open" ? "hidden" : "")>
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                @if (request.JobId != null)
+                                @if (request.JobId == null && request.Outcome != null)
                                 {
-                                    <a asp-controller="JobManagement" asp-action="@(request.Job!.IsExternalProvider ? "externalJobCard": "jobCard")" 
-                                       asp-route-id="@request.JobId" class="btn btn-sm btn-info me-1" title="View">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-
+                                    <span>Cancelled</span>
                                 }
-                                    <button class="btn btn-sm btn-danger me-1" title="Close Job"
-                                    data-bs-toggle="modal" 
-                                        data-bs-target="#closeModal"
-                                        data-request-id="@request.WorkRequestId"
-                                    @(request.Outcome != null || currentUser!.UserId != request.RequestedBy || !isAdmin  ? "hidden" : "")>
-                                        Close Request
-                                    </button>
-                                </td>
-                            </tr> 
-                        }
-                    
-                </tbody>
-            </table>
-        </div>
+                                else
+                                {
+                                    @(request.Outcome?.Name ?? "Pending")                                    
+                                }
 
-    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        @* Edit Button - Only for "Open" status *@
+                                        <a class="btn btn-sm btn-primary @(request.WorkStatus?.Name != "Open" ? "d-none" : "")" title="Edit Request">
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+
+                                        @* View Job Card *@
+                                        @if (request.JobId != null)
+                                        {
+                                            <a class="btn btn-sm btn-info" title="View Job"
+                                               asp-controller="JobManagement"
+                                               asp-action="@(request.Job.IsExternalProvider ? "externalJobCard" : "jobCard")"
+                                               asp-route-id="@request.JobId">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                        }
+
+                                        @* Close Button - If no outcome and current user is requester or admin *@
+                                        <button class="btn btn-sm btn-danger @(request.Outcome != null || (currentUser?.UserId != request.RequestedBy && !isAdmin) ? "d-none" : "")"
+                                                title="Close Request"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#closeModal"
+                                                data-request-id="@request.WorkRequestId">
+                                            <i class="fa fa-times-circle"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+   
+
 </div>
 <!-- Modal -->
 <div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">

@@ -186,6 +186,7 @@ namespace EMMS.Controllers
         }
 
         [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
         public async Task<IActionResult> manageJobs()
         {
             ViewData["Biomed"] = new SelectList(_context.User.Where(f => f.RowState == RowStatus.Active && f.UserRole.UserType == Enumerators.UserType.Biomed), "UserId", "FirstName");

@@ -35,7 +35,7 @@ namespace EMMS.Data.Repository
         public async Task<MoveAsset?> GetLastMovement(Guid assetId)
         {
             return await _context.AssetMovement
-                .Where(x => x.AssetId == assetId && x.RowState == RowStatus.Active)
+                .Where(x => x.AssetId == assetId && x.DateRejected == null && x.RowState == RowStatus.Active)
                 .Include(x => x.Asset)
                 .OrderByDescending(x => x.DateCreated)
                 .FirstOrDefaultAsync();

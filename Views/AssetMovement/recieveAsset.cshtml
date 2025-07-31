@@ -1,4 +1,6 @@
 ﻿@using EMMS.ViewModels
+@using EMMS.Utility
+@using static EMMS.Models.Enumerators
 @model MoveAssetViewModel;
 @{
     ViewData["Title"] = "Recieve Assets";
@@ -9,19 +11,18 @@
 }
 
 
-<div class="card">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Asset pending receipt</span>
-        </div>
+<!-- Pending Asset Receipts Card -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Assets Pending Receipt</strong></span>
     </div>
     <div class="card-body">
-        <div class="table-wrapper">
-            <table class="table fixed-table table-striped table-bordered table-hover" id="pendingReception">
-                <thead>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover" id="pendingReception">
+                <thead class="table-dark">
                     <tr>
-                        <th>Asset ID</th>
-                        <th>Facility</th>
+                        <th>Asset Tag</th>
+                        <th>From Facility</th>
                         <th>Service Point</th>
                         <th>Date Sent</th>
                         <th>Functional Status</th>
@@ -30,35 +31,98 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.MoveAssets is not null)
-                    {
-                        @foreach (var reciveAsset in Model.MoveAssets.Where(a => (a.DateReceived == null && a.DateRejected == null) && a.IsApproved))
+                        @foreach (var asset in Model.MoveAssets.Where(a => a.DateReceived == null && a.DateRejected == null && a.IsApproved))
                         {
                             <tr>
-                                <td>@reciveAsset.Asset!.AssetTagNumber</td>
-                                <td>@reciveAsset.From!.FacilityName</td>
-                                <td>@reciveAsset.ServicePoint?.Name</td>
-                                <td>@reciveAsset.MovementDate.ToString("dd MMM yyyy")</td>
-                                <td>@reciveAsset.FunctionalStatus.ToString()</td>
-                                <td>@reciveAsset.Reason</td>
+                                <td>@asset.Asset?.AssetTagNumber</td>
+                                <td>@asset.From?.FacilityName</td>
+                                <td>@(asset.ServicePoint?.Name ?? "N/A")</td>
+                                <td>@asset.MovementDate.ToString("dd MMM yyyy")</td>
+                                <td>@Format.DisplayFunctionalStatus(asset.FunctionalStatus)</td>
+                                <td>@asset.Reason</td>
                                 <td>
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#recieveModal"
-                                    data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
-                                        Recieve
+                                    <button class="btn btn-sm btn-success me-1"
+                                            title="Receive Asset"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#recieveModal"
+                                            data-movement-id="@asset.MovementId"
+                                            data-asset-tag="@asset.Asset?.AssetTagNumber">
+                                        <i class="fa fa-check-circle"></i> Receive
                                     </button>
-                                    <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal" 
-                                    data-movement-id="@reciveAsset.MovementId" data-asset-tag="@reciveAsset.Asset.AssetTagNumber">
-                                        Reject
+                                    <button class="btn btn-sm btn-danger"
+                                            title="Reject Asset"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#rejectModal"
+                                            data-movement-id="@asset.MovementId"
+                                            data-asset-tag="@asset.Asset?.AssetTagNumber">
+                                        <i class="fa fa-times-circle"></i> Reject
                                     </button>
                                 </td>
                             </tr>
                         }
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
+<!-- Asset Receipt History Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Asset Receipt History</strong></span>
+    </div>
+    <div class="card-body">
+        <p class="text-muted" style="font-size: smaller;">Showing recent transactions</p>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover" id="receptionHistory">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Asset Tag</th>
+                        <th>From Facility</th>
+                        <th>Service Point</th>
+                        <th>Date Received</th>
+                        <th>Date Rejected</th>
+                        <th>Functional Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.MoveAssets != null && Model.MoveAssets.Any(a => a.DateReceived != null || a.DateRejected != null))
+                    {
+                        @foreach (var asset in Model.MoveAssets.Where(a => a.DateReceived != null || a.DateRejected != null))
+                        {
+                            <tr>
+                                <td>@asset.Asset?.AssetTagNumber</td>
+                                <td>@asset.From?.FacilityName</td>
+                                <td>@(asset.ServicePoint?.Name ?? "N/A")</td>
+                                <td>
+                                    @if (asset.DateReceived != null)
+                                    {
+                                        <span class="badge bg-success">@asset.DateReceived.Value.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not Received</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (asset.DateRejected != null)
+                                    {
+                                        <span class="badge bg-danger">@asset.DateRejected.Value.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not Rejected</span>
+                                    }
+                                </td>
+                                <td>@Format.DisplayFunctionalStatus(asset.FunctionalStatus)</td>
+                            </tr>
+                        }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center">No pending asset receipts</td>
+                            <td colspan="6" class="text-center text-muted">No asset receipt history available.</td>
                         </tr>
                     }
                 </tbody>
@@ -67,64 +131,6 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Asset receipt history</span>
-        </div>
-    </div>
-    <div class="card-body">
-        <p style="font-size: smaller;">Showing 1–10 out of 20</p>
-
-        <div class="table-wrapper">
-            <table class="table fixed-table table-striped table-bordered table-hover" id="receptionHistory">
-                <thead>
-                    <tr>
-                        <th>Asset ID</th>
-                        <th>Facility</th>
-                        <th>Service Point</th>
-                        <th>Date Recieved</th>
-                        <th>Date Rejected</th>
-                        <th>Functional Status</th>
-                        @* <th>Recieved By</th>  *@
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var reciveAsset in Model.MoveAssets.Where(a => a.DateReceived != null || a.DateRejected != null))
-                    {
-                        <tr>
-                            <td>@reciveAsset.Asset?.AssetTagNumber</td>
-                            <td>@reciveAsset.From?.FacilityName</td>
-                            <td>@reciveAsset.ServicePoint?.Name</td>
-                            <td>
-                                @if(reciveAsset.DateReceived != null)
-                                {
-                                    @reciveAsset.DateReceived.Value.ToString("dd MMM yyyy")
-                                }
-                                else
-                                {
-                                    <span>N/A</span>
-                                }
-                            </td>
-                            <td>
-                                @if (reciveAsset.DateRejected != null)
-                                {
-                                    @reciveAsset.DateRejected.Value.ToString("dd MMM yyyy");
-                                }
-                                else
-                                {
-                                    <span>N/A</span>
-                                }
-                            </td>
-                            <td>@reciveAsset.FunctionalStatus</td>
-                             @* <td>@(reciveAsset.ReceivedBy.HasValue ? "Yes" : "No")</td>  *@
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 
 
 <!-- Recieve Modal -->

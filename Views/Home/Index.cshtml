@@ -11,139 +11,129 @@
 <!-- Dashboard Header -->
 <div class="mb-4">
     <div class="card-body">
-        <!-- Dashboard Summary Cards -->
+
+        <!-- Dashboard Summary -->
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="card text-center h-100 shadow-sm">
-                    <div class="card-header bg-info text-white">
-                        Total Assets
-                    </div>
+                    <div class="card-header bg-info text-white">Total Assets</div>
                     <div class="card-body">
-                        <h1 class="card-title">@Model.TotalAssets</h1>
-                        <p class="card-text">Assets currently being tracked.</p>
+                        <h2 class="card-title fw-bold">@Model.TotalAssets</h2>
+                        <p class="card-text text-muted">Assets currently being tracked.</p>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-4">
                 <div class="card text-center h-100 shadow-sm">
-                    <div class="card-header bg-success text-white">
-                        Completed Jobs
-                    </div>
+                    <div class="card-header bg-success text-white">Completed Jobs</div>
                     <div class="card-body">
-                        <h1 class="card-title">@Model.CompletedJobs</h1>
-                        <p class="card-text">Jobs successfully completed.</p>
+                        <h2 class="card-title fw-bold">@Model.CompletedJobs</h2>
+                        <p class="card-text text-muted">Jobs successfully completed.</p>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-4">
                 <div class="card text-center h-100 shadow-sm">
-                    <div class="card-header bg-warning text-white">
-                        Pending Jobs
-                    </div>
+                    <div class="card-header bg-warning text-white">Pending Jobs</div>
                     <div class="card-body">
-                        <h1 class="card-title">@Model.PendingJobs</h1>
-                        <p class="card-text">Jobs awaiting approval or action.</p>
+                        <h2 class="card-title fw-bold">@Model.PendingJobs</h2>
+                        <p class="card-text text-muted">Jobs awaiting approval or action.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Notifications Section -->
-        <div class="col-lg-12 col-md-12 mb-4">
-            <div class="card shadow-sm">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>Equipments Up for Service</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive" id="table-responsive-asset">
-                            <div class="table-responsive" id="table-responsive-asset">
-                                <table class="table fixed-table table-striped table-bordered table-hover" id="assetTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Tag</th>
-                                            <th>Category</th>
-                                            <th>SubCategory</th>
-                                            <th>Vendor</th>
-                                            <th>Service Provider</th>
-                                            <th>Procument Status</th>
-                                            <th>Location</th>
-                                            <th>Functional Status</th>
-                                            <th>Service Due</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var asset in Model.assets)
+        <!-- Equipment Service Due Table -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Equipments Due for Service</span>
+            </div>
+
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped" id="assetTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tag</th>
+                                <th>Category</th>
+                                <th>SubCategory</th>
+                                <th>Vendor</th>
+                                <th>Service Provider</th>
+                                <th>Procurement Status</th>
+                                <th>Location</th>
+                                <th>Functional Status</th>
+                                <th>Service Due</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var asset in Model.assets)
+                            {
+                                var lastMove = asset.LastMovement;
+                                <tr>
+                                    <td>@asset.Asset.AssetTagNumber</td>
+                                    <td>@(Format.FormatCategory(asset.Asset?.Category?.Name))</td>
+                                    <td>@asset.Asset?.SubCategory?.Name</td>
+                                    <td>@asset.Asset.Vendor?.Name</td>
+                                    <td>@asset.Asset.ServiceProvider?.Name</td>
+                                    <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
+                                    <td>
+                                        @if (lastMove != null)
                                         {
-
-                                            var lastMove = asset.LastMovement;
-                                            <tr>
-                                                @* <td>
-                                                    <input type="checkbox" class="asset-checkbox"
-                                                           value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
-                                                </td> *@
-                                                <td>@asset.Asset.AssetTagNumber</td>
-                                                <td>@(Format.FormatCategory(asset.Asset?.Category!.Name))</td>
-                                                <td>@asset.Asset?.SubCategory!.Name</td>
-                                                <td>@asset.Asset.Vendor!.Name</td>
-                                                <td>@asset.Asset.ServiceProvider!.Name</td>
-                                                <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
-                                                <td>
-                                                    @if (lastMove != null)
-                                                    {
-                                                        @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
-                                                    }
-                                                    else
-                                                    {
-                                                        <span>-</span>
-                                                    }
-                                                </td>
-                                                <td>@Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus) </td>
-                                                <td>@(asset.Asset?.NextServiceDate != null ? DateOnly.FromDateTime((DateTime)asset.Asset.NextServiceDate) : '-')</td>
-                                                <td class="action-container">
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                            <i class="fa-solid fa-ellipsis"></i>
-                                                        </button>
-                                                        <ul class="dropdown-menu">
-                                                            <li class="@(lastMove != null  ? "d-none" : "")">
-                                                                <a class="dropdown-item btn btn-primary me-1"
-                                                                   title="Edit" style="font-size: medium"
-                                                                   asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
-                                                                    <i class="fa fa-edit"></i> edit asset
-                                                                </a>
-                                                            </li>
-                                                            <li>
-                                                            <a asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId" style="font-size: medium;" class="dropdown-item btn btn-info me-1" title="View">
-                                                                    <i class="fa fa-eye"></i> view asset
-                                                                </a>
-                                                            </li>
-                                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                                <a style="font-size: medium;"
-                                                                   class="dropdown-item btn btn-secondary"
-                                                                   asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
-                                                                    <i class="fa fa-toolbox"></i> service request
-                                                                </a>
-                                                            </li>
-                                                        </ul>
-                                                    </div>
-
-                                                </td>
-                                            </tr>
+                                            @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
                                         }
-                                    </tbody>
-                                </table>
-                            </div>
-
-                        </div>
-                    </div>
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td>@Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus)</td>
+                                    <td>
+                                        @(asset.Asset?.NextServiceDate != null
+                                            ? DateOnly.FromDateTime((DateTime)asset.Asset.NextServiceDate)
+                                            : "-")
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fa-solid fa-ellipsis"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li class="@(lastMove != null ? "d-none" : "")">
+                                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-edit me-1"></i> Edit Asset
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-eye me-1"></i> View Asset
+                                                    </a>
+                                                </li>
+                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-toolbox me-1"></i> Service Request
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
+            </div>
         </div>
+
     </div>
 </div>
+
+<!-- Toast Notification -->
 @if (TempData["Notification"] != null)
 {
-    var notification = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"] as string);
+    var notification = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"].ToString());
     var className = notification?.Type switch
     {
         NotificationType.Error => "error-notification notification",
@@ -155,23 +145,26 @@
         document.addEventListener("DOMContentLoaded", function () {
             Toastify({
                 text: "@notification?.Message",
-                duration: 100000,
+                duration: 8000,
                 close: true,
                 gravity: "top",
                 position: "center",
-                className: "error-notification notification"
+                className: "@className"
             }).showToast();
         });
     </script>
-}  
+}
+
 @section Scripts {
     <script>
         $(document).ready(function () {
             $('#assetTable').DataTable({
-                pageLength: 10
+                pageLength: 10,
+                responsive: true
             });
         });
     </script>
 }
+
 
 

@@ -21,26 +21,28 @@
     </div>
     <div class="card-body">
         <div class="table-wrapper">
-            <table class="table fixed-table table-striped table-bordered table-hover" id="movementHistoryTable">
-                <thead>
+            <table class="table table-striped table-bordered table-hover" id="movementHistoryTable">
+                <thead class="table-dark">
                     <tr>
                         <th>Asset Tag</th>
-                        <th>Facility</th>
+                        <th>From Facility</th>
+                        <th>To Facility</th>
                         <th>Service Point</th>
                         <th>Date Moved</th>
                         <th>Functional Status</th>
-                        <th>Reason</th>
+                        <th>Reason for Movement</th>
                         <th>Approved</th>
-                        <th>Recieved</th>
-                        <th>Action</th>
+                        <th>Received Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var movement in Model.MoveAssets)
                     {
                         <tr>
-                            <td>@movement.Asset!.AssetTagNumber</td>
-                            <td>@movement.Facility!.FacilityName</td>
+                            <td>@movement.Asset?.AssetTagNumber</td>
+                            <td>@movement.From?.FacilityName</td>
+                            <td>@movement.Facility?.FacilityName</td>
                             <td>
                                 @if (movement.ServicePoint != null)
                                 {
@@ -48,76 +50,95 @@
                                 }
                                 else
                                 {
-                                    <span class="text-danger">Unknown</span>
+                                    <span class="text-muted fst-italic">Unknown</span>
                                 }
                             </td>
-                            <td>@(DateOnly.FromDateTime(movement.MovementDate))</td>
+                            <td>@movement.MovementDate.ToShortDateString()</td>
                             <td>@Format.DisplayFunctionalStatus(movement.FunctionalStatus)</td>
                             <td>@movement.Reason</td>
+
                             <td>
                                 @if (!movement.IsApproved)
                                 {
-                                    if (isManager || isAdmin )
+                                    @if (isManager || isAdmin)
                                     {
-                                        <a class="btn btn-sm btn-primary" title="Approve" asp-controller="AssetMovement" asp-action="approveMovement" asp-route-id="@movement.MovementId">
-                                            Approve
+                                        <a class="btn btn-sm btn-success"
+                                           title="Approve Movement"
+                                           asp-controller="AssetMovement"
+                                           asp-action="approveMovement"
+                                           asp-route-id="@movement.MovementId">
+                                            <i class="fa fa-check-circle"></i> Approve
                                         </a>
                                     }
                                     else
                                     {
-                                        <span>No</span>
+                                        <span class="badge bg-warning text-dark">Pending</span>
                                     }
                                 }
                                 else
                                 {
-                                    <span>Yes</span>
+                                    <span class="badge bg-success">Approved</span>
                                 }
                             </td>
 
                             <td>
-                            @if(movement.DateRejected != null)
-                            {
-                                    <span>@($"Rejected")</span>
-
-                                
-                            }
-
-                            else
-                            {
-                                    @(movement.DateReceived.HasValue ? "Yes" : "No")
-                            }
+                                @if (movement.DateRejected != null)
+                                {
+                                    <span class="badge bg-danger">Rejected</span>
+                                }
+                                else if (movement.DateReceived.HasValue)
+                                {
+                                    <span class="badge bg-success">Received</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Pending</span>
+                                }
                             </td>
 
                             <td>
-                                <a class="btn btn-sm btn-primary me-1 @(movement.DateReceived.HasValue || movement.IsApproved ? "d-none" : "")"
-                                   title="Edit" 
-                                    asp-controller="AssetMovement"
-                                    asp-action="edit"
-                                    asp-route-id="@movement.MovementId">
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                <form class="@(movement.DateReceived.HasValue || movement.IsApproved ? "d-none" : "")" asp-action="deteleMovement" asp-controller="AssetMovement" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this movement?');">
-                                    <input type="hidden" name="id" value="@movement.MovementId" />
-                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></button>
-                                </form>
+                                <!-- Edit Button -->
+                                @if (!movement.DateReceived.HasValue && !movement.IsApproved)
+                                {
+                                    <a class="btn btn-sm btn-primary me-1"
+                                       title="Edit Movement"
+                                       asp-controller="AssetMovement"
+                                       asp-action="edit"
+                                       asp-route-id="@movement.MovementId">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
 
-                                @* <a class="btn btn-sm btn-danger me-1" title="View" @(movement.DateReceived.HasValue ? "hidden" : "")>
-                                    <i class="fa fa-trash"></i>
-                                </a> *@
-                                <a class="btn btn-sm btn-secondary me-1 @(movement.IsApproved ? "" : "d-none")"
-                                title="Gate Pass"
-                                asp-controller="AssetMovement"
-                                asp-action="GatePass"
-                                asp-route-id="@movement.MovementId"
-                                target="_blank">
-                                    <i class="fa fa-print"></i>
-                                </a>
+                                    <!-- Delete Button -->
+                                    <form asp-action="deleteMovement"
+                                          asp-controller="AssetMovement"
+                                          method="post"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this movement?');">
+                                        <input type="hidden" name="id" value="@movement.MovementId" />
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete Movement">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
+                                }
 
+                                <!-- Gate Pass Button -->
+                                @if (movement.IsApproved)
+                                {
+                                    <a class="btn btn-sm btn-secondary ms-1"
+                                       title="Print Gate Pass"
+                                       asp-controller="AssetMovement"
+                                       asp-action="GatePass"
+                                       asp-route-id="@movement.MovementId"
+                                       target="_blank">
+                                        <i class="fa fa-print"></i> Pass
+                                    </a>
+                                }
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
+
         </div>
     </div>
 </div>

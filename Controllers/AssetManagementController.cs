@@ -86,7 +86,7 @@ namespace EMMS.Controllers
 
 
         [RequireLogin]
-        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed))]
         public async Task<IActionResult> registerAsset()
         {
             var asset = new Asset()
@@ -94,6 +94,9 @@ namespace EMMS.Controllers
                 AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
             };
             var viewModel = await GetBaseAssetRegView(asset);
+            viewModel.alreadyDeployed = isAdmin ? false : true;
+            viewModel.dateDeployed = viewModel.alreadyDeployed ? DateTime.Now : null;
+            viewModel.facilityId = isAdmin ? null : CurrentUser!.FacilityId;
 
             return View(viewModel);
         }
