@@ -6,125 +6,171 @@
 
 
 function printAssetDetail() {
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Print Asset ${assetDetail.assetTagNumber}</title>
-                        <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
-                    </head>
-                    <body>
+    const asset = assetDetail || {};
+    const movement = assetMovement || {};
 
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <dl class="row">
-                                        <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.assetTagNumber}</dd>
+    const getValue = val => val ?? '-';
+    const formatDate = str => str ? new Date(str).toLocaleDateString() : '-';
 
-                                        <dt class="col-sm-6 border p-1 m-0">Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.category.name}</dd>
+    const getStatusBadge = (status, type) => {
+        const classes = {
+            ProcurementStatus: {
+                0: 'status-new', // New
+                1: 'status-info',
+                2: 'status-warning',
+                3: 'status-danger'
+            },
+            FunctionalStatus: {
+                1: 'status-new', // Functional
+                2: 'status-danger',
+                3: 'status-warning'
+            }
+        };
+        const className = classes[type]?.[status] || '';
+        const label = type === 'ProcurementStatus'
+            ? ['New', 'Used', 'Refurbished', 'Decommissioned'][status] || 'Unknown'
+            : ['Unknown', 'Functional', 'NonFunctional', 'UnderMaintenance'][status] || 'Unknown';
+        return `<div class="status-btn ${className}">${label}</div>`;
+    };
 
-                                        <dt class="col-sm-6 border p-1 m-0">Sub Category</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.subCategory.name}</dd>
+    const location = getValue(movement.facility?.facilityName || movement.servicePoint?.name);
+    const functionalStatus = movement.reason === 5
+        ? `<div class="status-btn status-danger">Decommissioned</div>`
+        : (movement.functionalStatus !== undefined
+            ? getStatusBadge(movement.functionalStatus, 'FunctionalStatus')
+            : '-');
 
-                                        <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.itemName}</dd>
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
+    const placement = asset.isPlacement
+        ? `${formatDate(asset.placementStartDate)} to ${formatDate(asset.placementEndDate)}`
+        : 'No';
 
-                                        <dt class="col-sm-6 border p-1 m-0">Department</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.department.name}</dd>
+    const serviceable = asset.isServiceable
+        ? `Every ${asset.serviceInterval ?? '-'} Month(s)`
+        : 'No';
 
-                                        <dt class="col-sm-6 border p-1 m-0">Manufacturer</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.manufacturer.name}</dd>
+    const nextServiceDate = asset.isServiceable && asset.nextServiceDate
+        ? formatDate(asset.nextServiceDate)
+        : null;
 
-                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
+    const logoPath = '/images/Coat_of_arms_of_Eswatini.svg';
 
+    const html = `
+        <html>
+        <head>
+            <title>Asset Detail</title>
+            <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
+            <style>
+                body { padding: 20px; font-family: sans-serif; }
+                .logo { max-height: 60px; margin-bottom: 20px; }
+                .status-btn {
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    display: inline-block;
+                    color: #fff;
+                    font-size: 0.85rem;
+                }
+                .status-new { background-color: #198754; }
+                .status-info { background-color: #0dcaf0; }
+                .status-warning { background-color: #ffc107; }
+                .status-danger { background-color: #dc3545; }
+            </style>
+        </head>
+        <body>
+            <div class="text-center">
+                <img src="${logoPath}" alt="Logo" class="logo"/>
+                <h4>EMMS Asset Detail Summary</h4>
+            </div>
+            <div class="row">
+                <div class="col-12 col-lg-4">
+                    <dl class="row small">
+                        <dt class="col-6 border p-1 m-0">Asset Tag</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.assetTagNumber)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Model</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.model}</dd>
+                        <dt class="col-6 border p-1 m-0">Category</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.category?.name)}</dd>
 
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
+                        <dt class="col-6 border p-1 m-0">Sub Category</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.subCategory?.name)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Placement</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">
-                                         ${
-                                            assetDetail.isPlacement
-                                                ? `Yes ${new Date(assetDetail.placementStartDate).toLocaleDateString()} to ${new Date(assetDetail.placementEndDate).toLocaleDateString()}`
-                                                : "No"
-                                         }
-                                        </dd>
+                        <dt class="col-6 border p-1 m-0">Item Name</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.itemName)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Donated</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Yes</dd>
+                        <dt class="col-6 border p-1 m-0">Created By</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.user?.firstName)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Vendor</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.vendor.name}</dd>
+                        <dt class="col-6 border p-1 m-0">Procurement Date</dt>
+                        <dd class="col-6 border p-1 m-0">${formatDate(asset.procurementDate)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Service Provider</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serviceProvider.name}</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <dl class="row">
-                                        <dt class="col-sm-6 border p-1 m-0">Quanity</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.quantity}</dd>
+                        <dt class="col-6 border p-1 m-0">Procurement Status</dt>
+                        <dd class="col-6 border p-1 m-0">${getStatusBadge(asset.statusId, 'ProcurementStatus')}</dd>
+                    </dl>
+                </div>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Procument Date</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${new Date(assetDetail.procurementDate).toLocaleDateString()}</dd>
+                <div class="col-12 col-lg-4">
+                    <dl class="row small">
+                        <dt class="col-6 border p-1 m-0">Department</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.department?.name)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Status</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.status}</dd>
+                        <dt class="col-6 border p-1 m-0">Manufacturer</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.manufacturer?.name)}</dd>
 
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
+                        <dt class="col-6 border p-1 m-0">Serial Number</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.serialNumber)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Lifespan</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.lifespanQuantity} year(s)</dd>
+                        <dt class="col-6 border p-1 m-0">Model</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.model)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Cost</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.cost}</dd>
+                        <dt class="col-6 border p-1 m-0">Lifespan</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.lifespanQuantity)} years</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Serial Number</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">${assetDetail.serialNumber}</dd>
+                        <dt class="col-6 border p-1 m-0">Cost</dt>
+                        <dd class="col-6 border p-1 m-0">E${getValue(asset.cost)}</dd>
+                    </dl>
+                </div>
 
-                                    </dl>
-                                </div>
-                                <div class="col-md-4">
-                                    <dl class="row">
+                <div class="col-12 col-lg-4">
+                    <dl class="row small">
+                        <dt class="col-6 border p-1 m-0">Placement</dt>
+                        <dd class="col-6 border p-1 m-0">${placement}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Current Location</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Lobamba Clinic</dd>
+                        <dt class="col-6 border p-1 m-0">Donated</dt>
+                        <dd class="col-6 border p-1 m-0">${asset.isDonated ? 'Yes' : 'No'}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Functional Status</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Working</dd>
+                        <dt class="col-6 border p-1 m-0">Vendor</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.vendor?.name)}</dd>
 
-                                        <dt class="col-sm-6 border p-1 m-0">Condition</dt>
-                                        <dd class="col-sm-6 border p-1 m-0">Good</dd>
-                                    </dl>
-                                </div>
-                            </div>
-                        </div>
-                    </body>
-                </html>
-            `);
+                        <dt class="col-6 border p-1 m-0">Service Provider</dt>
+                        <dd class="col-6 border p-1 m-0">${getValue(asset.serviceProvider?.name)}</dd>
 
+                        <dt class="col-6 border p-1 m-0">Current Location</dt>
+                        <dd class="col-6 border p-1 m-0">${location}</dd>
+
+                        <dt class="col-6 border p-1 m-0">Functional Status</dt>
+                        <dd class="col-6 border p-1 m-0">${functionalStatus}</dd>
+
+                        <dt class="col-6 border p-1 m-0">Serviceable</dt>
+                        <dd class="col-6 border p-1 m-0">${serviceable}</dd>
+
+                        ${nextServiceDate ? `
+                        <dt class="col-6 border p-1 m-0">Next Service Date</dt>
+                        <dd class="col-6 border p-1 m-0">${nextServiceDate}</dd>` : ''}
+                    </dl>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    printWindow.document.write(html);
     printWindow.document.close();
     printWindow.print();
     printWindow.onafterprint = () => printWindow.close();
-    console.log(assetDetail);
 }
+
+
+
+
 function printSelectedStickers() {
     const selectedAssets = Array.from(document.querySelectorAll('.asset-checkbox:checked'))
         .map(checkbox => JSON.parse(checkbox.value));

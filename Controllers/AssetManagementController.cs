@@ -71,7 +71,10 @@ namespace EMMS.Controllers
                 .Where(m => m.AssetId == id)
                 .Include(m => m.Facility)
                 .Include(m => m.ServicePoint)
+                .Include(m => m.RecievedUser)
+                .Include(m => m.RejectedUser)
                 .OrderByDescending(m => m.MovementDate)
+                .Where(m => (m.DateReceived != null || m.DateRejected != null) && m.RowState == RowStatus.Active)
                 .ToListAsync();
 
             var vm = new AssetDetailViewModel

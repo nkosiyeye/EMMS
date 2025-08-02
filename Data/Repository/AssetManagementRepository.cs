@@ -57,6 +57,8 @@ namespace EMMS.Data.Repository
             return await _context.AssetMovement
                                 .Include(m => m.Facility)
                                 .Include(m => m.ServicePoint)
+                                .Include(m => m.RecievedUser)
+                                .Include(m => m.RejectedUser)
                                 .GroupBy(m => m.AssetId)
                                 .Select(g => g.OrderByDescending(m => m.MovementDate).FirstOrDefault(g => g.DateReceived != null))
                                 .ToListAsync();

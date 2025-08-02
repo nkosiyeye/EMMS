@@ -1,13 +1,21 @@
 ﻿@inject EMMS.Data.ApplicationDbContext _context
+@using EMMS.Models.Admin
 
 @{
-    var notifications = _context.Notifications
+    var currentUser = ViewBag.CurrentUser as User;
+    bool isAdmin = ViewBag.IsAdmin ?? false;
+
+    var allNotifications = _context.Notifications
         .OrderByDescending(n => n.DateCreated)
-        .Take(3)
         .ToList();
+
+    var notifications = isAdmin
+        ? allNotifications
+        : allNotifications.Where(n => n.FacilityId == currentUser?.FacilityId).ToList();
+
+    notifications = notifications.Take(3).ToList(); // Limit to top 3
 }
 
 <script>
-    // Pass notifications from C# to JavaScript
     const notificationsData = @Html.Raw(Json.Serialize(notifications));
 </script>
