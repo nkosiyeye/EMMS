@@ -122,7 +122,7 @@ namespace EMMS.Controllers
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
-            {
+            {              
                 UpdateEntity(asset); // TBD Replace with actual user ID
                 //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 

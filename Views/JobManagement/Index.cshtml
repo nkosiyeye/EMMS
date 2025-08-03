@@ -83,7 +83,8 @@
                                 <td>
                                     <div class="btn-group">
                                         @* Edit Button - Only for "Open" status *@
-                                        <a class="btn btn-sm btn-primary @(request.WorkStatus?.Name != "Open" ? "d-none" : "")" title="Edit Request">
+									<a asp-controller="JobManagement" asp-action="editWorkRequest" asp-route-id="@request.WorkRequestId"
+                                            class="btn btn-sm btn-primary @(request.WorkStatus?.Name != "Open" ? "d-none" : "")" title="Edit Request">
                                             <i class="fa fa-edit"></i>
                                         </a>
 
@@ -215,7 +216,7 @@
                         <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
                         <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
                                 data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
-                            @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Closed"))
+                            @foreach (var status in Model.WorkStatuses.Where(w => w.Name.ToLower().Contains("clos")))
                             {
                                 <option value="@status.Id" selected>@status.Name</option>
                             }

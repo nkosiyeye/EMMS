@@ -13,6 +13,35 @@
     --border: #e2e8f0;
     --foreground: #0f172a;
 }
+.offcanvas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--primary) !important; /* Dark blue background */
+    padding: 0rem 1rem;
+}
+.sidebar-footer {
+    background-color: #f8f9fa; /* Or match sidebar bg */
+    padding: 1rem 1rem 7.5rem 1rem !important;
+}
+@media (max-width: 770px) {
+    .sidebar-footer {
+        background-color: #f8f9fa; /* Or match sidebar bg */
+        padding: 1rem 1rem 2rem 1rem !important;
+    }
+}
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(0deg);
+}
+
+[aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
 .bg-primary {
     background-color: var(--primary) !important;
     color: var(--primary-foreground) !important;
@@ -88,10 +117,17 @@ main{
     font-size: 0.875rem;
     font-weight: 500;
 }
-.btn-outline {
+.btn-outline-dark {
     border-color: var(--border);
     background-color: transparent;
     color: var(--foreground);
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.btn-outline-dark:hover {
+    background-color: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
 }
 
 

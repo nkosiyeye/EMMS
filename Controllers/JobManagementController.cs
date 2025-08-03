@@ -67,6 +67,7 @@ namespace EMMS.Controllers
                 WorkStatuses = await _repo.GetWorkStatus(),
                 Outcomes = await _repo.GetOutcomes(),
                 ServiceProviders = await _Assetrepo.GetServiceProviders(),
+                CancelReasons = await _repo.GetCancelReasons(),
             };
 
             return paginatedJob;
@@ -142,6 +143,36 @@ namespace EMMS.Controllers
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["WorkRequestError"] = string.Join("; ", errors);
             return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
+        }
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> editWorkRequest(Guid id)
+        {
+            var _repo = new JobManagementRepo(_context);
+            var workRequest = await _repo.GetWorkRequests();
+            var workAssetViewModel = new WorkRequestViewModel()
+            {
+                WorkRequest =workRequest.FirstOrDefault(w => w.WorkRequestId == id),
+                FaultReports = await _repo.GetFaultReports(),
+                WorkStatuses = await _repo.GetWorkStatus(),
+            };
+
+            return View(workAssetViewModel);
+        }
+        [HttpPost]
+        //[RequireLogin]
+        public async Task<IActionResult> editWorkRequest(WorkRequestViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(editWorkRequest), new { id = model.WorkRequest.WorkRequestId });
+            }
+
+            UpdateEntity(model.WorkRequest);
+            _context.Update(model.WorkRequest);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> AutomateServiceRequest(Guid id)
@@ -356,6 +387,30 @@ namespace EMMS.Controllers
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
+        }
+        [HttpPost]
+        public async Task<IActionResult> cancelRequest(WorkRequestViewModel workRequestView)
+        {
+            
+           try {
+             var id = workRequestView.WorkRequest.WorkRequestId;
+            var _repo = new JobManagementRepo(_context);
+            var work = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == id);
+            work.OutcomeId = workRequestView.WorkRequest.OutcomeId;
+            work.CloseDate = workRequestView.WorkRequest.CloseDate;
+            work.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
+            work.CancelReasonId = workRequestView.WorkRequest.CancelReasonId;
+            UpdateEntity(work); // Assuming UpdateEntity handles the update logic
+
+            _context.Update(work!);
+            await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                return RedirectToAction("Error", "Home");
+            }
         }
     }
 }

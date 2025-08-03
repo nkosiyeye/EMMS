@@ -29,7 +29,27 @@
     <div class="container-fluid h-full w-full" style="height: 100vh;">
         <div class="row flex-nowrap" style="height: 100vh;">
             <div class="col-auto px-0 py-0 h-full" style="height: 100vh;">
-                <div id="sidebar" class="collapse collapse-horizontal">
+                <!-- Offcanvas sidebar for tablets & smaller (shown when toggled) -->
+                <div id="offcanvasSidebar" class="offcanvas offcanvas-start d-lg-none h-100" tabindex="-1" aria-labelledby="offcanvasSidebarLabel" style="width:260px;">
+                    <div class="offcanvas-header" style="background-color: #2563EB;">
+                        <nav class="navbar d-flex align-items-center">
+                            <div class="container-fluid justify-content-start">
+                                <a class="align-items-center float-start py-1" href="#">
+                                    @* <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2"> *@
+                                    <span class="fw-bold text-white" style="font-size: larger;">
+                                        EMMS
+                                    </span>
+                                </a>
+                            </div>
+                        </nav>
+                        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    </div>
+                    @* Sidebar content *@
+                    @await Html.PartialAsync("_SidebarContent")
+                </div>
+
+                <!-- Static sidebar for large screens and above -->
+                <div class="d-none d-lg-block h-100">
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
                             <a class="align-items-center float-start py-1" href="#">
@@ -40,92 +60,33 @@
                             </a>
                         </div>
                     </nav>
-                    <div id="sidebar-nav" class="list-group border-0 rounded-0 rounded-0 text-sm-start" style="border: none;">
-                        <a asp-controller="Home" asp-action="Index" class="@ViewData["active"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-gauge"></i> <span>Dashboard</span> </a>
-                        <a asp-controller="AssetManagement" asp-action="Index" class="@ViewData["asset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-box-open"></i> <span>Asset Management</span></a>
-                        <a style="color:black" href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
-                            <i class="fa-solid fa-arrows-turn-to-dots"></i> <span>Asset Movement</span>
-                        </a>
-                        <div style="border:solid; border-color:gray;" id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Move Asset</span></a>
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Receive Asset</span></a>
-                        </div>
-                        <a style="color:black" href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
-                            <i class="fa-solid fa-toolbox"></i> <span>Job Management</span>
-                        </a>
-                        <div style="border:solid; border-color:gray;" id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                            <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="Index" class="@ViewData["workRequest"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Work Request</span></a>
-                            @if (isBiomed || isAdmin)
-                            {
-                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><span>Create Job</span></a>                                
-                            }
-                        </div>
-
-                        <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar"><i class="fa-solid fa-bell"></i> <span>Notifications</span></a>
-                        @if (isAdmin)
-                        {
-                            <a asp-controller="Admin" asp-action="LookupList" class="list-group-item border-0 d-inline-block text-truncate">
-                                <i class="fa-solid fa-list"></i> <span>Lookup List</span>
-                            </a>
-
-                            <a style="color:black" href="#usermenu" data-bs-toggle="collapse" class="list-group-item border-0 d-inline-block text-truncate" data-bs-parent="#sidebar">
-                                <i class="fa-solid fa-toolbox"></i> <span>User Management</span>
-                            </a>
-
-                            <div style="border:solid; border-color:gray;" id="usermenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="Users" asp-action="Index" class="list-group-item item border-0 d-inline-block text-truncate"><span>User Accounts</span></a>
-                                <a style="font-size:0.8rem;font-weight:600;" asp-controller="Admin" asp-action="UserRoles" class="list-group-item item border-0 d-inline-block text-truncate"><span>User Roles</span></a>
-                            </div>
-                        }
-
-
-                        @* @await Component.InvokeAsync("SidebarLookups") *@
-                    </div>
+                    @await Html.PartialAsync("_SidebarContent")
                 </div>
             </div>
             <main class="col px-0 py-0 mb-5">
                 <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
                     <div class="container-fluid d-flex items-center">
                         <div class="d-flex align-items-center">
-                            <a href="#" data-bs-target="#sidebar" data-bs-toggle="collapse" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
+                            <a href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle d-lg-none">
                                 <i class="fa-solid fa-bars"></i>
                             </a>
-                            <span class="fw-bold text-white" style="font-size: smaller;">
-                                @if (!isAdmin)
-                                {
-                                    @(currentUser!.Facility?.FacilityName)
-
-                                }
-                                else
-                                {
-                                    @(currentUser!.UserRole?.Name)
-                                }
-                            </span>
                         </div>
                         <div class="d-flex align-items-center">
                             <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                 <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
                             </a>
-                            <a asp-controller="Home" asp-action="Logout" title="Logout" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle">
-                                <i class="fa-solid fa-power-off"></i>
-                            </a>
                             <div class="row justify-content-center align-items-center">
-                                <div class="col-auto" style="padding-right:0px;">
-                                    <img src="~/images/user.jpg"
-                                         class="rounded-circle"
-                                         style="width: 30px; height: 30px; object-fit: cover; border: 2px solid #dee2e6; padding: 2px;"
-                                         alt="User Image" />
-                                </div>
-                                <div class="col-auto d-none d-md-block">
-                                    <div class="d-flex flex-column">
-                                        <span class="fw-bold" style="font-size:smaller">
-                                            @(currentUser!.FirstName) @(currentUser.LastName)
-                                        </span>
-                                        <span class="text-muted" style="font-size:x-small">
-                                            @currentUser.UserRole!.Name
-                                        </span>
-                                    </div>
-                                </div>
+                                <span class="fw-bold text-white" style="font-size: smaller;">
+                                    @if (!isAdmin)
+                                    {
+                                        @(currentUser!.Facility?.FacilityName)
+
+                                    }
+                                    else
+                                    {
+                                        @(currentUser!.UserRole?.Name)
+                                    }
+                                </span>
                             </div>
                             
                         </div>
@@ -161,13 +122,13 @@
         </div>
     </div>
 
-    <div class="footer border-top-1" style="background-color:#F5F5F5">
+    <footer class="footer border-top-1" style="background-color:#F5F5F5">
         <div class="d-flex justify-content-between align-items-center">
             <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
             <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
             <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
         </div>
-    </div>
+    </footer>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
@@ -177,24 +138,6 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
     <script>
-        // if screen onresize is below 700 hide side bar by default
-        document.addEventListener("DOMContentLoaded", function () {
-            const sidebar = document.getElementById("sidebar");
-
-            function toggleSidebar() {
-                if (window.innerWidth < 769) {
-                    sidebar.classList.remove("show"); // Hide the sidebar
-                } else {
-                    sidebar.classList.add("show"); // Show the sidebar
-                }
-            }
-
-            // Run on page load
-            toggleSidebar();
-
-            // Run on window resize
-            window.addEventListener("resize", toggleSidebar);
-        });
 
                 document.addEventListener("DOMContentLoaded", function () {
             const descriptionModal = document.getElementById("descriptionModal");

@@ -3,6 +3,7 @@ using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Data.Repository;
 using EMMS.Models;
+using EMMS.Models.Admin;
 using EMMS.Models.Entities;
 using EMMS.Service;
 using EMMS.ViewModels;
@@ -127,13 +128,13 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
-        [RequireLogin]
+        //[RequireLogin]
         public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
-                return View(model);
+                return RedirectToAction(nameof(Edit), new { id = model.MoveAsset.MovementId });
             }
 
             UpdateEntity(model.MoveAsset);
@@ -291,6 +292,10 @@ namespace EMMS.Controllers
                 .Include(m => m.Facility)
                 .Include(m => m.From)
                 .Include(m => m.ServicePoint)
+                .Include(m => m.ApprovedUser)
+                .ThenInclude(m => m.UserRole)
+                .Include(m => m.ApprovedUser)
+                .ThenInclude(m => m.Designations)
                 .FirstOrDefaultAsync(m => m.MovementId == id);
 
             return movement == null ? NotFound() : View("GatePass", movement);

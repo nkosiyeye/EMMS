@@ -119,17 +119,25 @@
             const movementType = document.getElementById("movementType").value;
             const facilityField = document.getElementById("facilityField");
             const servicePointField = document.getElementById("servicePointField");
+            const servicePointSelect = servicePointField.querySelector("select"); // <-- Important
 
             if (movementType && facilityField && servicePointField) {
                 if (movementType === "1") { // Facility
                     facilityField.classList.remove("d-none");
                     servicePointField.classList.add("d-none");
+                     // Reset to default option
+                     servicePointSelect.selectedIndex = 0;
+                    servicePointSelect.value = "";
+                    $(servicePointSelect).val("").selectpicker("refresh");
                 } else if (movementType === "2") { // Service Point
                     facilityField.classList.remove("d-none");
                     servicePointField.classList.remove("d-none");
                 } else if (movementType === "3") { // Facility
                     facilityField.classList.remove("d-none");
                     servicePointField.classList.add("d-none");
+                    servicePointSelect.selectedIndex = 0;
+                    servicePointSelect.value = "";
+                    $(servicePointSelect).val("").selectpicker("refresh");
                 }
                 else {
                     // Default: hide both if needed
@@ -141,7 +149,7 @@
 
                 function updateFacilityDropdown(isOffSite) {
             const facilitySelect = document.getElementById('facility');
-            console.log(facilitySelect);
+            //console.log(facilitySelect);
 
             // Clear current options
             facilitySelect.innerHTML = '<option selected disabled>Select Facility</option>';
@@ -149,7 +157,6 @@
             fetch(`/AssetMovement/GetFacilites?isOffSite=${isOffSite}`)
                 .then(response => response.json())
                 .then(data => {
-                    console.log(data);
                     data.forEach(function (item) {
                         var option = document.createElement('option');
                         option.value = item.facilityId;

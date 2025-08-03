@@ -65,7 +65,8 @@
                                             </button>
                                             <button class="btn btn-danger btn-sm"
                                                     data-bs-toggle="modal"
-                                                    data-bs-target="#cancelModal">
+                                                    data-bs-target="#cancelModal"
+                                                    data-cancelrequest-id="@request.WorkRequestId">
                                                 Cancel
                                             </button>
                                         </div>
@@ -238,6 +239,59 @@
           }
     </script>
 </div>
+<!-- Reject Modal TBD -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="cancelRequest" asp-controller="JobManagement">
+                    <div class="row mb-3">
+                        <!-- Date -->
+                        <div class="col-md-4">
+                            <label asp-for="WorkRequest.CloseDate" class="form-label required-field">Date Canceled</label>
+                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="movementDate" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
+                            <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
+                                @foreach (var status in Model.WorkStatuses.Where(m => m.Name.ToLower().Contains("ca")))
+                                {
+                                    <option value="@status.Id" selected>@status.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Outcome -->
+                        <div class="col-md-4">
+                            <input asp-for="WorkRequest.WorkRequestId" id="cancelrequestId" type="hidden" />
+                            <label asp-for="WorkRequest.OutcomeId" for="title" class="form-label required-field"></label>
+                            <select asp-for="WorkRequest.OutcomeId" id="movementType" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Outcomes.Where(o => o.Name.ToLower().Contains("un")), "Id", "Name"))">
+                            </select> 
+                        </div>
+                    </div>
+                    <div class="col-md-12 mb-2">
+                        <label asp-for="WorkRequest.CancelReasonId" for="title" class="form-label required-field"></label>
+                        <select asp-for="WorkRequest.CancelReasonId" id="movementType" class="form-select selectpicker col-md-6"
+                                data-live-search="true" asp-items="@(new SelectList(Model.CancelReasons, "Id", "Name"))">
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary">Close</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
@@ -251,6 +305,21 @@
         $('#JobTable').DataTable({
                 pageLength: 10
             });
+        });
+
+         document.addEventListener("DOMContentLoaded", function () {
+
+            const cancelJobModal = document.getElementById("cancelModal");
+                const requestIdInput = document.getElementById("cancelrequestId");
+
+
+                cancelJobModal.addEventListener("show.bs.modal", function (event) {
+                    const button = event.relatedTarget;
+
+                    const requestId = button.getAttribute("data-cancelrequest-id");
+
+                    requestIdInput.value = requestId;
+                });
         });
         document.addEventListener("DOMContentLoaded", function () {
             // Get the modal and the asset tag input field

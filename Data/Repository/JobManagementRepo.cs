@@ -20,6 +20,7 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Outcome)
                 .Include(w => w.RequestedByUser)
                 .Include(w => w.Job)
+                .OrderByDescending(w => w.RequestDate)
                 .ToListAsync();
         }
         public async Task<WorkRequest?> GetWorkRequestByAssetId(Guid assetId)
@@ -35,17 +36,14 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Status)
                 .Include(w => w.FaultReport)
                 .Include(w => w.ExternalProvider)
+                .OrderByDescending(w => w.StartDate)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<WorkDone>> GetWorkDone()
         {
             return await _context.WorkDone
-                .ToListAsync();
-        }
-        public async Task<IEnumerable<ExternalWorkDone>> GetExWorkDone()
-        {
-            return await _context.ExternalWorkDone
+                .OrderByDescending(w => w.DateCompleted)
                 .ToListAsync();
         }
 
@@ -65,6 +63,13 @@ namespace EMMS.Data.Repository
         {
             return await _context.LookupItems
                 .Where(x => x.LookupList.Name == "WorkRequestOutcome" && x.RowState == RowStatus.Active)
+                .ToListAsync();
+        }
+
+        internal async Task<IEnumerable<LookupItem>> GetCancelReasons()
+        {
+            return await _context.LookupItems
+                .Where(x => x.LookupList.Name == "CancelReason" && x.RowState == RowStatus.Active)
                 .ToListAsync();
         }
     }

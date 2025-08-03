@@ -6,20 +6,23 @@
         <div class="card col-md-6 mb-6">
             <div class="card-header">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Add @Model.LookupList?.Name Item</span>
+                    <span>Edit @Model.LookupList?.Name Item</span>
                 </div>
             </div>
             <div class="card-body">
-                @if (TempData["LookupError"] != null)
+                @if (TempData["Error"] != null)
                 {
                     <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                        @TempData["LookupError"]
+                        @TempData["Error"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
-                <form asp-action="AddLookupItem" asp-controller="Admin" method="post">
+                <form asp-action="EditLookupItem" asp-controller="Admin" method="post">
                     <div class="row">
                         <input type="hidden" asp-for="_lookupItem.LookupListId" value="@Model.LookupList?.LookupListId" />
+                        <input asp-for="_lookupItem.Id" hidden />
+                        <input asp-for="_lookupItem.DateCreated" type="hidden" id="asset-tag" class="form-control" readonly>
+                        <input asp-for="_lookupItem.CreatedBy" type="hidden" id="asset-tag" class="form-control" readonly>
                         <div class="mb-3">
                             <label asp-for="_lookupItem.Name" for="Name" class="form-label required-field">Item Name</label>
                             <input asp-for="_lookupItem.Name" type="text" class="form-control" id="Name" required />
@@ -47,7 +50,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Item</button>
+                        <button type="submit" class="btn btn-primary">Edit Item</button>
                     </div>
                 </form>
             </div>

@@ -5,6 +5,7 @@ using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Models.Admin;
 using EMMS.Models.Entities;
+using EMMS.ViewModels;
 using EMMS.ViewModels.Admin;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -65,15 +66,13 @@ namespace EMMS.Controllers.Admin
             return View(viewModel);
         }
 
-
         [HttpPost]
         [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> AddLookupItem(LookupViewModel vModel)
         {
             var lookup = vModel._lookupItem;
-            Debug.WriteLine("----------" + lookup.ParentId);
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
+            TempData["LookupError"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
                 //var lookup = viewModel._lookupItem;
@@ -85,6 +84,7 @@ namespace EMMS.Controllers.Admin
                     RowState = lookup.RowState,
                     DateCreated = DateTime.Now
                 };
+                CreateEntity(item);
                 _context.LookupItems.Add(item);
                 await _context.SaveChangesAsync();
                 return RedirectToAction("Index", new { id = lookup.LookupListId });
@@ -109,6 +109,23 @@ namespace EMMS.Controllers.Admin
                 LookupList = lookupItem.LookupList
             };
             return View(viewModel);
+        }
+        [HttpPost]
+        //[RequireLogin]
+        public async Task<IActionResult> EditLookupItem(LookupViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                return RedirectToAction(nameof(EditLookupItem), new { id = model._lookupItem.Id });
+            }
+            var rowState = model._lookupItem.RowState;
+
+            UpdateEntity(model._lookupItem);
+            model._lookupItem.RowState = rowState;
+            _context.Update(model._lookupItem);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index), new { id = model._lookupItem.LookupListId });
         }
         [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> UserRoles()

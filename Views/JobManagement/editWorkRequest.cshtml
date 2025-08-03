@@ -1,10 +1,9 @@
 ﻿@using EMMS.ViewModels
 @model WorkRequestViewModel
 @{
-    ViewData["Title"] = "Work Request";
+    ViewData["Title"] = "Edit Request";
     ViewData["workRequest"] = "active";
     ViewData["JobManagement"] = "active";
-    Model.WorkRequest.RequestDate = DateTime.Today;
 }
 
 <div class="card mb-12">
@@ -22,11 +21,16 @@
             </div>
 
         }
-        <form asp-action="WorkRequest" asp-controller="JobManagement" method="post">
+        <form asp-action="editWorkRequest" asp-controller="JobManagement" method="post">
             <div class="row mb-2">
 
                 <!-- Date -->
                 <div class="col-md-6">
+                    <input asp-for="WorkRequest.WorkRequestId" hidden />
+                    <input asp-for="WorkRequest.DateCreated" type="hidden" id="asset-tag" class="form-control" readonly>
+                    <input asp-for="WorkRequest.CreatedBy" type="hidden" id="asset-tag" class="form-control" readonly>
+                    <input asp-for="WorkRequest.RowState" type="hidden" id="asset-tag" class="form-control" readonly>
+                    <input asp-for="WorkRequest.RequestedBy" type="hidden" id="asset-tag" class="form-control" readonly>
                     <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
                     <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
                     <span asp-validation-for="WorkRequest.RequestDate" class="text-danger"></span>
@@ -35,8 +39,8 @@
                 <!-- Asset Name / Tag -->
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
-                    <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden/>
-                    <input class="form-control" type="text" value="@Model.AssetTag" disabled />
+                    <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden />
+                    <input class="form-control" type="text" value="@Model.WorkRequest!.Asset!.AssetTagNumber" disabled />
                 </div>
             </div>
             <div class="row mb-2">
@@ -55,7 +59,7 @@
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.FacilityId" class="form-label"></label>
                     <input asp-for="WorkRequest.FacilityId" type="hidden" class="form-control" value="@ViewBag._currentUser.FacilityId" readonly />
-                     <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
+                    <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
                 </div>
             </div>
 

@@ -49,6 +49,11 @@ namespace EMMS.Models
         [ForeignKey(nameof(FacilityId))]
         public virtual Facility? Facility { get; set; }
 
+        [Display(Name = "Cancel Reason")]
+        public int? CancelReasonId { get; set; }
+        [ForeignKey(nameof(CancelReasonId))]
+        public virtual LookupItem? CancelReason { get; set; }
+
         [Display(Name = "Close Date")]
         public DateTime? CloseDate { get; set; }
 

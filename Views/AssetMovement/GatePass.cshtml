@@ -13,6 +13,8 @@
 <html>
 <head>
     <title>Gate Pass</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <style>
     body {
         font-family: Arial, sans-serif;
@@ -37,6 +39,32 @@
     .print-btn {
         display: none;
     }
+
+        .signature-box {
+            border-top: 2px solid #2c3e50;
+            margin-top: 30px;
+            padding-top: 10px;
+            text-align: center;
+        }
+
+        .stamp-box {
+            border: 2px dashed #6c757d;
+            height: 120px;
+            border-radius: 8px;
+            background: repeating-linear-gradient( 45deg, transparent, transparent 10px, rgba(108, 117, 125, 0.05) 10px, rgba(108, 117, 125, 0.05) 20px );
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 3rem;
+            color: rgba(52, 152, 219, 0.05);
+            font-weight: bold;
+            z-index: 0;
+            pointer-events: none;
+        }
     /* @@media print {
         .print-btn {
             display: none;
@@ -47,7 +75,12 @@
 </head>
 <body>
     <div class="gate-pass">
-        <h2>Asset Movement Gate Pass</h2>
+        <div class="text-center mb-3">
+            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms" style="width: 60px; height: 60px;">
+        </div>
+        <h2>EMMS Gate Pass</h2>
+        <!-- Watermark -->
+        <div class="watermark">AUTHORIZED</div>
         <table>
             <tr>
                 <th>Asset Tag:</th>
@@ -69,16 +102,38 @@
                 <th>Functional Status:</th>
                 <td>@Model.FunctionalStatus</td>
             </tr>
-            <tr>
-                <th>Approved:</th>
-                <td>@(Model.IsApproved ? "Yes" : "No")</td>
-            </tr>
         </table>
-        <div style="margin-top: 32px;">
-            <strong>Authorized By:</strong> _______________________
-        </div>
-        <div style="margin-top: 16px;">
-            <button class="btn btn-primary print-btn" onclick="window.print()">Print Gate Pass</button>
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <div class="text-center p-3 border rounded">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-user-tie me-2"></i>AUTHORIZED BY
+                    </h6>
+                    <div class="mb-3">
+                        <strong class="fs-5">@Model.ApprovedUser.FirstName @Model.ApprovedUser.LastName</strong>
+                        <div class="text-muted">@Model.ApprovedUser.Designations.Name</div>
+                        <small class="text-muted">@Model.ApprovedUser.UserRole.Name</small>
+                    </div>
+                    <div class="signature-box">
+                        <small class="text-muted fst-italic">Authorized Signature & Date</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="text-center p-3 border rounded">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-stamp me-2"></i>OFFICIAL VALIDATION
+                    </h6>
+                    <div class="stamp-box d-flex align-items-center justify-content-center">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-stamp fa-3x opacity-25 mb-2"></i>
+                            <div>Official Seal Here</div>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-2 d-block">Official Stamp</small>
+                </div>
+            </div>
         </div>
     </div>
 </body>

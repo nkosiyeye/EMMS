@@ -1,0 +1,96 @@
+﻿@using EMMS.Models
+@using EMMS.Models.Admin
+@{
+    var isAdmin = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.Administrator;
+    var isBiomed = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.Biomed;
+    var isManager = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.FacilityManager;
+    var currentUser = ViewBag._currentUser as User;
+}
+
+<!-- Full-height vertical sidebar -->
+<div class="d-flex flex-column justify-content-between h-100">
+
+    <!-- Sidebar menu -->
+    <div class="flex-grow-1 overflow-auto">
+        <div id="sidebar-nav" class="list-group border-0 rounded-0 text-sm-start">
+            <a asp-controller="Home" asp-action="Index" class="@ViewData["active"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
+            </a>
+            <a asp-controller="AssetManagement" asp-action="Index" class="@ViewData["asset"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-box-open"></i> <span>Asset Management</span>
+            </a>
+
+            <a href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
+                <i class="fa-solid fa-arrows-turn-to-dots"></i> 
+                <span>Asset Movement</span>
+                <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
+            </a>
+            <div id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                <a asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                    Move Asset
+                </a>
+                <a asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                    Receive Asset
+                </a>
+            </div>
+
+            <a href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
+                <i class="fa-solid fa-toolbox"></i>
+                <span>Job Management</span>
+                <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
+            </a>
+            <div id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                <a asp-controller="JobManagement" asp-action="Index" class="@ViewData["workRequest"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                    Work Request
+                </a>
+                @if (isBiomed || isAdmin)
+                {
+                    <a asp-controller="JobManagement" asp-action="manageJobs" class="@ViewData["manageJob"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Create Job
+                    </a>
+                }
+            </div>
+
+            <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-bell"></i> <span>Notifications</span>
+            </a>
+
+            @if (isAdmin)
+            {
+                <a asp-controller="Admin" asp-action="LookupList" class="list-group-item border-0 d-inline-block text-truncate">
+                    <i class="fa-solid fa-list"></i> <span>Lookup List</span>
+                </a>
+
+                <a href="#usermenu" data-bs-toggle="collapse" class="list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
+                    <i class="fa-solid fa-users"></i> 
+                    <span>User Management</span>
+                    <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
+                </a>
+                <div id="usermenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                    <a asp-controller="Users" asp-action="Index" class="list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        User Accounts
+                    </a>
+                    <a asp-controller="Admin" asp-action="UserRoles" class="list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        User Roles
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="sidebar-footer border-top bg-white">
+        <div class="user-profile d-flex align-items-center mb-2">
+            <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                @(currentUser?.FirstName?[0])@(currentUser?.LastName?[0])
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-medium small">@(currentUser?.FirstName) @(currentUser?.LastName)</div>
+                <div class="text-muted" style="font-size: 0.75rem;">@currentUser?.UserRole?.Name</div>
+            </div>
+        </div>
+        <a asp-controller="Home" asp-action="Logout" class="btn btn-outline-dark w-100 d-flex align-items-center">
+            <i class="fa-solid fa-power-off me-2"></i> Sign Out
+        </a>
+    </div>
+</div>

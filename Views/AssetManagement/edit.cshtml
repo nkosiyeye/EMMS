@@ -29,6 +29,9 @@
                     <label asp-for="asset.AssetTagNumber" class="form-label required-field">Asset Tag</label>
                     <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model.asset.AssetTagNumber" readonly>
                     <input asp-for="asset.AssetId" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.AssetId" readonly>
+                    <input asp-for="asset.DateCreated" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.DateCreated" readonly>
+                    <input asp-for="asset.CreatedBy" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.CreatedBy" readonly>
+                    <input asp-for="asset.RowState" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.RowState" readonly>
                 </div>
 
                 <div class="col-md-6">
