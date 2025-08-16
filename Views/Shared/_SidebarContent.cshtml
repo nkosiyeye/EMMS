@@ -21,8 +21,10 @@
             </a>
 
             <a href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
-                <i class="fa-solid fa-arrows-turn-to-dots"></i> 
-                <span>Asset Movement</span>
+                <div>
+                    <i class="fa-solid fa-arrows-turn-to-dots"></i>
+                    <span>Asset Movement</span>
+                </div>
                 <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
             </a>
             <div id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
@@ -35,8 +37,10 @@
             </div>
 
             <a href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
-                <i class="fa-solid fa-toolbox"></i>
-                <span>Job Management</span>
+               <div>
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span>Job Management</span>
+               </div>
                 <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
             </a>
             <div id="jobmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
@@ -51,6 +55,10 @@
                 }
             </div>
 
+            <a asp-controller="Reports" asp-action="Index" class="@ViewData["Reports"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-file-excel"></i> <span>Reports</span>
+            </a>
+
             <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate">
                 <i class="fa-solid fa-bell"></i> <span>Notifications</span>
             </a>
@@ -62,8 +70,10 @@
                 </a>
 
                 <a href="#usermenu" data-bs-toggle="collapse" class="list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
-                    <i class="fa-solid fa-users"></i> 
-                    <span>User Management</span>
+                   <div>
+                        <i class="fa-solid fa-users"></i>
+                        <span>User Management</span>
+                   </div>
                     <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
                 </a>
                 <div id="usermenu" class="collapse list-group border-1 rounded-0 text-sm-start">

@@ -1,6 +1,7 @@
 ﻿using EMMS.Data.Migrations;
 using EMMS.Models;
 using EMMS.Models.Entities;
+using EMMS.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using NuGet.ContentModel;
 using static EMMS.Models.Enumerators;
@@ -27,6 +28,39 @@ namespace EMMS.Data.Repository
                 .Include(x => x.ServiceProvider)
                 .ToListAsync();
         }
+        public async Task<IEnumerable<AssetViewModel>> GetAssetsWithMovementDb()
+        {
+            var assets = await _context.Assets
+                .Include(x => x.Category)
+                .Include(x => x.SubCategory)
+                .Include(x => x.Department)
+                .Include(x => x.Manufacturer)
+                .Include(x => x.Vendor)
+                .Include(x => x.ServiceProvider)
+                .Include(x => x.User)
+                .ToListAsync();
+
+            var assetIds = assets.Select(a => a.AssetId).ToList();
+
+            // Fetch last movement for each asset
+            var movements = await _context.AssetMovement
+                .Include(a => a.Facility)
+                .Where(m => assetIds.Contains(m.AssetId))
+                .GroupBy(m => m.AssetId)
+                .Select(g => g.OrderByDescending(m => m.MovementDate).FirstOrDefault())
+                .ToListAsync();
+
+            var movementDict = movements
+                .Where(m => m != null)
+                .ToDictionary(m => m.AssetId, m => m);
+
+            return assets.Select(a => new AssetViewModel
+            {
+                Asset = a,
+                LastMovement = movementDict.ContainsKey(a.AssetId) ? movementDict[a.AssetId] : null
+            }).ToList();
+        }
+
         public async Task<List<Models.Entities.Notification>> GetNotifications()
         {
             return await _context.Notifications

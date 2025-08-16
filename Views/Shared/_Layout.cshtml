@@ -64,14 +64,18 @@
                         <nav class="navbar d-flex align-items-center">
                             <div class="container-fluid justify-content-start">
                                 <a class="align-items-center float-start py-1" href="#">
-                                    @* <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2"> *@
-                                    <span class="fw-bold text-white" style="font-size: larger;">
-                                        EMMS
-                                    </span>
+                                    <div class="me-3">
+                                        <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
+                                             class="rounded-circle border border-2 border-primary"
+                                             style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
+                                        <span class="fw-bold text-white" style="font-size: larger;">
+                                            EMMS
+                                        </span>
+                                    </div>
                                 </a>
                             </div>
                         </nav>
-                        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                        <button type="button" class="btn-close text-reset text-white" style="color:white !important;" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                     </div>
                     @* Sidebar content *@
                     @await Html.PartialAsync("_SidebarContent")
@@ -81,11 +85,15 @@
                 <div class="d-none d-lg-block h-100">
                     <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid justify-content-start">
-                            <a class="align-items-center float-start py-1" href="#">
-                                @* <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="25" class="me-2"> *@
-                                <span class="fw-bold text-white" style="font-size: larger;">
-                                    EMMS
-                                </span>
+                            <a class="align-items-center float-start" href="#">
+                                <div class="me-3">
+                                    <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
+                                         class="rounded-circle border border-2 border-primary"
+                                         style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
+                                    <span class="fw-bold text-white" style="font-size: larger;">
+                                        EMMS
+                                    </span>
+                                </div>
                             </a>
                         </div>
                     </nav>

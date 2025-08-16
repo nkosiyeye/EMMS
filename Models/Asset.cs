@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using EMMS.Data.Migrations;
 using EMMS.Models.Admin;
 using EMMS.Models.Domain;
 using EMMS.Models.Entities;
