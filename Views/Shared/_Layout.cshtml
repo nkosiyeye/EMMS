@@ -24,46 +24,87 @@
     @* <link rel="stylesheet" href="https://cdn.datatables.net/2.3.1/css/dataTables.dataTables.css" /> *@
     <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
+
+    <!-- Inline CSS to ensure loading screen shows immediately -->
+    <style>
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #main-content {
+            display: none; /* Hidden by default until page loads */
+        }
+
+        .loading-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+        }
+
+        .loading-title {
+            font-family: 'Montserrat', sans-serif;
+            color: #2563EB;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loading-screen" style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: white;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-">
+    <div id="loading-screen">
         <img src="~/images/Coat_of_arms_of_Eswatini.svg"
              alt="Ministry Coat of Arms"
-             style="width: 80px; height: 80px; margin-bottom: 15px;">
-        <h2 style="
-        font-family: 'Montserrat', sans-serif;
-        color: #2563EB;
-        font-weight: bold;
-    ">
-            EMMS
-        </h2>
+             class="loading-logo">
+        <h2 class="loading-title">EMMS</h2>
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="mt-3 text-muted">Please wait while we load your page...</p>
     </div>
-    @* page *@
-    <div class="container-fluid h-full w-full" style="height: 100vh;">
-        <div class="row flex-nowrap" style="height: 100vh;">
-            <div class="col-auto px-0 py-0 h-full" style="height: 100vh;">
-                <!-- Offcanvas sidebar for tablets & smaller (shown when toggled) -->
-                <div id="offcanvasSidebar" class="offcanvas offcanvas-start d-lg-none h-100" tabindex="-1" aria-labelledby="offcanvasSidebarLabel" style="width:260px;">
-                    <div class="offcanvas-header" style="background-color: #2563EB;">
-                        <nav class="navbar d-flex align-items-center">
+
+    <!-- Main Content (hidden initially) -->
+    <div id="main-content">
+        @* page *@
+        <div class="container-fluid h-full w-full" style="height: 100vh;">
+            <div class="row flex-nowrap" style="height: 100vh;">
+                <div class="col-auto px-0 py-0 h-full" style="height: 100vh;">
+                    <!-- Offcanvas sidebar for tablets & smaller (shown when toggled) -->
+                    <div id="offcanvasSidebar" class="offcanvas offcanvas-start d-lg-none h-100" tabindex="-1" aria-labelledby="offcanvasSidebarLabel" style="width:260px;">
+                        <div class="offcanvas-header" style="background-color: #2563EB;">
+                            <nav class="navbar d-flex align-items-center">
+                                <div class="container-fluid justify-content-start">
+                                    <a class="align-items-center float-start py-1" href="#">
+                                        <div class="me-3">
+                                            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
+                                                 class="rounded-circle border border-2 border-primary"
+                                                 style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
+                                            <span class="fw-bold text-white" style="font-size: larger;">
+                                                EMMS
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </nav>
+                            <button type="button" class="btn-close text-reset text-white" style="color:white !important;" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                        </div>
+                        @* Sidebar content *@
+                        @await Html.PartialAsync("_SidebarContent")
+                    </div>
+
+                    <!-- Static sidebar for large screens and above -->
+                    <div class="d-none d-lg-block h-100">
+                        <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                             <div class="container-fluid justify-content-start">
-                                <a class="align-items-center float-start py-1" href="#">
+                                <a class="align-items-center float-start" href="#">
                                     <div class="me-3">
                                         <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
                                              class="rounded-circle border border-2 border-primary"
@@ -75,145 +116,150 @@
                                 </a>
                             </div>
                         </nav>
-                        <button type="button" class="btn-close text-reset text-white" style="color:white !important;" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                        @await Html.PartialAsync("_SidebarContent")
                     </div>
-                    @* Sidebar content *@
-                    @await Html.PartialAsync("_SidebarContent")
                 </div>
-
-                <!-- Static sidebar for large screens and above -->
-                <div class="d-none d-lg-block h-100">
-                    <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
-                        <div class="container-fluid justify-content-start">
-                            <a class="align-items-center float-start" href="#">
-                                <div class="me-3">
-                                    <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
-                                         class="rounded-circle border border-2 border-primary"
-                                         style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
-                                    <span class="fw-bold text-white" style="font-size: larger;">
-                                        EMMS
+                <main class="col px-0 py-0 mb-5">
+                    <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
+                        <div class="container-fluid d-flex items-center">
+                            <div class="d-flex align-items-center">
+                                <a href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle d-lg-none">
+                                    <i class="fa-solid fa-bars"></i>
+                                </a>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
+                                    <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
+                                </a>
+                                <div class="row justify-content-center align-items-center">
+                                    <span class="fw-bold text-white" style="font-size: smaller;">
+                                        @if (!isAdmin)
+                                        {
+                                            @(currentUser!.Facility?.FacilityName)
+                                        }
+                                        else
+                                        {
+                                            @(currentUser!.UserRole?.Name)
+                                        }
                                     </span>
                                 </div>
-                            </a>
+                            </div>
                         </div>
                     </nav>
-                    @await Html.PartialAsync("_SidebarContent")
+                    <!-- Notification popover template (hidden) -->
+                    <div id="notificationTemplate" style="display: none;">
+                        <div class="notification-header">
+                            <h6 class="notification-title">Notifications</h6>
+                            <span class="mark-all-read" id="markAllRead">Mark all as read</span>
+                        </div>
+                        <div class="notification-body">
+                            <ul class="notification-list" id="notificationList">
+                                <!-- Notifications will be populated here -->
+                                @await Component.InvokeAsync("BellNotifications")
+                            </ul>
+                            <div class="empty-notifications d-none" id="emptyNotifications">
+                                <i class="fas fa-bell-slash fa-2x mb-3"></i>
+                                <p>No notifications yet</p>
+                            </div>
+                        </div>
+                        <div class="notification-footer">
+                            <a asp-controller="Notification" asp-action="Index">View all notifications</a>
+                        </div>
+                    </div>
+
+                    <div class="container-fluid p-4 mb-2">
+                        @RenderBody()
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <footer class="footer border-top-1" style="background-color:#F5F5F5">
+            <div class="d-flex justify-content-between align-items-center">
+                <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
+                <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
+                <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="descriptionModalLabel">Full Description</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="fullDescription"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
-            <main class="col px-0 py-0 mb-5">
-                <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
-                    <div class="container-fluid d-flex items-center">
-                        <div class="d-flex align-items-center">
-                            <a href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle d-lg-none">
-                                <i class="fa-solid fa-bars"></i>
-                            </a>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
-                                <i class="fa-solid fa-bell"></i><span class="badge bg-danger rounded-pill" style="font-size:xx-small">2</span>
-                            </a>
-                            <div class="row justify-content-center align-items-center">
-                                <span class="fw-bold text-white" style="font-size: smaller;">
-                                    @if (!isAdmin)
-                                    {
-                                        @(currentUser!.Facility?.FacilityName)
-
-                                    }
-                                    else
-                                    {
-                                        @(currentUser!.UserRole?.Name)
-                                    }
-                                </span>
-                            </div>
-                            
-                        </div>
-                    </div>
-                </nav>
-                <!-- Notification popover template (hidden) -->
-                <div id="notificationTemplate" style="display: none;">
-                    <div class="notification-header">
-                        <h6 class="notification-title">Notifications</h6>
-                        <span class="mark-all-read" id="markAllRead">Mark all as read</span>
-                    </div>
-                    <div class="notification-body">
-                        <ul class="notification-list" id="notificationList">
-                            <!-- Notifications will be populated here -->
-							 @await Component.InvokeAsync("BellNotifications") 
-                        </ul>
-                        <div class="empty-notifications d-none" id="emptyNotifications">
-                            <i class="fas fa-bell-slash fa-2x mb-3"></i>
-                            <p>No notifications yet</p>
-                        </div>
-                    </div>
-                    <div class="notification-footer">
-                        <a asp-controller="Notification" asp-action="Index">View all notifications</a>
-                    </div>
-                </div>
-
-                <div class="container-fluid p-4 mb-2">
-                    @RenderBody()
-                </div>
-
-               
-            </main>
         </div>
     </div>
 
-    <footer class="footer border-top-1" style="background-color:#F5F5F5">
-        <div class="d-flex justify-content-between align-items-center">
-            <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
-            <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
-            <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
-        </div>
-    </footer>
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script><!-- Bootstrap-Select JS (after Bootstrap JS) -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/bootstrap-selectpicker/js/bootstrap-select.min.js"></script>
     <script src="~/lib/DataTables/datatables.min.js"></script>
     <script src="~/js/xlsx.full.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
-    <script>
-		// Hide the loading overlay after the page has fully loaded
-		window.addEventListener("load", function () {
-            const loadingOverlay = document.getElementById("loading-screen");
-            if (loadingOverlay) {
-				loadingOverlay.style.display = "none"; // Hide the loading overlay
-				}
-				});
 
-                document.addEventListener("DOMContentLoaded", function () {
+    <script>
+        // Show main content and hide loading screen when page is ready
+        document.addEventListener("DOMContentLoaded", function () {
+            // Add a small delay to ensure all resources are loaded
+            setTimeout(function() {
+                const loadingScreen = document.getElementById("loading-screen");
+                const mainContent = document.getElementById("main-content");
+
+                if (loadingScreen && mainContent) {
+                    // Fade out loading screen
+                    loadingScreen.style.opacity = "0";
+                    loadingScreen.style.transition = "opacity 0.5s ease-out";
+
+                    // Show main content after fade out
+                    setTimeout(function() {
+                        loadingScreen.style.display = "none";
+                        mainContent.style.display = "block";
+
+                        // Fade in main content
+                        mainContent.style.opacity = "0";
+                        setTimeout(function() {
+                            mainContent.style.opacity = "1";
+                            mainContent.style.transition = "opacity 0.3s ease-in";
+                        }, 50);
+                    }, 500);
+                }
+            }, 1000); // Minimum loading time of 1 second
+        });
+
+        // Description modal functionality
+        document.addEventListener("DOMContentLoaded", function () {
             const descriptionModal = document.getElementById("descriptionModal");
             const fullDescription = document.getElementById("fullDescription");
 
-            descriptionModal.addEventListener("show.bs.modal", function (event) {
-                const button = event.relatedTarget; // Button that triggered the modal
-                const description = button.getAttribute("data-description"); // Extract info from data-* attributes
-                fullDescription.textContent = description; // Update the modal's content
-            });
-        });
-                $(function () {
-            $('.selectpicker').selectpicker();
+            if (descriptionModal && fullDescription) {
+                descriptionModal.addEventListener("show.bs.modal", function (event) {
+                    const button = event.relatedTarget;
+                    const description = button.getAttribute("data-description");
+                    fullDescription.textContent = description;
+                });
+            }
         });
 
+        // Initialize selectpicker
+        $(function () {
+            $('.selectpicker').selectpicker();
+        });
     </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-<div class="modal fade" id="descriptionModal" tabindex="-1" aria-labelledby="descriptionModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="descriptionModalLabel">Full Description</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="fullDescription"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>

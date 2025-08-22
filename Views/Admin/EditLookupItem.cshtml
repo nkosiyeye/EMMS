@@ -28,7 +28,7 @@
                             <input asp-for="_lookupItem.Name" type="text" class="form-control" id="Name" required />
                             <span asp-validation-for="_lookupItem.Name" class="text-danger"></span>
                         </div>
-                        @if (Model._lookupItems != null && Model._lookupItems.Count() > 0)
+                        @if (Model._lookupItems != null && Model._lookupItems.Any())
                         {
                             <div class="mb-3">
                                 <label for="ParentId" class="form-label">Parent</label>
@@ -36,6 +36,19 @@
                                     @foreach (var lookup in Model._lookupItems)
                                     {
                                         <option value="@lookup.Id">@lookup.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else if (Model._facilities != null && Model._facilities.Any())
+                        {
+                            <div class="mb-3">
+                                <label for="ParentFacilityId" class="form-label">Facility <span class="text-muted small">(if necessary)</span></label>
+                                <select asp-for="_lookupItem.ParentFacilityId" id="facility" class="form-select selectpicker col-md-6">
+                                    <option value="" selected>Select For Specific Facility</option>
+                                    @foreach (var facility in Model._facilities)
+                                    {
+                                        <option value="@facility.FacilityId">@facility.FacilityName</option>
                                     }
                                 </select>
                             </div>

@@ -66,13 +66,14 @@ namespace EMMS.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("UserId,FirstName,MiddleName,LastName,DOB,Gender,Cellphone,DesignationId,FacilityId,Username,Password,UserRoleId,CreatedBy,DateCreated,ModifiedBy,DateModified,RowState")] User user)
+        public async Task<IActionResult> Create(User user)
         {
             if (ModelState.IsValid)
             {
                 user.UserId = Guid.NewGuid();
                 user.DateCreated = DateTime.Now;
                 user.Password = PasswordManager.Encrypt(user.Password!);
+                CreateEntity(user);
                 //user.CreatedBy = TBD 
                 _context.Add(user);
                 await _context.SaveChangesAsync();
@@ -108,8 +109,20 @@ namespace EMMS.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("UserId,FirstName,MiddleName,LastName,DOB,Gender,Cellphone,DesignationId,FacilityId,Username,Password,UserRoleId,CreatedBy,DateCreated,ModifiedBy,DateModified,RowState")] User user)
+        public async Task<IActionResult> Edit(Guid id, User user)
         {
+            if (!string.IsNullOrWhiteSpace(user.Password))
+            {
+                // hash and save new password
+                user.Password = PasswordManager.Encrypt(user.Password!);
+            }
+            else
+            {
+                var existingUser = await _context.User.FirstOrDefaultAsync(u => u.UserId == id);
+                // keep existing password
+                user.Password = existingUser!.Password;
+            }
+
             if (id != user.UserId)
             {
                 return NotFound();
@@ -119,6 +132,7 @@ namespace EMMS.Controllers
             {
                 try
                 {
+                    UpdateEntity(user);
                     _context.Update(user);
                     await _context.SaveChangesAsync();
                 }
@@ -148,7 +162,6 @@ namespace EMMS.Controllers
             {
                 return NotFound();
             }
-
             var user = await _context.User
                 .Include(u => u.Designations)
                 .Include(u => u.Facility)

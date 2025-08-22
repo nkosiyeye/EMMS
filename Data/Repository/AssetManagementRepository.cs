@@ -1,5 +1,6 @@
 ﻿using EMMS.Data.Migrations;
 using EMMS.Models;
+using EMMS.Models.Admin;
 using EMMS.Models.Entities;
 using EMMS.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -116,9 +117,9 @@ namespace EMMS.Data.Repository
         public async Task<IEnumerable<LookupItem>> GetDepartments()
         {
             return await _context.LookupItems
-                .Where(x => x.LookupList.Name == "Department" && x.RowState == RowStatus.Active)
-                .ToListAsync();
+                .Where(x => x.LookupList.Name == "Department" && x.RowState == RowStatus.Active).ToListAsync();
         }
+
 
         public async Task<IEnumerable<LookupItem>> GetManufacturers()
         {

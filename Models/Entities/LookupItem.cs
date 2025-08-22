@@ -16,6 +16,11 @@ namespace EMMS.Models.Entities
         [ForeignKey(nameof(ParentId))]
         public virtual LookupItem? Parent { get; set; } // self-referencing for hierarchical lookups
 
+        // New facility reference
+        public int? ParentFacilityId { get; set; }
+        [ForeignKey(nameof(ParentFacilityId))]
+        public virtual Facility? ParentFacility { get; set; }
+
         [Required(ErrorMessage = "Enter Item Name")]
         public string? Name { get; set; }
         public int SortIndex { get; set; }

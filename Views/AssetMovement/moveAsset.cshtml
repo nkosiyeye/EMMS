@@ -174,12 +174,48 @@
                     }
                 });
         }
+
+                function updateServicePointDropdown(facilityId) {
+            const servicePointSelect = document.querySelector('#servicePointField select');
+
+            // Clear current options
+            servicePointSelect.innerHTML = '<option selected disabled>Select Service Point</option>';
+
+            fetch(`/AssetMovement/GetServicePoints?facilityId=${facilityId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(function (item) {
+                        var option = document.createElement('option');
+                        option.value = item.id;
+                        option.text = item.name;
+                        servicePointSelect.appendChild(option);
+                    });
+
+                    // Refresh bootstrap-select if used
+                    if ($(servicePointSelect).hasClass('selectpicker')) {
+                        $(servicePointSelect).selectpicker('refresh');
+                    }
+
+                    // Show the field once populated
+                    document.getElementById("servicePointField").classList.remove("d-none");
+                });
+        }
+
+          document.getElementById('facility').addEventListener('change', function () {
+            const facilityId = this.value;
+            if (facilityId) {
+                updateServicePointDropdown(facilityId);
+            }
+        });
                 function onMovementTypeChange() {
             const movementType = document.getElementById("movementType").value;
             // Assuming: 3 = Site, 1 = Facility, 2 = ServicePoint (adjust as per your enum)
             if (movementType === "3") { // Site
                 updateFacilityDropdown(true);
-            } else {
+            } else if(movementType === "2") {
+                updateFacilityDropdown(false);
+                updateServicePointDropdown(selectedFacilityId);
+            }else{
                 updateFacilityDropdown(false);
             }
             toggleLocationFields();

@@ -66,6 +66,24 @@ namespace EMMS.Controllers
 
             return Json(facilities);
         }
+        [HttpGet]
+        public async Task<IActionResult> GetServicePoints(int facilityId)
+        {
+
+            var query = _context.LookupItems
+                .Include(x => x.LookupList)
+                .Where(x => x.LookupList.Name.ToLower().Contains("service point") && x.RowState == RowStatus.Active);
+
+            // Otherwise filter by facility
+            var servicePoints = await query
+                .Where(x =>
+                    x.ParentFacilityId == null ||
+                    x.ParentFacilityId == facilityId
+                )
+                .ToListAsync();
+
+            return Json(servicePoints);
+        }
 
         [HttpGet]
         [RequireLogin]

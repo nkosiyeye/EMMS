@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Linq;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
@@ -21,6 +22,23 @@ namespace EMMS.Controllers.Admin
             _context = context;
 
         }
+        public async Task<LookupViewModel> loadLookupViewModel(LookupItem lookupItem,int id)
+        {
+            var lookupList = await _context.LookupLists.FirstOrDefaultAsync(l => l.LookupListId == id);
+            var viewModel = new LookupViewModel
+            {
+                _lookupItem = lookupItem,
+                _lookupItems = lookupList.Name == "SubCategory"
+                    ? await _context.LookupItems.Include(l => l.LookupList).Where(l => l.LookupList!.Name == "Category").ToListAsync()
+                    : null,
+                _facilities = lookupList.Name.ToLower().Contains("service")
+                    ? await _context.Facilities.ToListAsync()
+                    : null,
+                LookupList = lookupList
+            };
+            return viewModel;
+
+        }
         public async Task<IActionResult> LookupList()
         {
             var viewModel = new LookupViewModel()
@@ -39,7 +57,8 @@ namespace EMMS.Controllers.Admin
                 .FirstOrDefaultAsync(l => l.LookupListId == id);
             var lookups = await _context.LookupItems
                 .Include(l => l.LookupList)
-                .Include(l => l.Parent) // if needed
+                .Include(l => l.Parent)
+                .Include(l => l.ParentFacility)
                 .Where(l => l.LookupListId == id)
                 .OrderByDescending(l => l.DateCreated)
                 .ToListAsync();
@@ -51,17 +70,7 @@ namespace EMMS.Controllers.Admin
         [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> AddLookupItem(int id)
         {
-            var lookupList = await _context.LookupLists.FirstOrDefaultAsync(l => l.LookupListId == id);
-            var viewModel = new LookupViewModel
-            {
-                _lookupItems = lookupList.Name == "SubCategory" ? await _context.LookupItems.Include(l => l.LookupList).Where(l => l.LookupList!.Name == "Category").ToListAsync() : [],
-                LookupList = lookupList,
-                //_lookupItem = new LookupItem
-                //{
-                //    LookupListId = id,
-                //    RowState = RowStatus.Active
-                //}
-            };
+            var viewModel = await loadLookupViewModel(new LookupItem(),id);
 
             return View(viewModel);
         }
@@ -75,39 +84,24 @@ namespace EMMS.Controllers.Admin
             TempData["LookupError"] = string.Join("; ", errors);
             if (ModelState.IsValid)
             {
-                //var lookup = viewModel._lookupItem;
-                var item = new LookupItem
-                {
-                    LookupListId = lookup.LookupListId,
-                    Name = lookup.Name,
-                    ParentId = lookup.ParentId,
-                    RowState = lookup.RowState,
-                    DateCreated = DateTime.Now
-                };
-                CreateEntity(item);
-                _context.LookupItems.Add(item);
+                CreateEntity(lookup!);
+                _context.LookupItems.Add(lookup!);
                 await _context.SaveChangesAsync();
-                return RedirectToAction("Index", new { id = lookup.LookupListId });
+                return RedirectToAction("Index", new { id = lookup!.LookupListId });
             }
 
-            return RedirectToAction(nameof(AddLookupItem), new { id = lookup.LookupListId });
+            return RedirectToAction(nameof(AddLookupItem), new { id = lookup!.LookupListId });
         }
         [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> EditLookupItem(int id)
         {
             var lookupItem = await _context.LookupItems
-                .Include(l => l.LookupList)
                 .FirstOrDefaultAsync(l => l.Id == id);
             if (lookupItem == null)
             {
                 return NotFound();
             }
-            var viewModel = new LookupViewModel
-            {
-                _lookupItem = lookupItem,
-                _lookupItems = lookupItem.LookupList!.Name == "SubCategory" ? await _context.LookupItems.Include(l => l.LookupList).Where(l => l.LookupList!.Name == "Category").ToListAsync() : [],
-                LookupList = lookupItem.LookupList
-            };
+            var viewModel = await loadLookupViewModel(lookupItem, lookupItem.LookupListId);
             return View(viewModel);
         }
         [HttpPost]

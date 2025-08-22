@@ -18,10 +18,9 @@
                 <table class="table fixed-table table-striped table-bordered table-hover" id="lookupTable">
                     <thead>
                         <tr>
-                            <th>Id</th>
                             <th>For</th>
                             <th>Item</th>
-                            <th>Parent</th>
+                            <th>@(Model.LookupList.Name.ToLower().Contains("service point") ? "Facility" : "SubCategory")</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -32,10 +31,15 @@
 
 
                             <tr>
-                                <td width="10%">@item.Id</td>
                                 <td width="10%">@item.LookupList.Name</td>
                                 <td width="10%">@item.Name</td>
-                                <td width="10%">@(item.ParentId != null ? item.Parent?.Name : "-")</td>
+                                <td width="10%">
+                                    @(
+                                        item.ParentId != null ? item.Parent?.Name :
+                                        item.ParentFacilityId != null ? item.ParentFacility?.FacilityName :
+                                        "-"
+                                        )
+                                </td>
                                 <td width="10%">@item.RowState</td>
                                 <td width="5%">
 
