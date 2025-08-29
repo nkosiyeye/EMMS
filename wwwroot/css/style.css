@@ -13,6 +13,43 @@
     --border: #e2e8f0;
     --foreground: #0f172a;
 }
+/* Form section headers */
+h5 {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--primary) !important;
+    border-bottom: 2px solid var(--primary) !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+    position: relative;
+}
+
+    h5::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 50px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary), #2563EB);
+    }
+.text-primary {
+    color: var(--primary) !important;
+}
+/* Button styling */
+.btn-primary {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+    .btn-primary:hover {
+        background-color: #2563EB !important;
+        border-color: #2563EB;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(21, 61, 119, 0.3);
+    }
 .offcanvas-header {
     display: flex;
     align-items: center;
@@ -292,7 +329,6 @@ label {
 
 .form-subheading {
     padding: 10px 15px;
-    background-color: #dadada;
     border-radius: 5px;
 }
 
@@ -468,9 +504,4 @@ a {
 .list-group-item {
     font-weight: 500; /* Make the text bold */
     font-size: 0.9rem; /* Set the font size to medium */
-}
-
-h5{
-    font-size:0.9rem;
-    font-weight:bold;
 }

@@ -40,18 +40,32 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UserRegistration([Bind("UserId,FirstName,MiddleName,LastName,DOB,Gender,Cellphone,DesignationId,FacilityId,Username,Password,UserRoleId,CreatedBy,DateCreated,ModifiedBy,DateModified,RowState")] User user)
+        public async Task<IActionResult> UserRegistration(User user)
         {
+            var usernameExists = await _context.User.FirstOrDefaultAsync(u => u.Username == user.Username);
+            if (string.IsNullOrWhiteSpace(user.Password))
+            {
+                ModelState.AddModelError("user.Password", "User Password can not be empty.");
+            }
+            else if (usernameExists != null)
+            {
+                ModelState.AddModelError("user.Username", "Username already Exists in the system");
+
+            }
             if (ModelState.IsValid)
             {
                 user.UserId = Guid.NewGuid();
                 user.DateCreated = DateTime.Now;
                 user.Password = PasswordManager.Encrypt(user.Password!);
+                user.RowState = RowStatus.Inactive;
                 //user.CreatedBy = TBD 
                 _context.Add(user);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                TempData["UserRegistrationSuccess"] = "User Registrated Successfully";
+                return RedirectToAction(nameof(Login));
             }
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["UserRegistrationError"] = string.Join("; ", errors);
             ViewData["DesignationId"] = new SelectList(_context.LookupItems.Where(f => f.LookupList.Name.Contains("Desig") && f.RowState == RowStatus.Active), "Id", "Name", user.DesignationId);
             ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName", user.FacilityId);
             ViewData["UserRoleId"] = new SelectList(_context.UserRole.Where(f => f.RowState == RowStatus.Active), "Id", "Name", user.UserRoleId);

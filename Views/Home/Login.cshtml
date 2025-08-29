@@ -11,113 +11,175 @@
     <div class="d-flex justify-content-center align-content-center">
         <div class="card col-md-12 col-lg-6 col-xl-6 mb-6">
             <div class="card-body">
+                <!-- Success Notification -->
+                @if (TempData["UserRegistrationSuccess"] != null && (bool)TempData["UserRegistrationSuccess"])
+                {
+                    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center w-100 mb-3"
+                         role="alert" id="successNotification">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div>User registration was successful! You can now login with your credentials.</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <!-- Error Notification -->
+                @if (TempData["Notification"] != null)
+                {
+                    var toast = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"].ToString());
+                    <div class="alert alert-@(toast.Type == NotificationType.Error ? "danger" : "success") alert-dismissible fade show d-flex align-items-center w-100 mb-3"
+                         role="alert">
+                        <i class="bi @(toast.Type == NotificationType.Error ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-2"></i>
+                        <div>@toast.Message</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
                 <main class="container py-5" style="background-color: white;">
                     <div class="row justify-content-center">
                         <div class="col-md-12 col-lg-12">
 
                             <!-- Logo -->
                             <div class="text-center mb-3">
-                                <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms" style="width: 60px; height: 60px;">
+                                <div class="logo-container">
+                                    <img src="~/images/Coat_of_arms_of_Eswatini.svg"
+                                         alt="Ministry Coat of Arms"
+                                         style="width: 70px; height: 70px;">
+                                </div>
                             </div>
 
                             <!-- System Title -->
                             <div class="text-center mb-4">
-                                <h4 class="fw-bold text-dark">Equipment Management & Maintenance System</h4>
+                                <h4 class="system-title">Equipment Management & Maintenance System</h4>
+                                <p class="text-muted small mb-0">Kingdom of Eswatini</p>
                             </div>
 
                             <!-- Login Card -->
                             <div class="card shadow-sm border-0">
-                                <div class="card-body">
-                                    <form asp-action="Login">
+                                <div class="card-body p-4">
+                                    <form asp-action="Login" method="post">
                                         <!-- Username -->
                                         <div class="mb-3">
-                                            @Html.LabelFor(model => model.Username, htmlAttributes: new { @class = "form-label fw-semibold" })
-                                            @Html.EditorFor(model => model.Username, new { htmlAttributes = new { @class = "form-control" } })
-                                            @Html.ValidationMessageFor(model => model.Username, "", new { @class = "text-danger small" })
+                                            <label for="username" class="form-label">Username</label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="username"
+                                                   name="username"
+                                                   required
+                                                   placeholder="Enter your username">
+                                            <div class="text-danger small mt-1" id="usernameError"></div>
                                         </div>
 
                                         <!-- Password -->
                                         <div class="mb-3">
-                                            @Html.LabelFor(model => model.Password, htmlAttributes: new { @class = "form-label fw-semibold" })
+                                            <label for="password" class="form-label">Password</label>
                                             <div class="input-group">
-                                                @Html.TextBoxFor(model => model.Password, new
-                                                    {
-                                                        @class = "form-control",
-                                                        type = "password",
-                                                        id = "passwordInput"
-                                                    })
-                                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                                    <i class="fa-solid fa-eye" id="toggleIcon"></i>
+                                                <input type="password"
+                                                       class="form-control"
+                                                       id="password"
+                                                       name="password"
+                                                       required
+                                                       placeholder="Enter your password">
+                                                <button class="btn btn-outline-secondary"
+                                                        type="button"
+                                                        id="togglePassword">
+                                                    <i class="fas fa-eye" id="toggleIcon"></i>
                                                 </button>
                                             </div>
-                                            @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger small" })
+                                            <div class="text-danger small mt-1" id="passwordError"></div>
                                         </div>
 
                                         <!-- Login Button -->
                                         <div class="d-grid mb-3">
-                                            <button type="submit" class="btn btn-primary fw-bold">Login</button>
+                                            <button type="submit" class="btn btn-primary fw-bold" id="loginBtn">
+                                                Login
+                                            </button>
                                         </div>
 
                                         <!-- Register / Forgot -->
                                         <div class="d-flex justify-content-between">
-                                            <a asp-controller="Home" asp-action="UserRegistration" class="small text-decoration-none">Register new account</a>
-                                            <a asp-controller="Home" asp-action="Login" class="small text-decoration-none">Forgot Password?</a>
+                                            <a asp-action="UserRegistration" class="small text-decoration-none">Register new account</a>
+                                            <a href="#" class="small text-decoration-none">Forgot Password?</a>
                                         </div>
                                     </form>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </main>
-
             </div>
         </div>
     </div>
 </div>
 
 
+
 @section Scripts{
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-               const togglePassword = document.getElementById("togglePassword");
-               const passwordInput = document.getElementById("passwordInput");
-               const toggleIcon = document.getElementById("toggleIcon");
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Password toggle functionality (matching your existing code)
+                    const togglePassword = document.getElementById('togglePassword');
+                    const passwordInput = document.getElementById('password');
+                    const toggleIcon = document.getElementById('toggleIcon');
 
-               togglePassword.addEventListener("click", function () {
-                   const isPassword = passwordInput.type === "password";
-                   passwordInput.type = isPassword ? "text" : "password";
-                       if (isPassword) {
-                        toggleIcon.classList.remove("fa-eye");
-                        toggleIcon.classList.add("fa-eye-slash");
-                    } else {
-                        toggleIcon.classList.remove("fa-eye-slash");
-                        toggleIcon.classList.add("fa-eye");
+                    togglePassword.addEventListener('click', function() {
+                        const isPassword = passwordInput.type === 'password';
+                        passwordInput.type = isPassword ? 'text' : 'password';
+
+                        if (isPassword) {
+                            toggleIcon.classList.remove('fa-eye');
+                            toggleIcon.classList.add('fa-eye-slash');
+                        } else {
+                            toggleIcon.classList.remove('fa-eye-slash');
+                            toggleIcon.classList.add('fa-eye');
+                        }
+                    });
+
+                    // Simple form validation
+                    const loginForm = document.getElementById('loginForm');
+                    const loginBtn = document.getElementById('loginBtn');
+
+                    loginForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+
+                        // Clear previous errors
+                        document.getElementById('usernameError').textContent = '';
+                        document.getElementById('passwordError').textContent = '';
+
+                        const username = document.getElementById('username').value.trim();
+                        const password = document.getElementById('password').value;
+
+                        let hasErrors = false;
+
+                        if (!username) {
+                            document.getElementById('usernameError').textContent = 'Username is required';
+                            hasErrors = true;
+                        }
+
+                        if (!password) {
+                            document.getElementById('passwordError').textContent = 'Password is required';
+                            hasErrors = true;
+                        }
+
+                        if (!hasErrors) {
+                            // Show loading state
+                            loginBtn.classList.add('btn-loading');
+                            loginBtn.disabled = true;
+
+                            // Simulate form submission (replace with your actual form submission)
+                            setTimeout(() => {
+                                loginBtn.classList.remove('btn-loading');
+                                loginBtn.disabled = false;
+                                alert('Login form would be submitted here');
+                            }, 1500);
+                        }
+                    });
+
+                    // Show success notification (simulated - replace with your TempData check)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('registered') === 'true') {
+                        const notification = document.getElementById('successNotification');
+                        notification.style.display = 'flex';
                     }
-               });
-           });
-    </script>
-    @if (TempData["Notification"] != null)
-    {
-        var notification = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"] as string);
-        var className = notification?.Type switch
-        {
-            NotificationType.Error => "error-notification notification",
-            NotificationType.Success => "success-notification notification",
-            _ => "notification"
-        };
-
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                Toastify({
-                    text: "@notification?.Message",
-                    duration: 3000,
-                    close: true,
-                    gravity: "top",
-                    position: "center",
-                    className: "@className"
-                }).showToast();
-            });
-        </script>
-    }
+                });
+                </script>
 }

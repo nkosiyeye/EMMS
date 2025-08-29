@@ -10,10 +10,11 @@ using EMMS.Models.Admin;
 using EMMS.Auth;
 using EMMS.CustomAttributes;
 using static EMMS.Models.Enumerators;
+using DocumentFormat.OpenXml.Spreadsheet;
+using EMMS.Data.Migrations;
 
 namespace EMMS.Controllers
 {
-    [AuthorizeRole("Administrator")]
     public class UsersController : BaseController
     {
         private readonly ApplicationDbContext _context;
@@ -23,7 +24,7 @@ namespace EMMS.Controllers
             _context = context;
         }
 
-        // GET: Users
+        [AuthorizeRole("Administrator")]
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
@@ -68,6 +69,15 @@ namespace EMMS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(User user)
         {
+            var usernameExists = await _context.User.FirstOrDefaultAsync(u => u.Username == user.Username);
+            if (string.IsNullOrWhiteSpace(user.Password))
+            {
+                ModelState.AddModelError("user.Password", "User Password can not be empty.");
+            }else if (usernameExists != null)
+            {
+                ModelState.AddModelError("user.Username", "Username already Exists in the system");
+
+            }
             if (ModelState.IsValid)
             {
                 user.UserId = Guid.NewGuid();
@@ -79,6 +89,9 @@ namespace EMMS.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["UserCreationError"] = string.Join("; ", errors);
             ViewData["DesignationId"] = new SelectList(_context.LookupItems.Where(f => f.LookupList.Name.Contains("Desig") && f.RowState == RowStatus.Active), "Id", "Name", user.DesignationId);
             ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName", user.FacilityId);
             ViewData["UserRoleId"] = new SelectList(_context.UserRole.Where(f => f.RowState == RowStatus.Active), "Id", "Name", user.UserRoleId);
@@ -118,7 +131,7 @@ namespace EMMS.Controllers
             }
             else
             {
-                var existingUser = await _context.User.FirstOrDefaultAsync(u => u.UserId == id);
+                var existingUser = await _context.User.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == id);
                 // keep existing password
                 user.Password = existingUser!.Password;
             }
@@ -127,6 +140,9 @@ namespace EMMS.Controllers
             {
                 return NotFound();
             }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            TempData["UserEditError"] = string.Join("; ", errors);
 
             if (ModelState.IsValid)
             {
@@ -147,7 +163,7 @@ namespace EMMS.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details),new { id = user.UserId});
             }
             ViewData["DesignationId"] = new SelectList(_context.LookupItems.Where(f => f.LookupList.Name.Contains("Desig") && f.RowState == RowStatus.Active), "Id", "Name", user.DesignationId);
             ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName", user.FacilityId);
@@ -193,6 +209,18 @@ namespace EMMS.Controllers
         private bool UserExists(Guid id)
         {
             return _context.User.Any(e => e.UserId == id);
+        }
+
+        public IActionResult ActivateUser(Guid id)
+        {
+            User? user = _context.User.Find(id);
+            if (user != null)
+            {
+                user.RowState = user.RowState == RowStatus.Active ? RowStatus.Inactive : RowStatus.Active;
+                _context.User.Update(user);
+                _context.SaveChanges();
+            }
+            return RedirectToAction(nameof(Index));
         }
     }
 }

@@ -5,140 +5,167 @@
 
 <div class="container">
     <div class="d-flex justify-content-center">
-        <div class="card col-md-6 mb-6">
-            <div class="card-header">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Add User</span>
+        <div class="card col-lg-8 shadow-sm mb-4">
+            <div class="card-body p-4">
+
+                <!-- Error Alert -->
+                @if (TempData["UserRegistrationError"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div>@TempData["UserRegistrationError"]</div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <!-- Logo -->
+                <div class="text-center mb-3">
+                    <img src="~/images/Coat_of_arms_of_Eswatini.svg"
+                         alt="Ministry Coat of Arms"
+                         style="width: 70px; height: 70px;">
                 </div>
-            </div>
-            <div class="card-body">
-                <form asp-action="Create">
+
+                <!-- System Title -->
+                <div class="text-center mb-4">
+                    <h4 class="system-title">Equipment Management & Maintenance System</h4>
+                    <p class="text-muted small mb-0">Kingdom of Eswatini - User Registration</p>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div class="form-progress mb-4">
+                    <div class="form-progress-bar" id="progressBar"></div>
+                </div>
+
+                <form asp-action="UserRegistration" method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
                     <!-- Personal Information Section -->
-                    <h5 class="mb-3">Personal Information</h5>
-                    <div class="form-group mb-2">
-                        <label asp-for="FirstName" class="control-label">First Name</label>
-                        <input asp-for="FirstName" class="form-control" />
-                        <span asp-validation-for="FirstName" class="text-danger"></span>
-                    </div>
-                    <div class="form-group mb-2">
-                        <label asp-for="MiddleName" class="control-label">Middle Name</label>
-                        <input asp-for="MiddleName" class="form-control" />
-                        <span asp-validation-for="MiddleName" class="text-danger"></span>
-                    </div>
-                    <div class="form-group mb-2">
-                        <label asp-for="LastName" class="control-label">Last Name</label>
-                        <input asp-for="LastName" class="form-control" />
-                        <span asp-validation-for="LastName" class="text-danger"></span>
+                    <h5 class="mb-3"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                    <div class="row mb-2">
+                        <div class="form-group col-md-4">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label asp-for="MiddleName" class="form-label"></label>
+                            <input asp-for="MiddleName" class="form-control" />
+                            <span asp-validation-for="MiddleName" class="text-danger"></span>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
                     </div>
 
-                    <div class="row">
+                    <div class="row mb-3">
                         <div class="form-group col-md-4">
-                            <label asp-for="DOB" class="control-label">Date of Birth</label>
+                            <label asp-for="DOB" class="form-label"></label>
                             <input asp-for="DOB" type="date" class="form-control" />
                             <span asp-validation-for="DOB" class="text-danger"></span>
                         </div>
                         <div class="form-group col-md-4">
-                            <label asp-for="Gender" class="control-label">Gender</label>
-                            <select asp-for="Gender" class="form-control">
+                            <label asp-for="Gender" class="form-label"></label>
+                            <select asp-for="Gender" class="form-select">
+                                <option value="">Select Gender</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                             </select>
                             <span asp-validation-for="Gender" class="text-danger"></span>
                         </div>
                         <div class="form-group col-md-4">
-                            <label asp-for="Cellphone" class="control-label">Cellphone</label>
+                            <label asp-for="Cellphone" class="form-label"></label>
                             <input asp-for="Cellphone" class="form-control" />
                             <span asp-validation-for="Cellphone" class="text-danger"></span>
                         </div>
                     </div>
 
                     <!-- Employment Details -->
-                    <h5 class="mt-4 mb-3">Employment Details</h5>
-                    <div class="row">
+                    <h5 class="mt-4 mb-3"><i class="fas fa-briefcase me-2"></i>Employment Details</h5>
+                    <div class="row mb-3">
                         <div class="form-group col-md-6">
-                            <label asp-for="DesignationId" class="control-label">Designation</label>
-                            <select asp-for="DesignationId" class="form-control" asp-items="ViewBag.DesignationId">
-                            </select>
+                            <label asp-for="DesignationId" class="form-label"></label>
+                            <select asp-for="DesignationId" class="form-select" asp-items="ViewBag.DesignationId"></select>
+                            <span asp-validation-for="DesignationId" class="text-danger"></span>
                         </div>
                         <div class="form-group col-md-6">
-                            <label asp-for="FacilityId" class="control-label">Facility</label>
-                            <select asp-for="FacilityId" class="form-control" asp-items="ViewBag.FacilityId">
-                            </select>
+                            <label asp-for="FacilityId" class="form-label"></label>
+                            <select asp-for="FacilityId" class="form-select" asp-items="ViewBag.FacilityId"></select>
+                            <span asp-validation-for="FacilityId" class="text-danger"></span>
                         </div>
                     </div>
 
                     <!-- Account Credentials -->
-                    <h5 class="mt-4 mb-3">Account Credentials</h5>
-                    <div class="row">
+                    <h5 class="mt-4 mb-3"><i class="fas fa-key me-2"></i>Account Credentials</h5>
+                    <div class="row mb-3">
                         <div class="form-group col-md-6">
-                            <label asp-for="Username" class="control-label">Username</label>
+                            <label asp-for="Username" class="form-label"></label>
                             <input asp-for="Username" class="form-control" />
                             <span asp-validation-for="Username" class="text-danger"></span>
                         </div>
                         <div class="form-group col-md-6">
-                            <label asp-for="Password" class="control-label">Password</label>
-                            <input asp-for="Password" type="password" class="form-control" />
+                            <label asp-for="Password" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="Password" type="password" class="form-control" />
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
                             <span asp-validation-for="Password" class="text-danger"></span>
+                            <div class="small text-muted mt-1">Password must be at least 8 characters long</div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label asp-for="UserRoleId" class="control-label">User Role</label>
-                        <select asp-for="UserRoleId" class="form-control" asp-items="ViewBag.UserRoleId">
-                        </select>
+                    <!-- Hidden: User Role -->
+                    <div class="form-group mb-3 d-none">
+                        <label asp-for="UserRoleId" class="form-label"></label>
+                        <select asp-for="UserRoleId" class="form-select" asp-items="ViewBag.UserRoleId"></select>
                     </div>
 
-                    <!-- Audit Information -->
-                    @* <h5 class="mt-4 mb-3">Audit Information</h5> *@
-                    <div class="row d-none">
-                        <div class="form-group col-md-6">
-                            <label asp-for="CreatedBy" class="control-label">Created By</label>
-                            <input asp-for="CreatedBy" class="form-control" />
-                            <span asp-validation-for="CreatedBy" class="text-danger"></span>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label asp-for="DateCreated" class="control-label">Date Created</label>
-                            <input asp-for="DateCreated" type="datetime-local" value="@DateTime.Now" class="form-control" />
-                            <span asp-validation-for="DateCreated" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="row d-none">
-                        <div class="form-group col-md-6">
-                            <label asp-for="ModifiedBy" class="control-label">Modified By</label>
-                            <input asp-for="ModifiedBy" class="form-control" />
-                            <span asp-validation-for="ModifiedBy" class="text-danger"></span>
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label asp-for="DateModified" class="control-label">Date Modified</label>
-                            <input asp-for="DateModified" type="datetime-local" class="form-control" />
-                            <span asp-validation-for="DateModified" class="text-danger"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label asp-for="RowState" class="control-label">Record State</label>
-                        <select asp-for="RowState" class="form-control">
+                    <!-- Hidden: RowState -->
+                    <div class="form-group mb-3 d-none">
+                        <label asp-for="RowState" class="form-label"></label>
+                        <select asp-for="RowState" class="form-select">
                             <option value="1" selected>Active</option>
                             <option value="2">Inactive</option>
                             <option value="0">Deleted</option>
                         </select>
-                        <span asp-validation-for="RowState" class="text-danger"></span>
                     </div>
 
                     <!-- Submit Button -->
                     <div class="form-group mt-4">
-                        <input type="submit" value="Create" class="btn btn-primary btn-block" />
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </button>
                     </div>
                 </form>
-            </div>
-            <div class="card-footer">
-                <div>
-                    <a asp-action="Index">Back to List</a>
-                </div>
 
+                <!-- Back to Login -->
+                <div class="back-to-login mt-3">
+                    <a asp-controller="Home" asp-action="Login">
+                        <i class="fas fa-arrow-left me-1"></i> Already have an account? Login here
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // toggle password visibility
+        document.getElementById("togglePassword").addEventListener("click", function () {
+            const pwd = document.getElementById("Password");
+            const icon = document.getElementById("toggleIcon");
+            if (pwd.type === "password") {
+                pwd.type = "text";
+                icon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                pwd.type = "password";
+                icon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        });
+    </script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

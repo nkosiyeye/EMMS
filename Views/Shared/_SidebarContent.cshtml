@@ -95,7 +95,9 @@
                 @(currentUser?.FirstName?[0])@(currentUser?.LastName?[0])
             </div>
             <div class="flex-grow-1">
-                <div class="fw-medium small">@(currentUser?.FirstName) @(currentUser?.LastName)</div>
+                <div class="fw-medium small">
+                    <a asp-action="Details" asp-controller="Users" asp-route-id="@currentUser.UserId">@(currentUser?.FirstName) @(currentUser?.LastName)</a>
+                </div>
                 <div class="text-muted" style="font-size: 0.75rem;">@currentUser?.UserRole?.Name</div>
             </div>
         </div>

@@ -1,117 +1,165 @@
-﻿@model EMMS.Models.Admin.User
-
+﻿
+@model EMMS.Models.Admin.User
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Delete User";
 }
 
-<h1>Delete</h1>
+<div class="container mt-4">
+    <!-- User Details Card -->
+    <div class="card border shadow-sm">
+        <!-- Header -->
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@Model.FirstName @Model.LastName</h5>
+                @if (Model.RowState.ToString() == "Active")
+                {
+                    <span class="badge bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">@Model.RowState</span>
+                }
+            </div>
+        </div>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>User</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FirstName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FirstName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.MiddleName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.MiddleName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DOB)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DOB)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Gender)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Gender)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Cellphone)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Cellphone)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Designations)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Designations.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Facility)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Facility.FacilityId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Username)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Username)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Password)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Password)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UserRole)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UserRole.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreatedBy)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreatedBy)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateCreated)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateCreated)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ModifiedBy)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ModifiedBy)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DateModified)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DateModified)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.RowState)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.RowState)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="UserId" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
+        <!-- Body -->
+        <div class="card-body">
+            <div class="row">
+                <!-- Personal Details -->
+                <div class="col-md-6 mb-4">
+                    <h6 class="text-primary border-bottom pb-2">Personal Information</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">First Name:</td>
+                            <td class="fw-medium">@Model.FirstName</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Middle Name:</td>
+                            <td class="fw-medium">@(Model.MiddleName ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Last Name:</td>
+                            <td class="fw-medium">@Model.LastName</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Date of Birth:</td>
+                            <td class="fw-medium">@Model.DOB.ToString("dd MMM yyyy")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Gender:</td>
+                            <td class="fw-medium">@Model.Gender</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Cellphone:</td>
+                            <td class="fw-medium">@Model.Cellphone</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- System Details -->
+                <div class="col-md-6 mb-4">
+                    <h6 class="text-primary border-bottom pb-2">System Information</h6>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">Username:</td>
+                            <td class="fw-medium">@Model.Username</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Password:</td>
+                            <td class="text-muted">••••••••</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">User Role:</td>
+                            <td class="fw-medium">@(Model.UserRole?.UserType ?? Enumerators.UserType.GeneralUser)</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Designation:</td>
+                            <td class="fw-medium">@(Model.Designations?.Name ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Facility ID:</td>
+                            <td class="fw-medium">@(Model.Facility?.FacilityName ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Status:</td>
+                            <td>
+                                @if (Model.RowState.ToString() == "Active")
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@Model.RowState</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Audit Information -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h6 class="text-primary border-bottom pb-2">Audit Trail</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <small class="text-muted">Created By:</small><br>
+                            @* <span class="fw-medium">@(Model.CreatedBy ?? "System")</span> *@
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Date Created:</small><br>
+                            <span class="fw-medium">@Model.DateCreated</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Modified By:</small><br>
+                            @* <span class="fw-medium">@(Model.ModifiedBy ?? "N/A")</span> *@
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted">Date Modified:</small><br>
+                            <span class="fw-medium">@(Model.DateModified?.ToString("dd MMM yyyy HH:mm") ?? "N/A")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="card-footer bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">User ID: @Model.UserId</small>
+                <div>
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="submit" value="Confirm Delete" class="btn btn-danger" />
+                        <a asp-action="Index" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-left"></i> Back to List
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .card {
+        border-radius: 8px;
+    }
+
+    .card-header {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .table td {
+        padding: 0.5rem 0;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    h6.text-primary {
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+</style>

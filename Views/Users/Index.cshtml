@@ -31,9 +31,6 @@
                                 @Html.DisplayNameFor(model => model.FirstName)
                             </th>
                             <th>
-                                @Html.DisplayNameFor(model => model.MiddleName)
-                            </th>
-                            <th>
                                 @Html.DisplayNameFor(model => model.LastName)
                             </th>
                             <th>
@@ -44,9 +41,6 @@
                             </th>
                             <th>
                                 @Html.DisplayNameFor(model => model.Cellphone)
-                            </th>
-                            <th>
-                                @Html.DisplayNameFor(model => model.Designations)
                             </th>
                             <th>
                                 @Html.DisplayNameFor(model => model.Facility)
@@ -71,9 +65,6 @@
                                     @Html.DisplayFor(modelItem => item.FirstName)
                                 </td>
                                 <td>
-                                    @Html.DisplayFor(modelItem => item.MiddleName)
-                                </td>
-                                <td>
                                     @Html.DisplayFor(modelItem => item.LastName)
                                 </td>
                                 <td>
@@ -86,9 +77,6 @@
                                     @Html.DisplayFor(modelItem => item.Cellphone)
                                 </td>
                                 <td>
-                                    @Html.DisplayFor(modelItem => item.Designations.Name)
-                                </td>
-                                <td>
                                     @Html.DisplayFor(modelItem => item.Facility.FacilityName)
                                 </td>
                                 <td>
@@ -98,12 +86,31 @@
                                     @Html.DisplayFor(modelItem => item.UserRole.Name)
                                 </td>
                                 <td>
-                                    @Html.DisplayFor(modelItem => item.RowState)
+                                    @if (item.RowState == Enumerators.RowStatus.Active)
+                                    {
+                                        <span class="badge bg-success">
+                                            @Html.DisplayFor(modelItem => item.RowState)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            @Html.DisplayFor(modelItem => item.RowState)
+                                        </span>
+                                    }
                                 </td>
                                 <td>
-                                    <a asp-action="Edit" asp-route-id="@item.UserId">Edit</a> |
-                                    <a asp-action="Details" asp-route-id="@item.UserId">Details</a> |
-                                    <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a>
+                                    <a class="btn btn-sm btn-primary" asp-action="Edit" asp-route-id="@item.UserId">Edit</a> 
+                                    <a class="btn btn-sm btn-info" asp-action="Details" asp-route-id="@item.UserId">Details</a>
+									@if (item.RowState == Enumerators.RowStatus.Active)
+									{
+                                        <a class="btn btn-sm btn-warning" asp-action="ActivateUser" asp-route-id="@item.UserId">Deactivate</a>
+									}
+									else
+									{
+                                        <a class="btn btn-sm btn-success" asp-action="ActivateUser" asp-route-id="@item.UserId">Activate</a>
+									}
+                                    @* <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a> *@
                                 </td>
                             </tr>
                         }

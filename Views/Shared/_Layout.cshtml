@@ -60,7 +60,7 @@
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loading-screen">
+@*     <div id="loading-screen">
         <img src="~/images/Coat_of_arms_of_Eswatini.svg"
              alt="Ministry Coat of Arms"
              class="loading-logo">
@@ -69,7 +69,7 @@
             <span class="visually-hidden">Loading...</span>
         </div>
         <p class="mt-3 text-muted">Please wait while we load your page...</p>
-    </div>
+    </div> *@
 
     <!-- Main Content (hidden initially) -->
     <div id="main-content">
@@ -210,35 +210,9 @@
     <script src="~/js/xlsx.full.min.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
+    <script src="~/js/loading.js"></script>
 
     <script>
-        // Show main content and hide loading screen when page is ready
-        document.addEventListener("DOMContentLoaded", function () {
-            // Add a small delay to ensure all resources are loaded
-            setTimeout(function() {
-                const loadingScreen = document.getElementById("loading-screen");
-                const mainContent = document.getElementById("main-content");
-
-                if (loadingScreen && mainContent) {
-                    // Fade out loading screen
-                    loadingScreen.style.opacity = "0";
-                    loadingScreen.style.transition = "opacity 0.5s ease-out";
-
-                    // Show main content after fade out
-                    setTimeout(function() {
-                        loadingScreen.style.display = "none";
-                        mainContent.style.display = "block";
-
-                        // Fade in main content
-                        mainContent.style.opacity = "0";
-                        setTimeout(function() {
-                            mainContent.style.opacity = "1";
-                            mainContent.style.transition = "opacity 0.3s ease-in";
-                        }, 50);
-                    }, 500);
-                }
-            }, 1000); // Minimum loading time of 1 second
-        });
 
         // Description modal functionality
         document.addEventListener("DOMContentLoaded", function () {
