@@ -65,6 +65,13 @@
 
             @if (isAdmin)
             {
+
+                <!-- Navigation Divider -->
+                <div class="sidebar-divider text-uppercase small fw-bold text-muted px-3 mt-3 mb-2">
+                    <span>Admin Section</span>
+                </div>
+
+
                 <a asp-controller="Admin" asp-action="LookupList" class="list-group-item border-0 d-inline-block text-truncate">
                     <i class="fa-solid fa-list"></i> <span>Lookup List</span>
                 </a>

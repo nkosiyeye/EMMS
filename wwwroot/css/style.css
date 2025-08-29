@@ -501,7 +501,138 @@ a {
         background-color: rgba(255, 255, 255, 0.1);
     }
 
-.list-group-item {
-    font-weight: 500; /* Make the text bold */
-    font-size: 0.9rem; /* Set the font size to medium */
+/* ===========================
+   Sidebar Navigation
+=========================== */
+#sidebar-nav {
+    background-color: #fff;
+    border-right: 1px solid var(--sidebar-border);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+    /* Base nav item */
+    #sidebar-nav .list-group-item {
+        font-weight: 500;
+        font-size: 0.9rem;
+        border: none;
+        border-radius: 0;
+        padding: 0.75rem 0.75rem;
+        display: flex;
+        align-items: center;
+        color: var(--foreground);
+        transition: all 0.2s ease;
+    }
+
+        /* Hover + focus */
+        #sidebar-nav .list-group-item:hover,
+        #sidebar-nav .list-group-item:focus {
+            background-color: rgba(21, 61, 119, 0.08);
+            color: var(--primary);
+        }
+
+        /* Active link */
+        #sidebar-nav .list-group-item.active {
+            background-color: var(--primary) !important;
+            color: #fff !important;
+            font-weight: 600;
+            box-shadow: inset 3px 0 0 #2563EB;
+        }
+
+        /* Icons inside links */
+        #sidebar-nav .list-group-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+            opacity: 0.85;
+            transition: opacity 0.2s ease;
+        }
+
+        #sidebar-nav .list-group-item:hover i {
+            opacity: 1;
+        }
+
+        /* Collapse toggles */
+        #sidebar-nav .list-group-item[data-bs-toggle="collapse"] {
+            justify-content: space-between;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+    /* Submenu container */
+    #sidebar-nav .collapse {
+        background: #f9fafb;
+        border-left: 2px solid var(--sidebar-border);
+    }
+
+        /* Submenu items */
+        #sidebar-nav .collapse .list-group-item {
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.5rem 1.5rem;
+            color: #4b5563;
+        }
+
+            #sidebar-nav .collapse .list-group-item:hover {
+                background-color: rgba(21, 61, 119, 0.05);
+                color: var(--primary);
+            }
+
+/* Collapse icon rotation */
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+[aria-expanded="true"] .collapse-icon {
+    transform: rotate(180deg);
+}
+
+/* Divider */
+#sidebar-nav .nav-divider {
+    padding: 0.75rem 1rem 0.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+    background-color: #fff;
+    border-top: 1px solid var(--sidebar-border);
+    padding: 1rem;
+}
+
+    /* User Profile in footer */
+    .sidebar-footer .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .sidebar-footer .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .sidebar-footer a.btn {
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+.sidebar-divider {
+    font-size: 0.75rem; /* Smaller text */
+    letter-spacing: 0.05em; /* Slight spacing for a modern look */
+    color: #6c757d; /* Bootstrap muted color */
+    border-top: 1px solid rgba(0,0,0,.1); /* subtle divider */
+    padding-top: 0.25rem;
 }
