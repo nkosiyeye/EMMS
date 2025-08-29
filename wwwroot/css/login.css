@@ -190,7 +190,6 @@ h5 {
 /* Mobile responsiveness */
 @media (max-width: 768px) {
     body {
-        padding: 1rem 0;
     }
 
     .container {
@@ -202,7 +201,6 @@ h5 {
     }
 
     .card-body {
-        padding: 1.5rem !important;
     }
 }
 
