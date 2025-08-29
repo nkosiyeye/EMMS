@@ -17,10 +17,14 @@ namespace EMMS.Controllers
                 .Where(n => n.RowState == Models.Enumerators.RowStatus.Active)
                 .Include(n => n.Facility)
                 .OrderByDescending(n => n.DateCreated)
+                .Take(20)
                 .ToListAsync();
-            var filteredNotifications = allNotifications
-                .Where(n => n.FacilityId == CurrentUser?.FacilityId)
-                .ToList();
+            var filteredNotifications = await _context.Notifications
+                .Where(n => n.RowState == Models.Enumerators.RowStatus.Active && n.FacilityId == CurrentUser!.FacilityId)
+                .Include(n => n.Facility)
+                .OrderByDescending(n => n.DateCreated)
+                .Take(20)
+                .ToListAsync();
             var notifications = isAdmin
                 ? allNotifications
                 : filteredNotifications;
