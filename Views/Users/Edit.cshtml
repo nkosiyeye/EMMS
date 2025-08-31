@@ -34,7 +34,7 @@
                         <input type="hidden" asp-for="UserId" />
 
                         <!-- Personal Information -->
-                        <h5 class="border-bottom pb-2 mb-3 text-primary">Personal Information</h5>
+                        <h5 class="pb-2 mb-3 text-primary">Personal Information</h5>
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label asp-for="FirstName" class="form-label">First Name</label>
@@ -75,7 +75,7 @@
                         </div>
 
                         <!-- Employment Details -->
-                        <h5 class="border-bottom pb-2 mt-4 mb-3 text-primary">Employment Details</h5>
+                        <h5 class="pb-2 mt-4 mb-3 text-primary">Employment Details</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label asp-for="DesignationId" class="form-label">Designation</label>
@@ -104,18 +104,11 @@
                         </div>
 
                         <!-- Account Credentials -->
-                        <h5 class="border-bottom pb-2 mt-4 mb-3 text-primary">Account Credentials</h5>
+                        <h5 class="pb-2 mt-4 mb-3 text-primary">Account Credentials</h5>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label asp-for="Username" class="form-label">Username</label>
-                                @if (isAdmin)
-                                {
-                                    <input asp-for="Username" class="form-control" />
-                                }
-                                else
-                                {
-                                    <input asp-for="Username" class="form-control" readonly />
-                                }
+                                 <input asp-for="Username" class="form-control" readonly />
                                 <span asp-validation-for="Username" class="text-danger"></span>
                             </div>
                             <div class="col-md-6">
@@ -146,7 +139,7 @@
                         </div>
 
                         <!-- Record State -->
-                        <h5 class="border-bottom pb-2 mt-4 mb-3 text-primary">System Settings</h5>
+                        <h5 class="pb-2 mt-4 mb-3 text-primary">System Settings</h5>
                         <div class="form-group mb-3">
                             <label asp-for="RowState" class="form-label">Record State</label>
                             @if (isAdmin)

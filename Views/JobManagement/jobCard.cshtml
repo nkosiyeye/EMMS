@@ -5,6 +5,7 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser;
+    Model.WorkDone.DateCompleted = DateTime.Today;
 }
 
 <!-- Asset Detail Section -->
@@ -49,107 +50,110 @@
         <span><i class="fa-solid fa-briefcase me-2"></i>Job Card</span>
     </div>
     <div class="card-body">
-        <form asp-controller="JobManagement" asp-action="updateJobCard" method="post">
-            @if (isBiomed && currentUser.UserId == Model.Job?.AssignedTo && Model.Job?.EndDate == null)
-            {
-                <div class="text-end mb-3">
-                    <button type="submit" class="btn btn-primary">Update Job Card</button>
-                </div>
-            }
+        <div class="row">
+            <form asp-controller="JobManagement" asp-action="updateJobCard" method="post" class="col-md-12 col-lg-12 col-xl-6">
 
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label class="form-label">Job Card Number</label>
-                    <input asp-for="Job.AssetId" hidden />
-                    <input asp-for="Job.JobId" type="text" class="form-control" readonly />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Date Issued</label>
-                    <input asp-for="Job.StartDate" type="text" class="form-control" readonly />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Status</label>
-                    @if (Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)
-                    {
-                        <input class="form-control" type="text" value="@Model.Job.Status.Name" disabled />
-                    }
-                    else
-                    {
-                        <select asp-for="Job.StatusId" class="form-select selectpicker col-md-4" data-live-search="true"
-                                asp-items="@(new SelectList(Model.WorkStatuses.Where(w => w.Name.Contains("In") || w.Name.Contains("Completed")), "Id", "Name"))">
-                        </select>
-                    }
-                </div>
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Assigned To</label>
-                    <input asp-for="Job.AssignedTo" type="hidden" />
-                    <input type="text" class="form-control" value="@Model.Job.User.FirstName" readonly />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Fault Report</label>
-                    <input asp-for="Job.FaultReportId" type="hidden" />
-                    <input type="text" class="form-control" value="@Model.Job.FaultReport.Name" readonly />
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Comments</label>
-                <textarea asp-for="Job.Remarks" class="form-control" rows="3"
-                          readonly="@(Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)">
-                </textarea>
-            </div>
-        </form>
-
-        <!-- Work Done Section -->
-        <div class="mb-3">
-            <p class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</p>
-
-            @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
-            {
-                <form asp-action="workDone" asp-controller="JobManagement" method="post" class="row g-2 mb-3">
-                    <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
-                    <div class="col-md-4">
-                        <input asp-for="WorkDone.DateCompleted" type="date" class="form-control" />
+                <div class="row mb-3">
+                    <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
+                        <label class="form-label">Job Card Number</label>
+                        <input asp-for="Job.AssetId" hidden />
+                        <input asp-for="Job.JobId" type="text" class="form-control" readonly />
                     </div>
-                    <div class="col-md-4">
-                        <input asp-for="WorkDone.Details" type="text" class="form-control" placeholder="Details" />
+                    <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
+                        <label class="form-label">Date Issued</label>
+                        <input asp-for="Job.StartDate" type="text" class="form-control" readonly />
                     </div>
-                    <div class="col-md-2">
-                        <input asp-for="WorkDone.Hours" type="number" class="form-control" placeholder="Hours" />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100" type="submit">
-                            <i class="fa fa-plus"></i>
-                        </button>
-                    </div>
-                </form>
-            }
-
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th><i class="fa-regular fa-calendar me-1"></i>Date</th>
-                        <th><i class="fa-regular fa-file-lines me-1"></i>Details</th>
-                        <th><i class="fa-solid fa-hourglass-half me-1"></i>Hours</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.WorkDoneList != null)
-                    {
-                        foreach (var work in Model.WorkDoneList)
+                    <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
+                        <label class="form-label">Status</label>
+                        @if (Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)
                         {
-                            <tr>
-                                <td>@work.DateCompleted.ToShortDateString()</td>
-                                <td>@work.Details</td>
-                                <td>@work.Hours</td>
-                            </tr>
+                            <input class="form-control" type="text" value="@Model.Job.Status.Name" disabled />
                         }
-                    }
-                </tbody>
-            </table>
+                        else
+                        {
+                            <select asp-for="Job.StatusId" class="form-select selectpicker col-md-4" data-live-search="true"
+                                    asp-items="@(new SelectList(Model.WorkStatuses.Where(w => w.Name.Contains("In") || w.Name.Contains("Completed")), "Id", "Name"))">
+                            </select>
+                        }
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Assigned To</label>
+                        <input asp-for="Job.AssignedTo" type="hidden" />
+                        <input type="text" class="form-control" value="@Model.Job.User.FirstName" readonly />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fault Report</label>
+                        <input asp-for="Job.FaultReportId" type="hidden" />
+                        <input type="text" class="form-control" value="@Model.Job.FaultReport.Name" readonly />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Comments</label>
+                    <textarea asp-for="Job.Remarks" class="form-control" rows="3"
+                              readonly="@(Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)">
+                </textarea>
+                </div>
+
+                @if (isBiomed && currentUser.UserId == Model.Job?.AssignedTo && Model.Job?.EndDate == null)
+                {
+                    <div class="text-end mb-3">
+                        <button type="submit" class="btn btn-primary">Update Job Card</button>
+                    </div>
+                }
+            </form>
+
+            <!-- Work Done Section -->
+            <div class="mb-3 col-md-12 col-lg-12 col-xl-6">
+                <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
+
+                @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
+                {
+                    <form asp-action="workDone" asp-controller="JobManagement" method="post" class="row g-2 mb-3">
+                        <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
+                        <div class="col-md-4">
+                            <input asp-for="WorkDone.DateCompleted" type="date" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <input asp-for="WorkDone.Details" type="text" class="form-control" placeholder="Details" />
+                        </div>
+                        <div class="col-md-2">
+                            <input asp-for="WorkDone.Hours" type="number" class="form-control" placeholder="Hours" />
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-sm btn-primary w-50" type="submit">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </form>
+                }
+
+                <table class="table table-bordered" id="workDone">
+                    <thead>
+                        <tr>
+                            <th><i class="fa-regular fa-calendar me-1"></i>Date</th>
+                            <th><i class="fa-regular fa-file-lines me-1"></i>Details</th>
+                            <th><i class="fa-solid fa-hourglass-half me-1"></i>Hours</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.WorkDoneList != null)
+                        {
+                            foreach (var work in Model.WorkDoneList)
+                            {
+                                <tr>
+                                    <td>@work.DateCompleted.ToShortDateString()</td>
+                                    <td>@work.Details</td>
+                                    <td>@work.Hours</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="text-start mt-4">
             <a asp-action="Index" asp-controller="JobManagement" class="btn btn-outline-secondary">
@@ -159,3 +163,15 @@
 
     </div>
 </div>
+@section Scripts {
+    <script>
+                $(document).ready(function () {
+            $('#workDone').DataTable({
+                pageLength: 5,
+                order: [],
+                "lengthChange": false,
+                "searching": false
+            });
+        });
+    </script>
+}
