@@ -12,7 +12,7 @@
         <div class="card col-md-12 col-lg-6 col-xl-6 mb-6">
             <div class="card-body">
                 <!-- Success Notification -->
-                @if (TempData["UserRegistrationSuccess"] != null && (bool)TempData["UserRegistrationSuccess"])
+                 @if (TempData["UserRegistrationSuccess"] != null)
                 {
                     <div class="alert alert-success alert-dismissible fade show d-flex align-items-center w-100 mb-3"
                          role="alert" id="successNotification">
@@ -21,7 +21,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
-
+ 
                 <!-- Error Notification -->
                 @if (TempData["Notification"] != null)
                 {
