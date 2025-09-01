@@ -16,6 +16,7 @@ namespace EMMS.Data.Repository
         {
             return await _context.WorkRequest
                 .Include(w => w.Asset)
+                .ThenInclude(a => a.SubCategory)
                 .Include(w => w.WorkStatus)
                 .Include(w => w.Outcome)
                 .Include(w => w.RequestedByUser)

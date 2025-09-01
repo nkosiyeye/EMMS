@@ -25,7 +25,7 @@
                         </a>
                     </dd>
                     <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.ItemName</dd>
+                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.SubCategory.Name</dd>
                     <dt class="col-sm-6 border p-1 m-0">Date</dt>
                     <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
                 </dl>
@@ -57,7 +57,8 @@
                     <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
                         <label class="form-label">Job Card Number</label>
                         <input asp-for="Job.AssetId" hidden />
-                        <input asp-for="Job.JobId" type="text" class="form-control" readonly />
+                        <input asp-for="Job.JobId" type="hidden" class="form-control"/>
+                        <input asp-for="Job.JobNumber" type="text" class="form-control" readonly />
                     </div>
                     <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
                         <label class="form-label">Date Issued</label>

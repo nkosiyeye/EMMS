@@ -10,8 +10,10 @@ namespace EMMS.Models
     public class Job : BaseEntity
     {
         [Key]
-        [Display(Name = "Job Card Number")]
         public Guid JobId { get; set; }
+
+        [Display(Name = "Job Card Number")]
+        public string? JobNumber { get; set; }
 
         [Required]
         [Display(Name = "Work Request ID")]

@@ -234,6 +234,7 @@ namespace EMMS.Controllers
             {
                 var job = jobView.Job;
                 job.JobId = Guid.NewGuid();
+                job.JobNumber = "Jb-" + (_repo.GetJobfromDbs().Result.Count() + 1).ToString("D3");
                 var wRequest = _repo.GetWorkRequests().Result.FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
                 wRequest.DateModified = DateTime.Now;
                 wRequest.WorkStatusId = job.StatusId;

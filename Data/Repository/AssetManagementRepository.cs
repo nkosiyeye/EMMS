@@ -177,6 +177,7 @@ namespace EMMS.Data.Repository
             DateTime twoMonthsFromNow = today.AddMonths(period);
 
             var dueAssets = await _context.Assets
+                .Include(a => a.SubCategory)
                 .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= twoMonthsFromNow)
                 .OrderByDescending(a => a.NextServiceDate)
                 .ToListAsync();

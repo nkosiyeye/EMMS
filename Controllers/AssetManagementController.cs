@@ -148,6 +148,7 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 asset.AssetId = Guid.NewGuid();
+                asset.AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
                 asset.CreatedBy = CurrentUser!.UserId;
                 asset.DateCreated = DateTime.Now;
                 asset.RowState = RowStatus.Active;

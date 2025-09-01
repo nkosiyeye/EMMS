@@ -24,15 +24,15 @@ namespace EMMS.Models
         public virtual LookupItem? Category { get; set; }
 
         // SubCategory
-        [Required(ErrorMessage = "SubCategory is required")]
-        [Display(Name = "SubCategory")]
+        [Required(ErrorMessage = "Item Name is required")]
+        [Display(Name = "Item Name")]
         public int SubCategoryId { get; set; }
         [ForeignKey(nameof(SubCategoryId))]
         public virtual LookupItem? SubCategory { get; set; }
 
-        [Required(ErrorMessage = "Item Name is required")]
+        
         [Display(Name = "Item Name")]
-        public string ItemName { get; set; }
+        public string? ItemName { get; set; }
 
         // Department
         [Required(ErrorMessage = "Department is required")]

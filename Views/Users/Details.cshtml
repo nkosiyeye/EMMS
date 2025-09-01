@@ -99,13 +99,13 @@
             @if (isAdmin)
             {
                 <!-- Audit Information -->
-                <div class="row mt-3">
+                <div class="row mt-3 d-none">
                     <div class="col-12">
                         <h6 class="text-primary border-bottom pb-2">Audit Trail</h6>
                         <div class="row">
                             <div class="col-md-3">
                                 <small class="text-muted">Created By:</small><br>
-                                @* <span class="fw-medium">@(Model.CreatedBy ?? "System")</span> *@
+                                @* <span class="fw-medium">@(Model.GetCreatedUser.FirstName ?? "System")</span>  *@
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted">Date Created:</small><br>
@@ -113,7 +113,7 @@
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted">Modified By:</small><br>
-                                @* <span class="fw-medium">@(Model.ModifiedBy ?? "N/A")</span> *@
+                                @* <span class="fw-medium">@(Model.GetModifiedUser.LastName ?? "N/A")</span> *@
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted">Date Modified:</small><br>
@@ -128,7 +128,6 @@
         <!-- Footer -->
         <div class="card-footer bg-light">
             <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">User ID: @Model.UserId</small>
                 <div>
                     @* <a asp-action="Index" class="btn btn-outline-secondary me-2">
                         <i class="bi bi-arrow-left"></i> Back to List

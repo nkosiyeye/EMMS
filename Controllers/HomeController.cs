@@ -102,6 +102,9 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
+            //var asset = _context.Assets.Where(a => a.AssetTagNumber == "AS-021").FirstOrDefault();
+            //_context.Remove(asset);
+            //_context.SaveChanges();
             var model = new IndexModel
             {
                 currentUser = CurrentUser
@@ -138,6 +141,7 @@ namespace EMMS.Controllers
             model.PendingJobs = isAdmin
                 ? pendingJobs.Count()
                 : pendingJobs.Count(w => w.FacilityId == CurrentUser.FacilityId);
+
 
             return View(model);
         }

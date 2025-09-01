@@ -25,7 +25,7 @@
         <form class="row bg-white" asp-action="edit" asp-controller="AssetManagement" method="post">
             <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">
-                <div class="col-md-6">
+                <div class="col-md-2">
                     <label asp-for="asset.AssetTagNumber" class="form-label required-field">Asset Tag</label>
                     <input asp-for="asset.AssetTagNumber" type="text" id="asset-tag" class="form-control" value="@Model.asset.AssetTagNumber" readonly>
                     <input asp-for="asset.AssetId" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.AssetId" readonly>
@@ -34,26 +34,25 @@
                     <input asp-for="asset.RowState" type="hidden" id="asset-tag" class="form-control" value="@Model.asset.RowState" readonly>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label asp-for="asset.CategoryId" class="form-label required-field">Category</label>
                     <select asp-for="asset.CategoryId" id="category" class="form-select selectpicker col-md-6" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" onchange="updateSubCategory(value)">
                         <option selected value="@(Model.asset.CategoryId)">@Model.asset.Category!.Name</option>
                     </select>
                     <span asp-validation-for="asset.CategoryId" class="text-danger"></span>
                 </div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label asp-for="asset.SubCategoryId" class="form-label required-field">SubCategory</label>
+                <div class="col-md-5">
+                    <label asp-for="asset.SubCategoryId" class="form-label required-field"></label>
                     <select asp-for="asset.SubCategoryId" id="subcategory" class="form-select selectpicker col-md-6" data-live-search="true">
                         <option selected value="@(Model.asset.SubCategoryId)">@Model.asset.SubCategory!.Name</option>
                     </select>
                     <span asp-validation-for="asset.SubCategoryId" class="text-danger"></span>
                 </div>
-                <div class="col-md-6">
+            </div>
+            <div class="row mb-3 d-none">
+                <div class="col-md-6 d-none">
                     <label asp-for="asset.ItemName" for="item-name" class="form-label required-field">Item Name</label>
                     <input asp-for="asset.ItemName" type="text" id="item-name" class="form-control">
-                    <span asp-validation-for="asset.ItemName" class="text-danger"></span>
                 </div>
             </div>
             <h5 class="mb-3 mt-3 form-subheading">Technical Details</h5>

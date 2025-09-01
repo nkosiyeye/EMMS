@@ -6,7 +6,15 @@
 <div class="card mb-12">
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>@Model.LookupList?.Name</span>
+                @if (Model.LookupList?.Name == "SubCategory")
+                {
+                    <span>Item Name</span>
+                }
+                else
+                {
+                    <span>@Model.LookupList?.Name</span>
+                    
+                }
             <a class="btn btn-primary btn-sm" asp-controller="Admin" asp-action="AddLookupItem" asp-route-id="@Model.LookupList.LookupListId">
                 <i class="fa fa-plus me-1"></i> Add Item
             </a>
@@ -18,7 +26,6 @@
                 <table class="table fixed-table table-striped table-bordered table-hover" id="lookupTable">
                     <thead>
                         <tr>
-                            <th>For</th>
                             <th>Item</th>
                             <th>@(Model.LookupList.Name.ToLower().Contains("service point") ? "Facility" : "SubCategory")</th>
                             <th>Status</th>
@@ -31,7 +38,6 @@
 
 
                             <tr>
-                                <td width="10%">@item.LookupList.Name</td>
                                 <td width="10%">@item.Name</td>
                                 <td width="10%">
                                     @(

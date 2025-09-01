@@ -9,7 +9,7 @@
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>Look up List</span>
-           @*  <a class="btn btn-primary btn-sm" asp-controller="Admin" asp-action="AddLookupItem" asp-route-id="@Model.LookupList.LookupListId">
+            @*  <a class="btn btn-primary btn-sm" asp-controller="Admin" asp-action="AddLookupItem" asp-route-id="@Model.LookupList.LookupListId">
                 <i class="fa fa-plus me-1"></i> Add Item
             </a> *@
         </div>
@@ -31,7 +31,16 @@
 
 
                             <tr>
-                                <td width="10%">@item.Name</td>
+                                <td width="10%">
+                                    @if(item.Name == "SubCategory")
+                                    {
+                                        <span>Item Name</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@item.Name</span>
+                                    }
+                                    </td>
                                 <td width="10%">@item.RowState</td>
                                 <td width="5%">
 

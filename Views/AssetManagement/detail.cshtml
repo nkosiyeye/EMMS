@@ -38,11 +38,11 @@
                     <dt class="col-6 border p-1 m-0">Category</dt>
                     <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.Category!.Name)</dd>
 
-                    <dt class="col-6 border p-1 m-0">Sub Category</dt>
+                    <dt class="col-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.SubCategory!.Name)</dd>
 
-                    <dt class="col-6 border p-1 m-0">Item Name</dt>
-                    <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
+                    <dt class="col-6 border p-1 m-0 d-none">Item Name</dt>
+                    <dd class="col-6 border p-1 m-0 d-none">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
 
                     <dt class="col-6 border p-1 m-0">Created By</dt>
                     <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.User.FirstName)</dd>
@@ -88,6 +88,13 @@
 
                     <dt class="col-6 border p-1 m-0">Cost</dt>
                     <dd class="col-6 border p-1 m-0">E@(Html.DisplayFor(model => model.Asset.Cost))</dd>
+
+                    <dt class="col-6 border p-1 m-0">Serviceable</dt>
+                    <dd class="col-6 border p-1 m-0">
+                        @(Model.Asset.IsServiceable
+                            ? $"Every {Model.Asset.ServiceInterval} Month(s)"
+                            : "No")
+                    </dd>
                 </dl>
             </div>
 
@@ -137,13 +144,6 @@
                                 <div class="status-btn @fsClass">@funcStatus</div>
                             }
                         }
-                    </dd>
-
-                    <dt class="col-6 border p-1 m-0">Serviceable</dt>
-                    <dd class="col-6 border p-1 m-0">
-                        @(Model.Asset.IsServiceable
-                            ? $"Every {Model.Asset.ServiceInterval} Month(s)"
-                            : "No")
                     </dd>
 
                     @if (Model.Asset.IsServiceable)
