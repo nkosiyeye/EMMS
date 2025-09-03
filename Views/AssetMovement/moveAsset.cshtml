@@ -71,7 +71,7 @@
                         <div class="col-md-6">
                     <label asp-for="MoveAsset.Reason" class="form-label required-field"></label>
                             <select asp-for="MoveAsset.Reason" class="form-select selectpicker col-md-6"
-                            data-live-search="true">
+                            data-live-search="true" onchange="onchangereason()" id="movementReason">
                         <option selected disabled>Select Movement Reason</option>
                         @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementReason)).Cast<EMMS.Models.Enumerators.MovementReason>())
                         {
@@ -93,7 +93,20 @@
                     <span asp-validation-for="MoveAsset.FunctionalStatus" class="text-danger"></span>
                         </div>
                     </div>
-                    <div class="row mb-3" hidden>
+
+            <div class="row mb-3 d-none" id="warrantyField">
+                <div class="col-md-6">
+                        <label asp-for="WarrantyEndDate" class="form-label required-field"></label>
+                        <input asp-for="WarrantyEndDate" class="form-control" type="date" />
+                </div>
+            </div> 
+            <div class="row mb-3 d-none" id="otherReasonField">
+                <div class="col-md-6">
+                    <label asp-for="MoveAsset.OtherReason" class="form-label required-field"></label>
+                    <input asp-for="MoveAsset.OtherReason" class="form-control" type="text" />
+                </div>
+            </div>
+            <div class="row mb-3" hidden>
                         <div class="col-md-6">
                             <div class="border rounded p-3">
                                 <div class="form-check">
@@ -114,6 +127,21 @@
 @section Scripts {
     <script>
         const selectedFacilityId = @Model.MoveAsset.FacilityId;
+
+        function onchangereason(){
+            const movementReason = document.getElementById("movementReason").value
+            const warrantyField = document.getElementById("warrantyField")
+            const otherReasonField = document.getElementById("otherReasonField")
+            if(movementReason === "7"){
+                warrantyField.classList.remove("d-none");
+            }else if(movementReason === "8"){
+                otherReasonField.classList.remove("d-none");
+            }else 
+            {
+                warrantyField.classList.add("d-none");
+                otherReasonField.classList.add("d-none");
+            }
+        }
 
         function toggleLocationFields() {
             const movementType = document.getElementById("movementType").value;
@@ -197,7 +225,7 @@
                     }
 
                     // Show the field once populated
-                    document.getElementById("servicePointField").classList.remove("d-none");
+                    //document.getElementById("servicePointField").classList.remove("d-none");
                 });
         }
 

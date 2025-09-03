@@ -9,6 +9,8 @@ namespace EMMS.ViewModels
         public MoveAsset? MoveAsset { get; set; }
         public Facility? CurrentFacility { get; set; }
 
+        public DateTime? WarrantyEndDate { get; set; }
+
         public IEnumerable<Enumerators.MovementType>? MovementTypes { get; set; } = Enum.GetValues<Enumerators.MovementType>();
         public IEnumerable<Facility>? Facilities { get; set; }
         public IEnumerable<LookupItem>? ServicePoints { get; set; }

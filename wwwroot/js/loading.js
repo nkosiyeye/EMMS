@@ -87,7 +87,7 @@
         const loadingMessageEl = document.getElementById('loadingMessage');
 
         // Show loading function
-        window.showLoading = function (customMessage = null, timeout = 10000000000) {
+        window.showLoading = function (customMessage = null, timeout = 1000000) {
             if (customMessage) {
                 loadingMessageEl.textContent = customMessage;
             } else {
@@ -187,9 +187,9 @@
     });
 
     // Handle back/forward browser navigation
-    window.addEventListener('popstate', function () {
-        showLoading('Loading page...', 3000);
-    });
+    //window.addEventListener('popstate', function () {
+    //    showLoading('Loading page...', 3000);
+    //});
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {

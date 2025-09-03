@@ -113,6 +113,13 @@ namespace EMMS.Models
         [Display(Name = "Lifespan (Years)")]
         public int? LifespanQuantity { get; set; }
 
+
+        [Display(Name = "Warranty Start Date")]
+        public DateTime? WarrantyStartDate { get; set; }
+
+        [Display(Name = "Warranty End Date")]
+        public DateTime? WarrantyEndDate { get; set; }
+
         public Guid? CreatedBy { get; set; }
         [ForeignKey(nameof(CreatedBy))]
         public virtual User? User { get; set; }

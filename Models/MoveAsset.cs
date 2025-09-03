@@ -54,7 +54,7 @@ namespace EMMS.Models
         [Display(Name = "Reason")]
         public MovementReason Reason { get; set; }
 
-        [Display(Name = "OtherReason")]
+        [Display(Name = "Other Reason")]
         public string? OtherReason { get; set; }
         //[ForeignKey(nameof(ReasonId))]
         //public virtual LookupItem? Reason { get; set; }

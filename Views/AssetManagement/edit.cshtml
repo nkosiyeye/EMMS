@@ -257,7 +257,7 @@
         function updateSubCategory(categoryId) {
             var subCategorySelect = document.getElementById('subcategory');
             // Clear current options
-            subCategorySelect.innerHTML = '<option selected disabled>Select SubCategory</option>';
+            subCategorySelect.innerHTML = '<option selected disabled>Select Item Name</option>';
 
             if (categoryId) {
                 fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)

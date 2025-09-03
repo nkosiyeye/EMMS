@@ -65,6 +65,28 @@
                         }
                         <div class="status-btn @statusClass">@procStatus</div>
                     </dd>
+
+                    <dt class="col-6 border p-1 m-0">Warranty</dt>
+                    <dd class="col-6 border p-1 m-0">
+                        @if (Model.Asset.WarrantyStartDate != null && Model.Asset.WarrantyEndDate != null)
+                        {
+                            var start = Model.Asset.WarrantyStartDate.Value;
+                            var end = Model.Asset.WarrantyEndDate.Value;
+                            var years = ((end.Year - start.Year) - (end.DayOfYear < start.DayOfYear ? 1 : 0));
+                            var months = ((end.Month - start.Month) + (end.Day >= start.Day ? 0 : -1) + (years * 12));
+
+                            <span>@start.ToString("dd MMM yyyy") → @end.ToString("dd MMM yyyy")</span>
+
+                            <br />
+                            <small class="text-muted">
+                                Duration: @years year(s) @(months % 12) month(s)
+                            </small>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No warranty information</span>
+                        }
+                    </dd>
                 </dl>
             </div>
 
@@ -92,8 +114,8 @@
                     <dt class="col-6 border p-1 m-0">Serviceable</dt>
                     <dd class="col-6 border p-1 m-0">
                         @(Model.Asset.IsServiceable
-                            ? $"Every {Model.Asset.ServiceInterval} Month(s)"
-                            : "No")
+                                    ? $"Every {Model.Asset.ServiceInterval} Month(s)"
+                                    : "No")
                     </dd>
                 </dl>
             </div>
@@ -104,8 +126,8 @@
                     <dt class="col-6 border p-1 m-0">Placement</dt>
                     <dd class="col-6 border p-1 m-0">
                         @(Model.Asset.IsPlacement
-                            ? $"{Model.Asset.PlacementStartDate:dd/MM/yyyy} to {Model.Asset.PlacementEndDate:dd/MM/yyyy}"
-                            : "No")
+                                    ? $"{Model.Asset.PlacementStartDate:dd/MM/yyyy} to {Model.Asset.PlacementEndDate:dd/MM/yyyy}"
+                                    : "No")
                     </dd>
 
                     <dt class="col-6 border p-1 m-0">Donated</dt>
@@ -120,8 +142,8 @@
                     <dt class="col-6 border p-1 m-0">Current Location</dt>
                     <dd class="col-6 border p-1 m-0">
                         @(currentLocation?.Facility?.FacilityName
-                            ?? currentLocation?.ServicePoint?.Name
-                            ?? "-")
+                                    ?? currentLocation?.ServicePoint?.Name
+                                    ?? "-")
                     </dd>
 
                     <dt class="col-6 border p-1 m-0">Functional Status</dt>
@@ -236,7 +258,17 @@
                                 }
                             </td>
                             <td>@(move.ServicePoint?.Name ?? "Unknown")</td>
-                            <td>@move.Reason</td>
+                            <td>
+                                @if(move.Reason == MovementReason.Other)
+                                {
+                                    @move.OtherReason
+                                }
+                                else
+                                {
+                                    @move.Reason
+                                    
+                                }
+                                </td>
                             <td>
                                 @{
                                     var statusLabel = move.FunctionalStatus switch

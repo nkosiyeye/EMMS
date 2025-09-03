@@ -92,9 +92,11 @@ namespace EMMS.Controllers
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed))]
         public async Task<IActionResult> registerAsset()
         {
+
+            var facilityCode = CurrentUser.Facility.FacilityCode;
             var asset = new Asset()
             {
-                AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
+                AssetTagNumber = $"{facilityCode}AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3"),
             };
             var viewModel = await GetBaseAssetRegView(asset);
             viewModel.alreadyDeployed = isAdmin ? false : true;
@@ -148,7 +150,8 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 asset.AssetId = Guid.NewGuid();
-                asset.AssetTagNumber = "AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
+                var facilityCode = CurrentUser.Facility.FacilityCode;
+                asset.AssetTagNumber = $"{facilityCode}AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
                 asset.CreatedBy = CurrentUser!.UserId;
                 asset.DateCreated = DateTime.Now;
                 asset.RowState = RowStatus.Active;
@@ -167,10 +170,11 @@ namespace EMMS.Controllers
                         FromId = Assetmodel.facilityId ?? 0,
                         FacilityId = Assetmodel.facilityId ?? 0,
                         ServicePointId = Assetmodel.ServicePointId,
-                        Reason = MovementReason.Deployment,
+                        Reason = Assetmodel.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
                         FunctionalStatus = FunctionalStatus.Functional,
                         IsApproved = true,
                         ApprovedBy = CurrentUser!.UserId,
+                        ReceivedBy = CurrentUser!.UserId,
                         DateReceived = Assetmodel.dateDeployed ?? DateTime.Now,
                         DateCreated = DateTime.Now,
                         CreatedBy = CurrentUser!.UserId,

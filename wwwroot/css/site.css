@@ -24,10 +24,15 @@ html, body {
 /* Make the main content take up the remaining space */
 main {
     flex: 1 0 auto;
+    margin-bottom: 80px;
 }
 
 /* Footer stays at the bottom */
 footer {
     flex-shrink: 0;
+}
+.disabled-checkbox {
+    pointer-events: none;
+    opacity: 0.6; /* Optional: Visually indicate it's disabled */
 }
 

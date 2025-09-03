@@ -203,6 +203,15 @@ namespace EMMS.Controllers
 
             CreateEntity(assetMovement);
             _context.Add(assetMovement);
+
+            if(assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
+            {
+                var asset = assetMovement.Asset;
+                asset.WarrantyStartDate = assetMovement.MovementDate;
+                asset.WarrantyEndDate = model.WarrantyEndDate;
+                UpdateEntity(asset);
+                _context.Update(asset);
+            }
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }

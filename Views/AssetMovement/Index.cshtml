@@ -55,7 +55,17 @@
                             </td>
                             <td>@movement.MovementDate.ToShortDateString()</td>
                             <td>@Format.DisplayFunctionalStatus(movement.FunctionalStatus)</td>
-                            <td>@movement.Reason</td>
+                            <td>
+                                @if (movement.Reason == MovementReason.Other)
+                                {
+                                    @movement.OtherReason
+                                }
+                                else
+                                {
+                                    @movement.Reason
+
+                                }
+                            </td>
 
                             <td>
                                 @if (!movement.IsApproved)
