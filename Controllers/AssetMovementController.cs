@@ -97,6 +97,7 @@ namespace EMMS.Controllers
             {
                 moveAsset.AssetId = id;
                 moveAsset.FacilityId = history.FacilityId;
+                moveAsset.FromId = history.FacilityId;
                 moveAsset.Asset = history.Asset;
             }
             else
@@ -194,8 +195,8 @@ namespace EMMS.Controllers
                 return View("MoveAsset", model);
             }
 
-            var history = await repo.GetLastMovement(assetMovement.AssetId);
-            assetMovement.FromId = history?.FacilityId ?? CurrentUser.FacilityId;
+            //var history = await repo.GetLastMovement(assetMovement.AssetId);
+            assetMovement.FromId = assetMovement?.FromId != null ? assetMovement.FromId : CurrentUser!.FacilityId;
             assetMovement.MovementDate = assetMovement.MovementDate.Date
                 .AddHours(DateTime.Now.Hour)
                 .AddMinutes(DateTime.Now.Minute)

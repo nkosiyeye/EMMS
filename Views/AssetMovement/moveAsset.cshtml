@@ -52,7 +52,7 @@
 
                         </div>
                         <div class="col-md-6" id="facilityField">
-                             <input asp-for="MoveAsset.FromId" value="@ViewBag._currentUser.FacilityId" class="form-control" type="int" hidden/>
+                             <input asp-for="MoveAsset.FromId" class="form-control" type="int" hidden/>
                             <label asp-for="MoveAsset.FacilityId" class="form-label required-field"></label>
                             <select asp-for="MoveAsset.FacilityId" id="facility" class="form-select selectpicker col-md-6" data-live-search="true">
                             </select>

@@ -109,6 +109,32 @@ main {
     margin-bottom: 80px !important;
 }
 
+@media screen and (orientation: landscape) {
+    footer.footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;
+        flex-shrink: 0;
+        height: fit-content;
+    }
+    /*.sidebar-footer {
+        margin-bottom: 80px !important;
+    }*/
+
+    @media screen and (min-width: 768px) and (max-width: 1024px) {
+        .sidebar-footer {
+            margin-bottom: 40px !important;
+        }
+    }
+
+    main {
+        overflow-y: auto;
+        background: whitesmoke;
+        margin-bottom: 80px !important;
+    }
+}
+
+
 .logo {
     width: 11rem;
 }

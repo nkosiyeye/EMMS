@@ -87,7 +87,7 @@
         const loadingMessageEl = document.getElementById('loadingMessage');
 
         // Show loading function
-        window.showLoading = function (customMessage = null, timeout = 1000000) {
+        window.showLoading = function (customMessage = null, timeout = 10000) {
             if (customMessage) {
                 loadingMessageEl.textContent = customMessage;
             } else {
@@ -105,9 +105,9 @@
             loadingOverlay.classList.add('show', 'loading-fade-in');
 
             // Auto-hide after timeout (failsafe)
-            //loadingTimeout = setTimeout(() => {
-            //    hideLoading();
-            //}, timeout);
+            loadingTimeout = setTimeout(() => {
+                hideLoading();
+            }, timeout);
         };
 
         // Hide loading function
