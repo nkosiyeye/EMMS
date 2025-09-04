@@ -150,8 +150,16 @@ namespace EMMS.Controllers
             if (ModelState.IsValid)
             {
                 asset.AssetId = Guid.NewGuid();
-                var facilityCode = CurrentUser.Facility.FacilityCode;
-                asset.AssetTagNumber = $"{facilityCode}AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
+                if (isAdmin && Assetmodel.facilityId.HasValue)
+                {
+                    var facilityCode = _context.Facilities.FirstOrDefault(f => f.FacilityId == Assetmodel.facilityId)?.FacilityCode;
+                    asset.AssetTagNumber = $"{facilityCode}AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
+                }
+                else
+                {
+                    var facilityCode = CurrentUser.Facility.FacilityCode;
+                    asset.AssetTagNumber = $"{facilityCode}AS-" + (_repo.GetAssetsFromDb().Result.Count() + 1).ToString("D3");
+                }
                 asset.CreatedBy = CurrentUser!.UserId;
                 asset.DateCreated = DateTime.Now;
                 asset.RowState = RowStatus.Active;
@@ -181,6 +189,12 @@ namespace EMMS.Controllers
                     };
                     CreateEntity(asmove);
                     _context.Add(asmove);
+                    if(asset.WarrantyEndDate != null)
+                    {
+                        asset.WarrantyStartDate = Assetmodel.dateDeployed ?? DateTime.Now;
+                        _context.Update(asset);
+
+                    }
                     await _context.SaveChangesAsync();
                 }
 

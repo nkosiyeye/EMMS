@@ -32,6 +32,7 @@ h5 {
         width: 50px;
         height: 2px;
     }
+
 .text-primary {
     color: var(--primary) !important;
 }
@@ -49,6 +50,7 @@ h5 {
         transform: translateY(-1px);
         box-shadow: 0 6px 20px rgba(21, 61, 119, 0.3);
     }
+
 .offcanvas-header {
     display: flex;
     align-items: center;
@@ -56,16 +58,19 @@ h5 {
     background-color: var(--primary) !important; /* Dark blue background */
     padding: 0rem 1rem;
 }
+
 .sidebar-footer {
     background-color: #f8f9fa; /* Or match sidebar bg */
     padding: 1rem 1rem 7.5rem 1rem !important;
 }
+
 @media (max-width: 770px) {
     .sidebar-footer {
         background-color: #f8f9fa; /* Or match sidebar bg */
         padding: 1rem 1rem 2rem 1rem !important;
     }
 }
+
 .collapse-icon {
     transition: transform 0.3s ease;
 }
@@ -85,8 +90,6 @@ h5 {
 
 body {
     font-family: 'Montserrat', sans-serif;
-    width: 100vw;
-    height: 100vh;
     overflow-y: hidden; /* Prevent vertical scrolling on body */
 }
 
@@ -95,13 +98,13 @@ body {
 }
 
 
-    footer.footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 1020;
-        flex-shrink: 0;
-        height: fit-content;
-    }
+footer.footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1020;
+    flex-shrink: 0;
+    height: fit-content;
+}
 
 main {
     overflow-y: auto;
@@ -109,7 +112,13 @@ main {
     margin-bottom: 80px !important;
 }
 
-@media screen and (orientation: landscape) {
+/* Phones (portrait + landscape) */
+/* Phones */
+@media screen and (max-device-width: 767px) {
+    .sidebar-footer {
+        margin-bottom: 80px !important;
+    }
+
     footer.footer {
         position: sticky;
         bottom: 0;
@@ -117,20 +126,31 @@ main {
         flex-shrink: 0;
         height: fit-content;
     }
-    /*.sidebar-footer {
-        margin-bottom: 80px !important;
-    }*/
 
-    @media screen and (min-width: 768px) and (max-width: 1024px) {
-        .sidebar-footer {
-            margin-bottom: 40px !important;
-        }
+    .registerCard {
+        margin-bottom: 80px !important;
+        padding-bottom: 80px !important;
+    }
+}
+
+/* Tablets (like Galaxy Tab S9+, iPads, etc.) */
+@media screen and (max-device-width: 2800px) and (pointer: coarse) {
+    /* applies only to touch devices (phones + tablets), not laptops */
+    .sidebar-footer {
+        margin-bottom: 90px !important;
     }
 
-    main {
-        overflow-y: auto;
-        background: whitesmoke;
+    footer.footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;
+        flex-shrink: 0;
+        height: fit-content;
+    }
+
+    .registerCard {
         margin-bottom: 80px !important;
+        padding-bottom: 80px !important;
     }
 }
 
@@ -156,9 +176,10 @@ main {
     background: #199767 !important;
 }
 
-.badge{
+.badge {
     font-size: small;
 }
+
 .sidebar-footer {
     background-color: #f8f9fa;
     padding: 0.5rem 0;
@@ -185,6 +206,7 @@ main {
     font-size: 0.875rem;
     font-weight: 500;
 }
+
 .btn-outline-dark {
     border-color: var(--border);
     background-color: transparent;
@@ -192,11 +214,11 @@ main {
     transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.btn-outline-dark:hover {
-    background-color: var(--primary) !important;
-    color: white !important;
-    border-color: var(--primary) !important;
-}
+    .btn-outline-dark:hover {
+        background-color: var(--primary) !important;
+        color: white !important;
+        border-color: var(--primary) !important;
+    }
 
 
 /* ===========================
@@ -219,9 +241,11 @@ a.menu-toggle {
     padding: 0 !important;
     border: none !important;
 }
+
 .list-group-item a[b-n2pq3b41xv] {
     color: black !important;
 }
+
 a.active {
     color: white !important;
     background-color: #153D77 !important;
@@ -238,6 +262,7 @@ a.active {
         color: white !important; /* Ensure the link text is also white */
         text-decoration: none; /* Remove underline from links */
     }
+
 .disabled-link {
     pointer-events: none;
     opacity: 0.5;
@@ -284,7 +309,7 @@ a.active {
 th {
     white-space: nowrap;
     font-size: 0.75rem;
-    font-weight:bold;
+    font-weight: bold;
     padding: 4px 6px;
     border: 1px solid #dee2e6;
     text-align: left;
@@ -308,16 +333,15 @@ td {
     color: white;
 }
 
-.btn-doc:hover {
-    background-color: #1d6f42;
-    color: white;
-}
+    .btn-doc:hover {
+        background-color: #1d6f42;
+        color: white;
+    }
 
 /* ===========================
    Forms and Cards
 =========================== */
-.alert{
-    
+.alert {
 }
 
 .action-header-container {
@@ -351,12 +375,12 @@ label {
 
 .form-select {
     font-size: 0.8rem !important;
-    
 }
-.form-select .btn{
-    padding: 0px !important;
-    font-size:0.8rem !important;
-}
+
+    .form-select .btn {
+        padding: 0px !important;
+        font-size: 0.8rem !important;
+    }
 
 .form-subheading {
     padding: 10px 15px;
@@ -365,7 +389,8 @@ label {
 .selectpicker {
     font-size: 0.8rem !important;
 }
-.bootstrap-select > .dropdown-toggle.bs-placeholder, .bootstrap-select > .dropdown-toggle.bs-placeholder:active, .bootstrap-select > .dropdown-toggle.bs-placeholder:focus, .bootstrap-select > .dropdown-toggle.bs-placeholder:hover{
+
+.bootstrap-select > .dropdown-toggle.bs-placeholder, .bootstrap-select > .dropdown-toggle.bs-placeholder:active, .bootstrap-select > .dropdown-toggle.bs-placeholder:focus, .bootstrap-select > .dropdown-toggle.bs-placeholder:hover {
     background-color: transparent !important;
 }
 
@@ -539,6 +564,7 @@ a {
     border-right: 1px solid var(--sidebar-border);
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
+    font-size: 0.85rem; /* lock sidebar base font */
 }
 
     /* Base nav item */
@@ -547,7 +573,8 @@ a {
         font-size: 0.9rem;
         border: none;
         border-radius: 0;
-        padding: 0.75rem 0.75rem;
+        font-size: 0.85rem !important; /* consistent text */
+        padding: 0.5rem 0.75rem !important; /* tighter spacing */
         display: flex;
         align-items: center;
         color: var(--foreground);
@@ -568,12 +595,19 @@ a {
             font-weight: 600;
             box-shadow: inset 3px 0 0 #2563EB;
         }
+@media screen and (min-width: 1200px) {
+    #sidebar-nav .list-group-item {
+        font-size: 0.8rem !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+}
+
 
         /* Icons inside links */
         #sidebar-nav .list-group-item i {
             width: 20px;
             margin-right: 0.75rem;
-            font-size: 1rem;
+            font-size: 0.9rem !important; /* keep icons proportional */
             opacity: 0.85;
             transition: opacity 0.2s ease;
         }
@@ -659,6 +693,7 @@ a {
         font-size: 0.85rem;
         font-weight: 500;
     }
+
 .sidebar-divider {
     font-size: 0.75rem; /* Smaller text */
     letter-spacing: 0.05em; /* Slight spacing for a modern look */

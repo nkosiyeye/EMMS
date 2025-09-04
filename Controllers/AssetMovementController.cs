@@ -196,7 +196,7 @@ namespace EMMS.Controllers
             }
 
             //var history = await repo.GetLastMovement(assetMovement.AssetId);
-            assetMovement.FromId = assetMovement?.FromId != null ? assetMovement.FromId : CurrentUser!.FacilityId;
+            assetMovement.FromId = (assetMovement?.FromId != null && assetMovement?.FromId != 0) ? assetMovement.FromId : CurrentUser!.FacilityId;
             assetMovement.MovementDate = assetMovement.MovementDate.Date
                 .AddHours(DateTime.Now.Hour)
                 .AddMinutes(DateTime.Now.Minute)
@@ -208,10 +208,16 @@ namespace EMMS.Controllers
             if(assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
             {
                 var asset = assetMovement.Asset;
-                asset.WarrantyStartDate = assetMovement.MovementDate;
-                asset.WarrantyEndDate = model.WarrantyEndDate;
-                UpdateEntity(asset);
-                _context.Update(asset);
+                if (asset != null){
+                    asset.WarrantyStartDate = assetMovement?.MovementDate ?? DateTime.Today;
+                    asset.WarrantyEndDate = model?.WarrantyEndDate ?? DateTime.Today;
+                    UpdateEntity(asset);
+                    _context.Update(asset);
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Asset is null Reselect Asset");
+                }
             }
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
