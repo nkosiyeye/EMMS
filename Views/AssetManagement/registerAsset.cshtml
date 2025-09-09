@@ -114,7 +114,7 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.ProcurementDate" for="procurement-date" class="form-label required-field" id="procument-id">Procurement Date</label>
-                    <input asp-for="asset.ProcurementDate" type="date" id="procurement-date" class="form-control">
+                    <input asp-for="asset.ProcurementDate" type="date" id="procurement-date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
                     <span asp-validation-for="asset.ProcurementDate" class="text-danger"></span>
                 </div>
             </div>

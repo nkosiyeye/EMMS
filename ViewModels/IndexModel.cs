@@ -1,4 +1,5 @@
 ﻿using EMMS.Data.Repository;
+using EMMS.Models;
 using EMMS.Models.Admin;
 
 //using EMMS.Models;
@@ -17,6 +18,9 @@ namespace EMMS.ViewModels
         public int PendingJobs { get; set; } 
         public User currentUser { get; set; }
         public IEnumerable<EMMS.ViewModels.AssetViewModel> assets { get; set; }
-        public IEnumerable<Notification> notifications { get; set; }
+        public IEnumerable<Models.Entities.Notification> notifications { get; set; }
+        public int OpenWorkRequestsCount { get; set; }
+        public IEnumerable<WorkRequest> OpenWorkRequests { get; set; }
+
     }
 }

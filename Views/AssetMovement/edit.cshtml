@@ -1,4 +1,5 @@
-﻿@model EMMS.ViewModels.MoveRequestViewModel;
+﻿@using System.Text.Json
+@model EMMS.ViewModels.MoveRequestViewModel;
 @{
     ViewData["Title"] = Model.AssetTag;
     ViewData["moveAsset"] = "active";
@@ -33,7 +34,7 @@
                     <input asp-for="MoveAsset.CreatedBy" type="hidden" id="asset-tag" class="form-control" readonly>
                     <input asp-for="MoveAsset.RowState" type="hidden" id="asset-tag" class="form-control" readonly>
                     <label asp-for="MoveAsset.MovementDate" class="form-label required-field"></label>
-                    <input asp-for="MoveAsset.MovementDate" class="form-control" type="date" />
+                    <input asp-for="MoveAsset.MovementDate" class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                     <span asp-validation-for="MoveAsset.MovementDate" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
@@ -66,7 +67,7 @@
                 </div>
                 <div class="col-md-6 d-none" id="servicePointField">
                     <label asp-for="MoveAsset.ServicePointId" class="form-label required-field"></label>
-                    <select asp-for="MoveAsset.ServicePointId" class="form-select selectpicker col-md-6"
+                    <select asp-for="MoveAsset.ServicePointId" id="servicePoint" class="form-select selectpicker col-md-6"
                             data-live-search="true" asp-items="@(new SelectList(Model.ServicePoints, "Id", "Name"))">
                         <option selected disabled>Select Service Point</option>
                     </select>
@@ -77,7 +78,7 @@
                 <div class="col-md-6">
                     <label asp-for="MoveAsset.Reason" class="form-label required-field"></label>
                     <select asp-for="MoveAsset.Reason" class="form-select selectpicker col-md-6"
-                            data-live-search="true">
+                            data-live-search="true" onchange="onchangereason()" id="movementReason">
                         <option selected disabled>Select Movement Reason</option>
                         @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementReason)).Cast<EMMS.Models.Enumerators.MovementReason>())
                         {
@@ -88,8 +89,8 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="MoveAsset.FunctionalStatus" class="form-label required-field"></label>
-                    <select asp-for="MoveAsset.FunctionalStatus" class="form-select selectpicker col-md-6"
-                            data-live-search="true">
+                    <select asp-for="MoveAsset.FunctionalStatus" class="form-select selectpicker col-md-6" id="MoveAsset_FunctionalStatus">
+                        data-live-search="true">
                         <option selected disabled>Select Functional Status</option>
                         @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.FunctionalStatus)).Cast<EMMS.Models.Enumerators.FunctionalStatus>())
                         {
@@ -97,6 +98,19 @@
                         }
                     </select>
                     <span asp-validation-for="MoveAsset.FunctionalStatus" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="row mb-3 d-none" id="warrantyField">
+                <div class="col-md-6">
+                    <label asp-for="WarrantyEndDate" class="form-label required-field"></label>
+                    <input asp-for="WarrantyEndDate" class="form-control" type="date" />
+                </div>
+            </div>
+            <div class="row mb-3 d-none" id="otherReasonField">
+                <div class="col-md-6">
+                    <label asp-for="MoveAsset.OtherReason" class="form-label required-field"></label>
+                    <input asp-for="MoveAsset.OtherReason" class="form-control" type="text" />
                 </div>
             </div>
             <div class="row mb-3" hidden>
@@ -119,131 +133,170 @@
 
 @section Scripts {
     <script>
-        const selectedFacilityId = @Model.MoveAsset.FacilityId;
+        // ---- safely serialize server values into JS (outputs `null` or a value) ----
+        const selectedFacilityId = @Html.Raw(JsonSerializer.Serialize(Model.MoveAsset?.FacilityId));
+        const selectedServicePointId = @Html.Raw(JsonSerializer.Serialize(Model.MoveAsset?.ServicePointId));
 
-        function toggleLocationFields() {
-            const movementType = document.getElementById("movementType").value;
-            const facilityField = document.getElementById("facilityField");
-            const servicePointField = document.getElementById("servicePointField");
-            const servicePointSelect = servicePointField.querySelector("select"); // <-- Important
+        function onchangereason() {
+            const movementReason = document.getElementById("movementReason")?.value;
+            const warrantyField = document.getElementById("warrantyField");
+            const otherReasonField = document.getElementById("otherReasonField");
+            const functionalStatusSelect = document.getElementById("MoveAsset_FunctionalStatus");
 
-            if (movementType && facilityField && servicePointField) {
-                if (movementType === "1") { // Facility
-                    facilityField.classList.remove("d-none");
-                    servicePointField.classList.add("d-none");
-                     // Reset to default option
-                     servicePointSelect.selectedIndex = 0;
-                    servicePointSelect.value = "";
-                    $(servicePointSelect).val("").selectpicker("refresh");
-                } else if (movementType === "2") { // Service Point
-                    facilityField.classList.remove("d-none");
-                    servicePointField.classList.remove("d-none");
-                } else if (movementType === "3") { // Facility
-                    facilityField.classList.remove("d-none");
-                    servicePointField.classList.add("d-none");
-                    servicePointSelect.selectedIndex = 0;
-                    servicePointSelect.value = "";
-                    $(servicePointSelect).val("").selectpicker("refresh");
+            if (movementReason === "7") { // Warranty
+                warrantyField?.classList.remove("d-none");
+                otherReasonField?.classList.add("d-none");
+                if (functionalStatusSelect) {
+                    functionalStatusSelect.value = "1";
+                    $(functionalStatusSelect).selectpicker?.("refresh");
                 }
-                else {
-                    // Default: hide both if needed
-                    facilityField.classList.add("d-none");
-                    servicePointField.classList.add("d-none");
-                }
+            } else if (movementReason === "8") { // Other
+                otherReasonField?.classList.remove("d-none");
+                warrantyField?.classList.add("d-none");
+            } else {
+                warrantyField?.classList.add("d-none");
+                otherReasonField?.classList.add("d-none");
             }
         }
 
-                function updateFacilityDropdown(isOffSite) {
-            const facilitySelect = document.getElementById('facility');
-            //console.log(facilitySelect);
+        function toggleLocationFields() {
+            const movementType = document.getElementById("movementType")?.value;
+            const facilityField = document.getElementById("facilityField");
+            const servicePointField = document.getElementById("servicePointField");
+            const servicePointSelect = document.querySelector('#servicePointField select');
 
-            // Clear current options
+            if (!movementType) {
+                facilityField?.classList.add("d-none");
+                servicePointField?.classList.add("d-none");
+                return;
+            }
+
+            if (movementType === "1" || movementType === "3") { // Facility or Site
+                facilityField?.classList.remove("d-none");
+                servicePointField?.classList.add("d-none");
+
+                if (servicePointSelect) {
+                    servicePointSelect.selectedIndex = 0;
+                    servicePointSelect.value = "";
+                    if ($(servicePointSelect).hasClass('selectpicker')) $(servicePointSelect).selectpicker('refresh');
+                }
+            } else if (movementType === "2") { // Service Point
+                facilityField?.classList.remove("d-none");
+                servicePointField?.classList.remove("d-none");
+            } else {
+                facilityField?.classList.add("d-none");
+                servicePointField?.classList.add("d-none");
+            }
+        }
+
+        function updateFacilityDropdown(isOffSite) {
+            const facilitySelect = document.getElementById('facility');
+            if (!facilitySelect) return;
+
             facilitySelect.innerHTML = '<option selected disabled>Select Facility</option>';
 
             fetch(`/AssetMovement/GetFacilites?isOffSite=${isOffSite}`)
                 .then(response => response.json())
                 .then(data => {
                     data.forEach(function (item) {
-                        var option = document.createElement('option');
+                        const option = document.createElement('option');
                         option.value = item.facilityId;
                         option.text = item.facilityName;
                         facilitySelect.appendChild(option);
                     });
 
-                    // Set the selected value if it exists
-                    if (selectedFacilityId && selectedFacilityId !== "0") {
-                        facilitySelect.value = selectedFacilityId;
+                    // set selected if one exists
+                    if (selectedFacilityId !== null && selectedFacilityId !== undefined) {
+                        facilitySelect.value = String(selectedFacilityId);
                     }
-                    // Refresh the selectpicker UI if using Bootstrap Select
+
                     if ($(facilitySelect).hasClass('selectpicker')) {
                         $(facilitySelect).selectpicker('refresh');
                     }
-                });
+                })
+                .catch(err => console.error('Failed to load facilities', err));
         }
 
-                function updateServicePointDropdown(facilityId) {
-            const servicePointSelect = document.querySelector('#servicePointField select');
+        function updateServicePointDropdown(facilityId) {
+            const servicePointSelect = document.getElementById('servicePoint');
+            if (!servicePointSelect) return;
 
-            // Clear current options
             servicePointSelect.innerHTML = '<option selected disabled>Select Service Point</option>';
 
             fetch(`/AssetMovement/GetServicePoints?facilityId=${facilityId}`)
                 .then(response => response.json())
                 .then(data => {
                     data.forEach(function (item) {
-                        var option = document.createElement('option');
+                        const option = document.createElement('option');
                         option.value = item.id;
                         option.text = item.name;
                         servicePointSelect.appendChild(option);
                     });
 
-                    // Refresh bootstrap-select if used
+                    // set selected if one exists
+                    if (selectedServicePointId !== null && selectedServicePointId !== undefined) {
+                        servicePointSelect.value = String(selectedServicePointId);
+                    }
+
                     if ($(servicePointSelect).hasClass('selectpicker')) {
                         $(servicePointSelect).selectpicker('refresh');
                     }
-
-                    // Show the field once populated
-                    document.getElementById("servicePointField").classList.remove("d-none");
-                });
+                })
+                .catch(err => console.error('Failed to load service points', err));
         }
 
-          document.getElementById('facility').addEventListener('change', function () {
-            const facilityId = this.value;
-            if (facilityId) {
-                updateServicePointDropdown(facilityId);
+        // Attach change handler to facility (safe guard element exists)
+        document.addEventListener("DOMContentLoaded", function () {
+            const movementTypeSelect = document.getElementById("movementType");
+            if (movementTypeSelect) {
+                movementTypeSelect.addEventListener("change", onMovementTypeChange);
+                onMovementTypeChange();
             }
-        });
-                function onMovementTypeChange() {
-            const movementType = document.getElementById("movementType").value;
-            // Assuming: 3 = Site, 1 = Facility, 2 = ServicePoint (adjust as per your enum)
-            if (movementType === "3") { // Site
-                updateFacilityDropdown(true);
-            } else if(movementType === "2") {
+
+            const facilityElem = document.getElementById('facility');
+            if (facilityElem) {
+                facilityElem.addEventListener('change', function () {
+                    const facilityId = this.value;
+                    if (facilityId) updateServicePointDropdown(facilityId);
+                });
+            }
+
+            // initial populate
+            if (selectedFacilityId !== null && selectedFacilityId !== undefined) {
+                // populate facility options then select the value
                 updateFacilityDropdown(false);
-                updateServicePointDropdown(selectedFacilityId);
-            }else{
+                // also populate service points if needed
+                if (selectedServicePointId !== null && selectedServicePointId !== undefined) {
+                    updateServicePointDropdown(selectedFacilityId);
+                }
+            } else {
+                // default load (no preselected facility)
+                updateFacilityDropdown(false);
+            }
+
+            onchangereason();
+        });
+
+        // helper to map movement type behaviour
+        function onMovementTypeChange() {
+            const movementType = document.getElementById("movementType")?.value;
+            if (movementType === "3") {
+                updateFacilityDropdown(true);
+            } else if (movementType === "2") {
+                updateFacilityDropdown(false);
+                // if there is a preselected facility, load its service points
+                if (selectedFacilityId !== null && selectedFacilityId !== undefined) {
+                    updateServicePointDropdown(selectedFacilityId);
+                }
+            } else {
                 updateFacilityDropdown(false);
             }
             toggleLocationFields();
         }
-
-        // Ensure correct state on page load
-        document.addEventListener("DOMContentLoaded", function () {
-                const movementTypeSelect = document.getElementById("movementType");
-        if (movementTypeSelect) {
-            movementTypeSelect.addEventListener("change", onMovementTypeChange);
-            // Optionally, trigger on load if value is pre-selected
-            onMovementTypeChange();
-        }
-
-        if(@Model.MoveAsset.FacilityId != null) {
-            const facilitySelect = document.getElementById('facility');
-            facilitySelect.value = @Model.MoveAsset.FacilityId;
-        }
-        });
-
     </script>
+
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }
+

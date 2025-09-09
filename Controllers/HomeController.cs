@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using EMMS.CustomAttributes;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using EMMS.Service;
+using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 
 namespace EMMS.Controllers
 {
@@ -105,9 +106,13 @@ namespace EMMS.Controllers
             //var asset = _context.Assets.Where(a => a.AssetTagNumber == "AS-021").FirstOrDefault();
             //_context.Remove(asset);
             //_context.SaveChanges();
+            var _repo = new JobManagementRepo(_context);
+            var allWork = (await _repo.GetWorkRequests()).Where(w => w.WorkStatus?.Name == "Open");
+            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
             var model = new IndexModel
             {
-                currentUser = CurrentUser
+                currentUser = CurrentUser,
+                OpenWorkRequestsCount = isAdmin ? allWork.Count() : filteredWork.Count()
             };
 
             var allNotifications = await _assetRepo.GetNotifications();
@@ -116,10 +121,11 @@ namespace EMMS.Controllers
                 : allNotifications.Where(n => n.FacilityId == CurrentUser.FacilityId).Take(5);
 
             var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+            var dueforService = (await _assetService.GetAssetDueServiceViewModel()).assetViewModels
+                .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
 
             // Filter due service assets (exclude decommissioned)
-            var dueAssets = (await _assetService.GetAssetDueServiceViewModel()).assetViewModels
-                .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
+            var dueAssets = isAdmin ? dueforService : dueforService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
 
             // If not admin, filter by user's facility
             model.assets = dueAssets;
@@ -135,8 +141,8 @@ namespace EMMS.Controllers
                 : completedJobs.Count(j => j.FacilityId == CurrentUser.FacilityId);
 
             // Pending Work Requests
-            var pendingJobs = (await _jobRepo.GetWorkRequests())
-                .Where(w => w.Outcome == null);
+            var pendingJobs = (await _jobRepo.GetJobfromDbs())
+                .Where(w => w.EndDate == null);
 
             model.PendingJobs = isAdmin
                 ? pendingJobs.Count()

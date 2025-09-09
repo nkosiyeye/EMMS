@@ -61,7 +61,8 @@
                     <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
                         <label class="form-label">Job Card Number</label>
                         <input asp-for="Job.AssetId" hidden />
-                        <input asp-for="Job.JobId" type="text" class="form-control" readonly />
+                        <input asp-for="Job.JobId" type="text" class="form-control" hidden />
+                        <input asp-for="Job.JobNumber" type="text" class="form-control" readonly />
                     </div>
 
                     <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
@@ -135,65 +136,143 @@
 
                 @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo && Model.Job?.EndDate == null)
                 {
-                    <div class="text-end mb-3">
+                    <div class="text-end mb-3 float-start">
                         <button type="submit" class="btn btn-primary">Update Job Card</button>
                     </div>
                 }
             </form>
 
-            <!-- External Work Done Section -->
+            <!-- Work Done Section -->
             <div class="mb-3 col-md-12 col-lg-12 col-xl-6">
-                <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>External Work Done</h5>
-
-                @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job.AssignedTo)
+                @if (TempData["WorkDoneError"] != null)
                 {
-                    <form asp-action="ExWorkDone" asp-controller="JobManagement" method="post" class="row g-2 mb-3">
-                        <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" />
-                        <div class="col-md-4">
-                            <input asp-for="WorkDone.DateCompleted" type="date" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <input asp-for="WorkDone.Details" type="text" class="form-control" placeholder="Details" />
-                        </div>
-                        <div class="col-md-2">
-                            <input asp-for="WorkDone.Hours" type="number" class="form-control" placeholder="Hours" />
-                        </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-sm btn-primary w-50" type="submit">
-                                <i class="fa fa-plus"></i>
-                            </button>
-                        </div>
-                    </form>
+                    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+                        @TempData["WorkDoneError"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+
+                }
+                <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
+                @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
+                {
+                    <button class="btn btn-sm btn-primary"
+                            title="Work Done"
+                            data-bs-toggle="modal"
+                            data-bs-target="#workDoneModal"
+                            data-request-id="@Model.Job.JobId">
+                        <i class="fa fa-plus"></i> Add Work Done
+                    </button>
                 }
 
                 <table class="table table-bordered" id="workDone">
                     <thead>
                         <tr>
                             <th><i class="fa-regular fa-calendar me-1"></i>Date</th>
-                            <th><i class="fa-solid fa-clipboard me-1"></i>Details</th>
+                            <th><i class="fa-regular fa-file-lines me-1"></i>Details</th>
                             <th><i class="fa-solid fa-hourglass-half me-1"></i>Hours</th>
+                            <th><i class="fa-solid fa-hourglass-half me-1"></i>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model.WorkDoneList != null)
                         {
-                            foreach (var workdone in Model.WorkDoneList)
+                            foreach (var work in Model.WorkDoneList)
                             {
                                 <tr>
-                                    <td>@workdone.DateCompleted.ToShortDateString()</td>
-                                    <td>@workdone.Details</td>
-                                    <td>@workdone.Hours</td>
+                                    <td>@work.DateCompleted.ToShortDateString()</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(work.Details) && work.Details.Length > 20)
+                                        {
+                                            <span title="@work.Details">@work.Details.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="read-more text-info" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@work.Details">
+                                                Read More
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>@work.Details</span>
+                                        }
+                                    </td>
+                                    <td>@work.Hours</td>
+                                    <td>
+                                        @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
+                                        {
+                                            <a href="javascript:void(0);"
+                                               class="btn btn-sm btn-primary edit-workdone"
+                                               title="Edit Work"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#workDoneModal"
+                                               data-id="@work.WorkDoneId"
+                                               data-date="@work.DateCompleted.ToString("yyyy-MM-dd")"
+                                               data-hours="@work.Hours"
+                                               data-details="@work.Details">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+
+                                            <a asp-controller="JobManagement" asp-action="deleteWorkDone" asp-route-id="@work.WorkDoneId"
+                                               class="btn btn-sm btn-danger" title="Delete Work">
+                                                <i class="fa fa-trash"></i>
+                                            </a>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         }
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="text-start mt-4">
+            <a asp-action="Index" asp-controller="JobManagement" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i> Back to Job List
+            </a>
+        </div>
 
+    </div>
+</div>
+<!-- Work DOne Modal -->
+<div class="modal fade" id="workDoneModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Add Work Done</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="ExWorkDone" asp-controller="JobManagement" method="post" class="row g-2 mb-3">
+                    <input type="hidden" asp-for="WorkDone.JobId" value="@Model.Job.JobId" id="jobId" />
+                    <input type="hidden" asp-for="WorkDone.WorkDoneId" id="workDoneId" />
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <label asp-for="WorkDone.DateCompleted" class="form-label required-field"></label>
+                            <input asp-for="WorkDone.DateCompleted" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="WorkDone.DateCompleted" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="WorkDone.Hours" class="form-label required-field"></label>
+                            <input asp-for="WorkDone.Hours" type="number" class="form-control" placeholder="Hours" />
+                            <span asp-validation-for="WorkDone.Hours" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-12 mb-2">
+                        <label asp-for="WorkDone.Details" class="form-label required-field"></label>
+                        <textarea asp-for="WorkDone.Details" rows="3" type="text" class="form-control" placeholder="Details">
+                        </textarea>
+                        <span asp-validation-for="WorkDone.Details" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-sm btn-primary" type="submit">
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script>
                 $(document).ready(function () {
@@ -204,6 +283,36 @@
                 "searching": false
             });
         });
+                 document.addEventListener("DOMContentLoaded", function () {
+            const workdoneModal = document.getElementById("workDoneModal");
+            const jobIdInput = document.getElementById("jobId");
+            const workDoneIdInput = document.getElementById("workDoneId");
+            const dateInput = document.querySelector("input[name='WorkDone.DateCompleted']");
+            const hoursInput = document.querySelector("input[name='WorkDone.Hours']");
+            const detailsInput = document.querySelector("textarea[name='WorkDone.Details']");
+
+            workdoneModal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+
+                const requestId = button.getAttribute("data-request-id"); // only present on "Add"
+                const workId = button.getAttribute("data-id");
+
+                if (requestId) {
+                    // ✅ Add new WorkDone
+                    jobIdInput.value = requestId;
+                    dateInput.value = new Date().toISOString().split("T")[0];
+                }
+                else if (workId) {
+                    // ✅ Edit WorkDone
+                    jobIdInput.value = "@Model.Job.JobId";
+                    workDoneIdInput.value = workId;
+                    dateInput.value = button.getAttribute("data-date");
+                    hoursInput.value = button.getAttribute("data-hours");
+                    detailsInput.value = button.getAttribute("data-details");
+                }
+            });
+        });
+
     </script>
 }
 

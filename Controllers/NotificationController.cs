@@ -1,34 +1,31 @@
-﻿using EMMS.Data;
+﻿using EMMS.Service;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMMS.Controllers
 {
     public class NotificationController : BaseController
     {
-        private readonly ApplicationDbContext _context;
-        public NotificationController(ApplicationDbContext context)
+        private readonly NotificationService _notificationService;
+
+        public NotificationController(NotificationService notificationService)
         {
-            _context = context;
+            _notificationService = notificationService;
         }
+
         public async Task<IActionResult> Index()
         {
-            var allNotifications = await _context.Notifications
-                .Where(n => n.RowState == Models.Enumerators.RowStatus.Active)
-                .Include(n => n.Facility)
-                .OrderByDescending(n => n.DateCreated)
-                .Take(20)
-                .ToListAsync();
-            var filteredNotifications = await _context.Notifications
-                .Where(n => n.RowState == Models.Enumerators.RowStatus.Active && n.FacilityId == CurrentUser!.FacilityId)
-                .Include(n => n.Facility)
-                .OrderByDescending(n => n.DateCreated)
-                .Take(20)
-                .ToListAsync();
-            var notifications = isAdmin
-                ? allNotifications
-                : filteredNotifications;
+            var userRole = ViewBag._currrentUserRole;  // set in BaseController
+            var notifications = await _notificationService
+                .GetNotificationsAsync(CurrentUser!, userRole.UserType);
+
             return View(notifications);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            await _notificationService.MarkAsReadAsync(id);
+            return Ok();
         }
     }
 }

@@ -20,6 +20,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<AssetManagementRepo>();
 builder.Services.AddScoped<JobManagementRepo>();
 builder.Services.AddScoped<AssetService>();
+builder.Services.AddScoped<NotificationService>();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();

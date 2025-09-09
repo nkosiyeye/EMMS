@@ -4,6 +4,7 @@
     ViewData["manageJob"] = "active";
     ViewData["JobManagement"] = "active";
     Model.Job.StartDate = DateTime.Today;
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
 }
 
 
@@ -41,9 +42,9 @@
                                         {
                                             <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
                                             <a href="javascript:void(0);" class="text-info read-more"
-                                               data-bs-toggle="modal"
-                                               data-bs-target="#descriptionModal"
-                                               data-description="@request.Description">
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#descriptionModal"
+                                            data-description="@request.Description">
                                                 Read More
                                             </a>
                                         }
@@ -56,19 +57,22 @@
                                     <td>
                                         <div class="btn-group">
                                             <button class="btn btn-primary btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#jobModal"
-                                                    data-request-id="@request.WorkRequestId"
-                                                    data-asset-id="@request.AssetId"
-                                                    data-asset-tag="@request.Asset?.AssetTagNumber">
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#jobModal"
+                                            data-request-id="@request.WorkRequestId"
+                                            data-asset-id="@request.AssetId"
+                                            data-asset-tag="@request.Asset?.AssetTagNumber">
                                                 Create Job
                                             </button>
-                                            <button class="btn btn-danger btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#cancelModal"
-                                                    data-cancelrequest-id="@request.WorkRequestId">
-                                                Cancel
-                                            </button>
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#cancelModal"
+                                                        data-cancelrequest-id="@request.WorkRequestId">
+                                                    Cancel
+                                                </button>                                                
+                                            }
                                         </div>
                                     </td>
                                 </tr>
@@ -90,6 +94,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>Asset Tag</th>
+                                <th>Job ID</th>
                                 <th>Start Date</th>
                                 <th>Fault Report</th>
                                 <th>Assigned To</th>
@@ -103,6 +108,7 @@
                             {
                                 <tr>
                                     <td>@job.Asset?.AssetTagNumber</td>
+                                    <td>@job.JobNumber</td>
                                     <td>@job.StartDate.ToString("dd/MM/yyyy")</td>
                                     <td>@job.FaultReport?.Name</td>
                                     <td>@job.User?.FirstName</td>
@@ -148,7 +154,7 @@
                         <!-- Date -->
                         <div class="col-md-4">
                             <label asp-for="Job.StartDate" for="jobDate" class="form-label">Date</label>
-                            <input asp-for="Job.StartDate" type="date" class="form-control" id="jobDate" required>
+                            <input asp-for="Job.StartDate" type="date" class="form-control" id="jobDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                         </div>
                         <!-- Asset Name / Tag -->
                         <div class="col-md-4">

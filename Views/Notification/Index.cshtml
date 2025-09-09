@@ -1,8 +1,8 @@
 ﻿@model List<EMMS.Models.Entities.Notification>
 
 @{
-	ViewData["Title"] = "Notifications";
-	ViewData["Notification"] = "active";
+    ViewData["Title"] = "Notifications";
+    ViewData["Notification"] = "active";
 }
 
 <div class="card shadow-sm">
@@ -14,9 +14,11 @@
         @if (Model.Any())
         {
             <ul class="list-group list-group-flush" id="notificationList">
-                @foreach (var item in Model)
+                @foreach (var item in Model.OrderByDescending(n => n.DateCreated))
                 {
-                    <li class="list-group-item d-flex align-items-start justify-content-between">
+                    var isUnread = !item.IsRead;
+
+                    <li class="list-group-item d-flex align-items-start justify-content-between @(isUnread ? "bg-light fw-bold" : "")">
                         <div class="d-flex align-items-start">
                             <div class="me-3">
                                 @switch (item.Type)
@@ -27,10 +29,10 @@
                                     case "job":
                                         <i class="fas fa-briefcase text-success fa-lg"></i>
                                         break;
-                                    case "asset":
+                                    case "reception":
                                         <i class="fas fa-box text-info fa-lg"></i>
                                         break;
-                                    case "move":
+                                    case "approval":
                                         <i class="fa-solid fa-arrows-turn-to-dots text-warning fa-lg"></i>
                                         break;
                                     default:
@@ -40,25 +42,29 @@
                             </div>
                             <div>
                                 <div class="fw-bold">@item.Facility?.FacilityName</div>
-                                <div class="text-muted">@item.Message</div>
+                                <div class="@(isUnread ? "text-dark" : "text-muted")">@item.Message</div>
                                 <small class="text-secondary">@item.DateCreated?.ToString("dd MMM yyyy, HH:mm")</small>
                             </div>
                         </div>
-                        <div>
+                        <div class="d-flex align-items-center gap-2">
                             @{
                                 var action = item.Type switch
                                 {
                                     "work" => Url.Action("Index", "JobManagement"),
-                                    "job" => Url.Action("Index", "JobManagement"),
+                                    "job" => Url.Action("manageJobs", "JobManagement"),
                                     "asset" => Url.Action("Index", "AssetManagement"),
-                                    "move" => Url.Action("recieveAsset", "AssetMovement"),
+                                    "approval" => Url.Action("Index", "AssetMovement"),
+                                    "reception" => Url.Action("recieveAsset", "AssetMovement"),
                                     _ => ""
                                 };
                             }
 
                             @if (!string.IsNullOrEmpty(action))
                             {
-                                <a href="@action" title="View" class="btn btn-sm btn-outline-primary">
+                                <a href="@action"
+                                   title="View"
+                                   class="btn btn-sm @(isUnread ? "btn-primary" : "btn-outline-primary")"
+                                   onclick="markAsRead('@item.Id')">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             }
@@ -80,3 +86,18 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function markAsRead(notificationId) {
+            fetch('/Notification/MarkAsRead/' + notificationId, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    // Optionally refresh the list or update badge count dynamically
+                    console.log("Marked as read");
+                }
+            });
+        }
+    </script>
+}

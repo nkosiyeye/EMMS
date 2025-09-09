@@ -21,11 +21,13 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
+        private readonly NotificationService _notificationService;
 
-        public AssetMovementController(ApplicationDbContext context)
+        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService)
         {
             _context = context;
             _assetService = new AssetService(context);
+            _notificationService = notificationService;
         }
 
         private AssetMovementRepo GetRepo() => new AssetMovementRepo(_context);
@@ -143,6 +145,12 @@ namespace EMMS.Controllers
                 FunctionalStatuses = await repo.GetFunctionalStatuses()
             };
 
+            if (moveAsset.Reason == MovementReason.Installation)
+            {
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == moveAsset.AssetId);
+                viewModel.WarrantyEndDate = asset.WarrantyEndDate;
+            }
+
             return View(viewModel);
         }
 
@@ -150,14 +158,31 @@ namespace EMMS.Controllers
         //[RequireLogin]
         public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
+            var assetMovement = model.MoveAsset;
             if (!ModelState.IsValid)
             {
                 TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
                 return RedirectToAction(nameof(Edit), new { id = model.MoveAsset.MovementId });
             }
 
-            UpdateEntity(model.MoveAsset);
-            _context.Update(model.MoveAsset);
+            UpdateEntity(assetMovement);
+            _context.Update(assetMovement);
+
+            if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
+            {
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == assetMovement.AssetId);
+                if (asset != null)
+                {
+                    asset.WarrantyStartDate = assetMovement?.MovementDate ?? DateTime.Today;
+                    asset.WarrantyEndDate = model?.WarrantyEndDate ?? DateTime.Today;
+                    UpdateEntity(asset);
+                    _context.Update(asset);
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Asset is null Reselect Asset");
+                }
+            }
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
@@ -204,8 +229,9 @@ namespace EMMS.Controllers
 
             CreateEntity(assetMovement);
             _context.Add(assetMovement);
+            await _notificationService.CreateMovementRequestNotification(assetMovement.FacilityId, CurrentUser.UserId);
 
-            if(assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
+            if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
             {
                 var asset = assetMovement.Asset;
                 if (asset != null){
@@ -313,6 +339,9 @@ namespace EMMS.Controllers
 
             _context.Notifications.Add(notification);
             _context.Update(movement);
+
+            await _notificationService.CreateMovementApprovalNotification(movement.FacilityId, CurrentUser.UserId);
+
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }

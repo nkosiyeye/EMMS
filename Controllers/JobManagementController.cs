@@ -4,6 +4,7 @@ using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
 using EMMS.Service;
+using EMMS.Service;
 using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Http.Timeouts;
@@ -21,10 +22,12 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
-        public JobManagementController(ApplicationDbContext context)
+        private readonly NotificationService _notificationService;
+        public JobManagementController(ApplicationDbContext context, NotificationService notificationService)
         {
             _context = context;
             _assetService = new AssetService(context);
+            _notificationService = notificationService;
         }
         
         public async Task<WorkRequestViewModel> WorkRequestData( WorkRequest? workmodel = null)
@@ -54,7 +57,7 @@ namespace EMMS.Controllers
             var _repo = new JobManagementRepo(_context);
             var _Assetrepo = new AssetManagementRepo(_context);
             var all = await _repo.GetJobfromDbs();
-            var filteredJobs = all.Where(w => w.FacilityId == CurrentUser.FacilityId || w.AssignedTo == CurrentUser.UserId);
+            var filteredJobs = all.Where(w => w.AssignedTo == CurrentUser.UserId);
             var allWork = await _repo.GetWorkRequests();
             var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
             JobViewModel paginatedJob = new JobViewModel
@@ -124,19 +127,10 @@ namespace EMMS.Controllers
                 work.RequestedBy = CurrentUser.UserId;
                 CreateEntity(work);
                 var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
-
-                var notification = new Models.Entities.Notification
-                {
-                    Message = $"New work requested for: {assetTag}",
-                    Type = "work",
-                    DateCreated = DateTime.Now,
-                    FacilityId = work.FacilityId,
-                    RowState = RowStatus.Active
-                };
-                _context.Notifications.Add(notification);
-
                 _context.Add(work);
                 await _context.SaveChangesAsync();
+                await _notificationService.CreateWorkRequestNotification(CurrentUser.FacilityId,CurrentUser.UserId);
+
                 return RedirectToAction(nameof(Index));
             }
 
@@ -198,7 +192,7 @@ namespace EMMS.Controllers
                 AssetId = id,
                 RequestDate = DateTime.Now,
                 Description = "Service request for asset",
-                FacilityId = (int)assetLocation,
+                FacilityId = (int?)assetLocation ?? CurrentUser.FacilityId,
                 WorkStatusId = workStatus.Id,
                 RequestedBy = CurrentUser!.UserId,
                 CreatedBy = CurrentUser!.UserId,
@@ -213,6 +207,8 @@ namespace EMMS.Controllers
             };
 
             await WorkRequest(workAssetViewModel);
+
+            await _notificationService.CreateWorkRequestNotification(workRequest.FacilityId, CurrentUser.UserId);
             return RedirectToAction(nameof(Index));
         }
 
@@ -247,6 +243,16 @@ namespace EMMS.Controllers
                 _context.Update(wRequest);
 
                 await _context.SaveChangesAsync();
+
+                if (isAdmin)
+                {
+                    await _notificationService.CreateJobAssignmentNotification(job.AssignedTo, wRequest.RequestedBy, CurrentUser.UserId);
+
+                }
+                else
+                {
+                    await _notificationService.CreateJobClaimedNotification(job.AssignedTo, wRequest.RequestedBy, CurrentUser.UserId);
+                }
                 return RedirectToAction(nameof(manageJobs));
             }
             return View("manageJobs",await JobData());
@@ -294,6 +300,9 @@ namespace EMMS.Controllers
                 _context.Update(job);
                 _context.Update(workRequest);
                 await _context.SaveChangesAsync();
+
+                //TBD: Uncomment when notification service is ready
+                //if(jobView.Job.StatusId != null && job.Status.Name == "Completed") await _notificationService.CreateJobCompletedNotification(workRequest.RequestedBy, CurrentUser.UserId);
                 return RedirectToAction(nameof(manageJobs));
 
             }
@@ -308,19 +317,38 @@ namespace EMMS.Controllers
         public async Task<IActionResult> workDone(JobViewModel wView)
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
+            TempData["WorkDoneError"] = string.Join("; ", errors);
 
             if (ModelState.IsValid)
             {
-                //var _job = wView.Job;
                 var workDone = wView.WorkDone;
-                workDone.WorkDoneId = Guid.NewGuid();
-                workDone.JobId = wView.WorkDone.JobId;
-                CreateEntity(workDone); // TBD Replace with actual user ID
-                _context.Add(workDone);
+
+                if (workDone.WorkDoneId == Guid.Empty || workDone.WorkDoneId == default)
+                {
+                    // ✅ New work
+                    workDone.WorkDoneId = Guid.NewGuid();
+                    workDone.RowState = RowStatus.Active;
+                    CreateEntity(workDone);
+                    _context.Add(workDone);
+                }
+                else
+                {
+                    // ✅ Edit existing
+                    var existingWork = await _context.WorkDone.FindAsync(workDone.WorkDoneId);
+                    if (existingWork != null)
+                    {
+                        existingWork.DateCompleted = workDone.DateCompleted;
+                        existingWork.Hours = workDone.Hours;
+                        existingWork.Details = workDone.Details;
+                        UpdateEntity(existingWork); // your audit/update tracking
+                        _context.Update(existingWork);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
-                // Stay on the same job card
-                return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone.JobId });
+
+                // Stay on same job card
+                return RedirectToAction(nameof(jobCard), new { id = workDone.JobId });
             }
 
             return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone!.JobId });
@@ -330,22 +358,40 @@ namespace EMMS.Controllers
         public async Task<IActionResult> ExWorkDone(JobViewModel wView)
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["Error"] = string.Join("; ", errors);
+            TempData["WorkDoneError"] = string.Join("; ", errors);
 
             if (ModelState.IsValid)
             {
-                //var _job = wView.Job;
                 var workDone = wView.WorkDone;
-                workDone.WorkDoneId = Guid.NewGuid();
-                workDone.JobId = wView.WorkDone.JobId;
-                CreateEntity(workDone); // TBD Replace with actual user ID
-                _context.Add(workDone);
+
+                if (workDone.WorkDoneId == Guid.Empty || workDone.WorkDoneId == default)
+                {
+                    // ✅ New work
+                    workDone.WorkDoneId = Guid.NewGuid();
+                    workDone.RowState = RowStatus.Active;
+                    CreateEntity(workDone);
+                    _context.Add(workDone);
+                }
+                else
+                {
+                    // ✅ Edit existing
+                    var existingWork = await _context.WorkDone.FindAsync(workDone.WorkDoneId);
+                    if (existingWork != null)
+                    {
+                        existingWork.DateCompleted = workDone.DateCompleted;
+                        existingWork.Hours = workDone.Hours;
+                        existingWork.Details = workDone.Details;
+                        UpdateEntity(existingWork); // your audit/update tracking
+                        _context.Update(existingWork);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
-                // Stay on the same job card
+
+                // Stay on same job card
                 return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone.JobId });
             }
-
-            return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone!.JobId });
+            return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone.JobId });
         }
 
         [RequireLogin]

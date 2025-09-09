@@ -28,7 +28,7 @@
                 <!-- Date -->
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
-                    <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" required>
+                    <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                     <span asp-validation-for="WorkRequest.RequestDate" class="text-danger"></span>
                 </div>
 
