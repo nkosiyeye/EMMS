@@ -4,6 +4,7 @@ using EMMS.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EMMS.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250915132759_InfrastructureJob")]
+    partial class InfrastructureJob
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -548,6 +551,7 @@ namespace EMMS.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<Guid?>("AssetId")
+                        .IsRequired()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("AssignedTo")
@@ -1206,7 +1210,9 @@ namespace EMMS.Data.Migrations
                 {
                     b.HasOne("EMMS.Models.Asset", "Asset")
                         .WithMany()
-                        .HasForeignKey("AssetId");
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("EMMS.Models.Admin.User", "User")
                         .WithMany()

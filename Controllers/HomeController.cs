@@ -109,10 +109,12 @@ namespace EMMS.Controllers
             var _repo = new JobManagementRepo(_context);
             var allWork = (await _repo.GetWorkRequests()).Where(w => w.WorkStatus?.Name == "Open");
             var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
+            var allInfraWork = (await _repo.GetInfrustructureWorkRequests()).Where(w => w.WorkStatus?.Name == "Open");
+            var filteredInfraWork = allInfraWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
             var model = new IndexModel
             {
                 currentUser = CurrentUser,
-                OpenWorkRequestsCount = isAdmin ? allWork.Count() : filteredWork.Count()
+                OpenWorkRequestsCount = isAdmin ? allWork.Count()+allInfraWork.Count() : filteredWork.Count()+filteredInfraWork.Count()
             };
 
             var allNotifications = await _assetRepo.GetNotifications();

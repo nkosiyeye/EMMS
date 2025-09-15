@@ -21,6 +21,19 @@ namespace EMMS.Data.Repository
                 .Include(w => w.Outcome)
                 .Include(w => w.RequestedByUser)
                 .Include(w => w.Job)
+                .Include(w => w.CancelReason)
+                .OrderByDescending(w => w.RequestDate)
+                .ToListAsync();
+        }
+        public async Task<IEnumerable<InfrustructureWorkRequest>> GetInfrustructureWorkRequests()
+        {
+            return await _context.InfrustructureWorkRequest
+                .Include(w => w.TypeOfRequest)
+                .Include(w => w.WorkStatus)
+                .Include(w => w.Outcome)
+                .Include(w => w.RequestedByUser)
+                .Include(w => w.Job)
+                .Include(w => w.CancelReason)
                 .OrderByDescending(w => w.RequestDate)
                 .ToListAsync();
         }
@@ -33,6 +46,8 @@ namespace EMMS.Data.Repository
         {
             return await _context.Job
                 .Include(w => w.Asset)
+                .Include(w => w.InfraWorkRequest)
+                .ThenInclude(w => w.TypeOfRequest)
                 .Include(w => w.User)
                 .Include(w => w.Status)
                 .Include(w => w.FaultReport)
@@ -58,6 +73,12 @@ namespace EMMS.Data.Repository
         {
             return await _context.LookupItems
                 .Where(x => x.LookupList.Name == "WorkRequestStatus" && x.RowState == RowStatus.Active)
+                .ToListAsync();
+        }
+        public async Task<IEnumerable<LookupItem>> GetTypeOfRequest()
+        {
+            return await _context.LookupItems
+                .Where(x => x.LookupList.Name == "TypeOfRequest" && x.RowState == RowStatus.Active)
                 .ToListAsync();
         }
         public async Task<IEnumerable<LookupItem>> GetOutcomes()

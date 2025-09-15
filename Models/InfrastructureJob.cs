@@ -7,7 +7,7 @@ using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class Job : BaseEntity
+    public class InfrastructureJob : BaseEntity
     {
         [Key]
         public Guid JobId { get; set; }
@@ -15,20 +15,11 @@ namespace EMMS.Models
         [Display(Name = "Job Card Number")]
         public string? JobNumber { get; set; }
 
+        [Required]
         [Display(Name = "Work Request ID")]
-        public Guid? WorkRequestId { get; set; }
-        [ForeignKey(nameof(WorkRequestId))]
-        public virtual WorkRequest? WorkRequest { get; set; }
-
-        [Display(Name = "Work Request ID")]
-        public Guid? InfrastructureWorkRequestId { get; set; }
+        public Guid InfrastructureWorkRequestId { get; set; }
         [ForeignKey(nameof(InfrastructureWorkRequestId))]
-        public virtual InfrustructureWorkRequest? InfraWorkRequest { get; set; }
-
-        [Display(Name = "Asset ID")]
-        public Guid? AssetId { get; set; }
-        [ForeignKey(nameof(AssetId))]
-        public virtual Asset? Asset { get; set; }
+        public virtual InfrustructureWorkRequest? WorkRequest { get; set; }
 
         [Required]
         [Display(Name = "Assigned To")]

@@ -36,6 +36,34 @@ h5 {
 .text-primary {
     color: var(--primary) !important;
 }
+/*Nav for Work Requests*/
+
+/* Tabs Styling */
+.nav-tabs .nav-link {
+    border: none;
+    color: #495057;
+    font-weight: 500;
+    font-size: small;
+}
+
+    .nav-tabs .nav-link.active {
+        background-color: var(--primary) !important;
+        color: #fff;
+        border-radius: .25rem .25rem 0 0;
+    }
+
+    .nav-tabs .nav-link i {
+        font-size: small;
+    }
+
+.tab-content {
+    border: 1px solid #dee2e6;
+    border-top: none;
+    padding: 1rem;
+    background-color: #fff;
+}
+
+
 /* Button styling */
 .btn-primary {
     background-color: var(--primary) !important;

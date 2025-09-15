@@ -1,0 +1,80 @@
+﻿@using EMMS.ViewModels
+@model WorkRequestViewModel
+@{
+    ViewData["Title"] = "Work Request";
+    ViewData["workRequest"] = "active";
+    ViewData["JobManagement"] = "active";
+    Model.InfrustructureWorkRequest.RequestDate = DateTime.Today;
+}
+
+<div class="card mb-12">
+    <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Create Work Request</span>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["WorkRequestError"] != null)
+        {
+            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+                @TempData["WorkRequestError"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+        }
+        <form asp-action="infrustructureWorkRequest" asp-controller="JobManagement" method="post">
+            <div class="row mb-2">
+
+                <!-- Date -->
+                <div class="col-md-6">
+                    <label asp-for="InfrustructureWorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
+                    <input asp-for="InfrustructureWorkRequest.RequestDate" type="date" class="form-control" id="requestDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span asp-validation-for="InfrustructureWorkRequest.RequestDate" class="text-danger"></span>
+                </div>
+
+                <!-- Asset Name / Tag -->
+                <div class="col-md-6">
+                    <label asp-for="InfrustructureWorkRequest.TypeOfRequestId" class="form-label required-field"></label>
+                    <select asp-for="InfrustructureWorkRequest.TypeOfRequestId" class="form-select selectpicker col-md-4" data-live-search="true"
+                            asp-items="@(new SelectList(Model.TypeOfRequests, "Id", "Name"))">
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <label asp-for="InfrustructureWorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
+                    <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "Open").Name" disabled />
+                    <select asp-for="InfrustructureWorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
+                            data-live-search="true">
+                        @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
+                        {
+                            <option value="@status.Id" selected>@status.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="InfrustructureWorkRequest.WorkStatusId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="InfrustructureWorkRequest.FacilityId" class="form-label"></label>
+                    <input asp-for="InfrustructureWorkRequest.FacilityId" type="hidden" class="form-control" value="@ViewBag._currentUser.FacilityId" readonly />
+                     <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
+                </div>
+            </div>
+
+            <div class="col-md-12 mb-2">
+                <label asp-for="InfrustructureWorkRequest.Description" for="faultDescription" class="form-label required-field">Description</label>
+                <textarea asp-for="InfrustructureWorkRequest.Description" class="form-control" id="faultDescription" rows="2" placeholder="Brief description of the work needed"></textarea>
+                <span asp-validation-for="InfrustructureWorkRequest.Description" class="text-danger"></span>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary">Request</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

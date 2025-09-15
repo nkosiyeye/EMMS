@@ -8,20 +8,44 @@
 }
 
 
+@if (TempData["JobError"] != null)
+{
+    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+        @TempData["JobError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+}
+
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><strong>Job Management</strong></span>
     </div>
-    <div class="card-body">
+    <div class="p-2">
+                <!-- Tabs -->
+        <ul class="nav nav-tabs" id="workRequestTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="asset-tab" data-bs-toggle="tab"
+                        data-bs-target="#asset-requests" type="button" role="tab"
+                        aria-controls="asset-requests" aria-selected="true">
+                    <i class="fa fa-cogs me-1"></i> Asset Work Requests
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="infra-tab" data-bs-toggle="tab"
+                        data-bs-target="#infra-requests" type="button" role="tab"
+                        aria-controls="infra-requests" aria-selected="false">
+                    <i class="fa fa-building me-1"></i> Infrastructure Work Requests
+                </button>
+            </li>
+        </ul>
 
-        <!-- Work Requests Table -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <strong>Work Requests</strong>
-            </div>
-            <div class="card-body">
+        <!-- Tab Content -->
+        <div class="tab-content mt-3" id="workRequestTabsContent">
+            <!-- Asset Work Requests -->
+            <div class="tab-pane fade show active" id="asset-requests" role="tabpanel" aria-labelledby="asset-tab">
                 <div class="table-responsive">
-                    <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="assetWorkRequestTable">
                         <thead class="table-dark">
                             <tr>
                                 <th>Asset Tag</th>
@@ -42,9 +66,9 @@
                                         {
                                             <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
                                             <a href="javascript:void(0);" class="text-info read-more"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#descriptionModal"
-                                            data-description="@request.Description">
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#descriptionModal"
+                                               data-description="@request.Description">
                                                 Read More
                                             </a>
                                         }
@@ -57,11 +81,11 @@
                                     <td>
                                         <div class="btn-group">
                                             <button class="btn btn-primary btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#jobModal"
-                                            data-request-id="@request.WorkRequestId"
-                                            data-asset-id="@request.AssetId"
-                                            data-asset-tag="@request.Asset?.AssetTagNumber">
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#jobModal"
+                                                    data-request-id="@request.WorkRequestId"
+                                                    data-asset-id="@request.AssetId"
+                                                    data-asset-tag="@request.Asset?.AssetTagNumber">
                                                 Create Job
                                             </button>
                                             @if (isAdmin)
@@ -71,7 +95,7 @@
                                                         data-bs-target="#cancelModal"
                                                         data-cancelrequest-id="@request.WorkRequestId">
                                                     Cancel
-                                                </button>                                                
+                                                </button>
                                             }
                                         </div>
                                     </td>
@@ -81,7 +105,72 @@
                     </table>
                 </div>
             </div>
-        </div>
+
+            <!-- Infrastructure Work Requests -->
+            <div class="tab-pane fade" id="infra-requests" role="tabpanel" aria-labelledby="infra-tab">
+                <div class="table-responsive">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="infraWorkRequestTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Request Type</th>
+                                <th>Date Requested</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.InfrastructureWorkRequests.Where(w => w.WorkStatus?.Name == "Open"))
+                            {
+                                <tr>
+                                    <td>@request.TypeOfRequest.Name</td>
+                                    <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
+                                        {
+                                            <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="text-info read-more"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#descriptionModal"
+                                               data-description="@request.Description">
+                                                Read More
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span>@request.Description</span>
+                                        }
+                                    </td>
+                                    <td>@request.WorkStatus?.Name</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#jobModal"
+                                                    data-request-id="@request.WorkRequestId"
+                                                    data-request-type="@request.TypeOfRequest.Name">
+                                                Create Job
+                                            </button>
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#cancelModal"
+                                                        data-cancelrequest-id="@request.WorkRequestId">
+                                                    Cancel
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div></div>
+     
+
 
         <!-- Job History Table -->
         <div class="card mt-3">
@@ -93,6 +182,7 @@
                     <table class="table fixed-table table-striped table-bordered table-hover" id="JobTable">
                         <thead class="table-dark">
                             <tr>
+                                <th>Job Type</th>
                                 <th>Asset Tag</th>
                                 <th>Job ID</th>
                                 <th>Start Date</th>
@@ -104,10 +194,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var job in Model.Jobs)
+                            @foreach (var job in Model.Jobs.Where(j => j.Status.Name != "Closed"))
                             {
                                 <tr>
-                                    <td>@job.Asset?.AssetTagNumber</td>
+                                    <td>@(job.Asset?.AssetTagNumber == null ? job.InfraWorkRequest.TypeOfRequest.Name : "Asset")</td>
+                                    <td>@(job.Asset?.AssetTagNumber ?? "N/A")</td>
                                     <td>@job.JobNumber</td>
                                     <td>@job.StartDate.ToString("dd/MM/yyyy")</td>
                                     <td>@job.FaultReport?.Name</td>
@@ -141,6 +232,7 @@
 
 
 <!-- Job Card Modal -->
+<!-- Job Card Modal -->
 <div class="modal fade" id="jobModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
@@ -150,58 +242,65 @@
             </div>
             <div class="modal-body">
                 <form asp-action="createJobCard" asp-controller="JobManagement" method="post">
+
+                    <input asp-for="Job.WorkRequestId" id="assetWorkRequestId" type="hidden" />
+                    <input asp-for="Job.InfrastructureWorkRequestId" id="infraWorkRequestId" type="hidden" />
+                    <input asp-for="Job.AssetId" id="assetId" type="hidden" />
+
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-4">
-                            <label asp-for="Job.StartDate" for="jobDate" class="form-label">Date</label>
-                            <input asp-for="Job.StartDate" type="date" class="form-control" id="jobDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                            <label asp-for="Job.StartDate" class="form-label">Date</label>
+                            <input asp-for="Job.StartDate" type="date" class="form-control" id="jobDate"
+                                   max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                         </div>
-                        <!-- Asset Name / Tag -->
+
+                        <!-- Dynamic Field (Asset Tag / Request Type) -->
                         <div class="col-md-4">
-                            <label for="assetTag" class="form-label required-field">Asset Tag</label>
-                            <input asp-for="Job.WorkRequestId" id="requestId" type="hidden" />
-                            <input asp-for="Job.AssetId" id="assetId" type="hidden"/>
-                            <input readonly type="text" class="form-control" id="assetTag">
+                            <label id="dynamicLabel" class="form-label required-field">Asset Tag</label>
+                            <input readonly type="text" class="form-control" id="dynamicValue">
                         </div>
+
+                        <!-- Status -->
                         <div class="col-md-4">
-                            <label asp-for="Job.StatusId" for="title" class="form-label required-field"></label>
-                            <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "In Progress").Name" disabled />
-                            <select asp-for="Job.StatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
-                            data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))"*@>
-                                @foreach (var status in Model.WorkStatuses!.Where(w => w.Name == "In Progress"))
+                            <label asp-for="Job.StatusId" class="form-label"></label>
+                            <input class="form-control" type="text"
+                                   value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "In Progress").Name" disabled />
+                            <select asp-for="Job.StatusId" class="form-select d-none">
+                                @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "In Progress"))
                                 {
                                     <option value="@status.Id" selected>@status.Name</option>
                                 }
                             </select>
                         </div>
                     </div>
+
+                    <!-- Fault Report -->
                     <div class="row mb-3">
-                        <!-- Fault Report -->
                         <div class="col-md-6">
-                            <label asp-for="Job.FaultReportId" for="title" class="form-label required-field"></label>
-                            <select asp-for="Job.FaultReportId" id="movementType" class="form-select selectpicker col-md-6"
-                            data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
+                            <label asp-for="Job.FaultReportId" class="form-label required-field"></label>
+                            <select asp-for="Job.FaultReportId" class="form-select selectpicker col-md-6"
+                                    data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
                                 <option selected disabled>Select Fault Report</option>
                             </select>
                         </div>
+
+                        <!-- Assigned To -->
                         <div class="col-md-6">
-                            <label asp-for="Job.AssignedTo" for="assignedTo" class="form-label">Assigned To</label>
+                            <label asp-for="Job.AssignedTo" class="form-label">Assigned To</label>
                             @if (ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator)
                             {
-                                <select asp-for="Job.AssignedTo" class="form-select" id="assignedTo" asp-items="ViewBag.Biomed" required>
-                                </select>
-
+                                <select asp-for="Job.AssignedTo" class="form-select" asp-items="ViewBag.Biomed" required></select>
                             }
                             else
                             {
-                                    <input asp-for="Job.AssignedTo" value="@ViewBag._currentUser.UserId" id="requestId" type="hidden" />
-                                <input readonly type="text" class="form-control" id="assignedTo" value="@ViewBag._currentUser.FirstName">
-                               
+                                <input asp-for="Job.AssignedTo" value="@ViewBag._currentUser.UserId" type="hidden" />
+                                <input readonly type="text" class="form-control" value="@ViewBag._currentUser.FirstName">
                             }
                         </div>
                     </div>
 
-
+                    <!-- External Provider -->
                     <div class="row col-md-12 mb-2">
                         <div class="border rounded p-3">
                             <div class="form-check">
@@ -210,20 +309,18 @@
                                     External
                                 </label>
                                 <div class="form-text text-muted">
-                                    is this request attended by an external service provider?
+                                    Is this request attended by an external service provider?
                                 </div>
                             </div>
-
                             <div class="col-md-8 d-none" id="external-field-container">
                                 <label asp-for="Job.ExternalProviderId" class="form-label required-field"></label>
-                                <select asp-for="Job.ExternalProviderId" id="service-provider" class="form-select selectpicker col-md-6" data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
+                                <select asp-for="Job.ExternalProviderId" class="form-select selectpicker"
+                                        data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
                                     <option selected disabled>Select Service Provider</option>
                                 </select>
-                                @* <span asp-validation-for="MoveAsset.AssetId" class="text-danger"></span> *@
                             </div>
                         </div>
                     </div>
-
 
                     <!-- Submit Button -->
                     <button type="submit" class="btn btn-primary">Start Job</button>
@@ -234,17 +331,8 @@
             </div>
         </div>
     </div>
-    <script>
-        function checkExternal(checkbox) {
-              const externalField = document.getElementById('external-field-container');
-              if (checkbox.checked) {
-                  externalField.classList.remove('d-none');
-              } else {
-                  externalField.classList.add('d-none');
-              }
-          }
-    </script>
 </div>
+
 <!-- Reject Modal TBD -->
 <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md">
@@ -327,29 +415,47 @@
                     requestIdInput.value = requestId;
                 });
         });
-        document.addEventListener("DOMContentLoaded", function () {
-            // Get the modal and the asset tag input field
-            const Modal = document.getElementById("jobModal");
-            const assetIdInput = document.getElementById("assetId");
-            const requsetIdInput = document.getElementById("requestId");
-            const assetTagInput = document.getElementById("assetTag");
+           function checkExternal(checkbox) {
+            const externalField = document.getElementById('external-field-container');
+            externalField.classList.toggle('d-none', !checkbox.checked);
+        }
 
-            // Listen for when the modal is shown
+        document.addEventListener("DOMContentLoaded", function () {
+            const Modal = document.getElementById("jobModal");
+
             Modal.addEventListener("show.bs.modal", function (event) {
-                // Get the button that triggered the modal
                 const button = event.relatedTarget;
 
-                // Extract the asset ID from the data-asset-id attribute
+                // Common fields
+                const assetIdInput = document.getElementById("assetId");
+                const assetWorkRequestId = document.getElementById("assetWorkRequestId");
+                const infraWorkRequestId = document.getElementById("infraWorkRequestId");
+                const dynamicLabel = document.getElementById("dynamicLabel");
+                const dynamicValue = document.getElementById("dynamicValue");
+
+                // Reset hidden fields
+                assetWorkRequestId.value = "";
+                infraWorkRequestId.value = "";
+                assetIdInput.value = "";
+
+                // Detect context
                 const assetId = button.getAttribute("data-asset-id");
                 const assetTag = button.getAttribute("data-asset-tag");
+                const requestType = button.getAttribute("data-request-type");
                 const requestId = button.getAttribute("data-request-id");
 
-
-
-                // Populate the Asset Tag field in the modal
-                assetTagInput.value = assetTag;
-                assetIdInput.value = assetId;
-                requsetIdInput.value = requestId;
+                if (assetId) {
+                    // Asset job
+                    dynamicLabel.innerHTML = "Asset Tag";
+                    dynamicValue.value = assetTag;
+                    assetIdInput.value = assetId;
+                    assetWorkRequestId.value = requestId;
+                } else {
+                    // Infrastructure job
+                    dynamicLabel.innerHTML = "Request Type";
+                    dynamicValue.value = requestType;
+                    infraWorkRequestId.value = requestId;
+                }
             });
         });
     </script>

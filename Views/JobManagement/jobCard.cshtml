@@ -15,32 +15,66 @@
         <span><i class="fa-solid fa-file-lines me-2"></i>Work Request</span>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <dl class="row">
-                    <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
-                    <dd class="col-sm-6 border p-1 m-0">
-                        <a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@Model.WorkRequest.AssetId">
-                            @Model.WorkRequest.Asset.AssetTagNumber
-                        </a>
-                    </dd>
-                    <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.SubCategory.Name</dd>
-                    <dt class="col-sm-6 border p-1 m-0">Date</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
-                </dl>
+        @if(Model.InfraWorkRequest == null)
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
+                        <dd class="col-sm-6 border p-1 m-0">
+                            <a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@Model.WorkRequest.AssetId">
+                                @Model.WorkRequest.Asset.AssetTagNumber
+                            </a>
+                        </dd>
+                        <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.SubCategory.Name</dd>
+                        <dt class="col-sm-6 border p-1 m-0">Date</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-6 border p-1 m-0">Requested By</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.RequestedByUser?.FirstName</dd>
+                        <dt class="col-sm-6 border p-1 m-0">Fault Description</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Description</dd>
+                        <dt class="col-sm-6 border p-1 m-0">Outcome</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Outcome?.Name</dd>
+                    </dl>
+                </div>
             </div>
-            <div class="col-md-6">
-                <dl class="row">
-                    <dt class="col-sm-6 border p-1 m-0">Requested By</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.RequestedByUser?.FirstName</dd>
-                    <dt class="col-sm-6 border p-1 m-0">Fault Description</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Description</dd>
-                    <dt class="col-sm-6 border p-1 m-0">Outcome</dt>
-                    <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Outcome?.Name</dd>
-                </dl>
+
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-6 border p-1 m-0">Request Type</dt>
+                        <dd class="col-sm-6 border p-1 m-0">
+                            @Model.InfraWorkRequest.TypeOfRequest.Name
+                        </dd>
+                        <dt class="col-sm-6 border p-1 m-0">Date</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.InfraWorkRequest.RequestDate.ToShortDateString()</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-6 border p-1 m-0">Requested By</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.InfraWorkRequest?.RequestedByUser?.FirstName</dd>
+                        <dt class="col-sm-6 border p-1 m-0">Outcome</dt>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.InfraWorkRequest?.Outcome?.Name</dd>
+                    </dl>
+                </div>
+                <div class="col-md-12">
+                    <dl class="row">
+                        <dt class="col-sm-3 border p-1 m-0">Fault Description</dt>
+                        <dd class="col-sm-9 border p-1 m-0">@Model.InfraWorkRequest?.Description</dd>
+                    </dl>
+                </div>
             </div>
-        </div>
+            
+        }
     </div>
 </div>
 

@@ -6,13 +6,16 @@ namespace EMMS.ViewModels
     public class JobViewModel
     {
         public IEnumerable<Job>? Jobs { get; set; }
+        public IEnumerable<InfrastructureJob>? infraJobs { get; set; }
         public IEnumerable<WorkRequest>? WorkRequests { get; set; }
+        public IEnumerable<InfrustructureWorkRequest>? InfrastructureWorkRequests { get; set; }
 
         public IEnumerable<WorkDone>? WorkDoneList { get; set; }
         public WorkDone? WorkDone { get; set; }
         public IEnumerable<ExternalWorkDone>? ExWorkDoneList { get; set; }
         public ExternalWorkDone? ExWorkDone { get; set; }
         public WorkRequest? WorkRequest { get; set; }
+        public InfrustructureWorkRequest? InfraWorkRequest { get; set; }
 
         public Job? Job { get; set; }
         public IEnumerable<LookupItem>? FaultReports { get; set; }
