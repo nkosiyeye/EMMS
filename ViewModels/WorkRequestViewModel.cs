@@ -7,7 +7,7 @@ namespace EMMS.ViewModels
     {
         public IEnumerable<WorkRequest>? WorkRequests { get; set; }
         public IEnumerable<InfrustructureWorkRequest>? InfrastructureWorkRequests { get; set; }
-        public string? AssetTag { get; set; }
+        public Asset? Asset { get; set; }
         public WorkRequest? WorkRequest { get; set; }
         public InfrustructureWorkRequest? InfrustructureWorkRequest { get; set; }
        

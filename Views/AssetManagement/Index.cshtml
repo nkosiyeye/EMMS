@@ -140,12 +140,28 @@
 
 @section Scripts {
     <script>
-            $(document).ready(function () {
-                $('#assetTable').DataTable({
-                    // Optional: customize page length, language, etc.
-                    pageLength: 10
-                });
+        $(document).ready(function () {
+            var isTabletOrSmaller = window.innerWidth <= 1024; // adjust breakpoint for tablet
+
+            $('#assetTable').DataTable({
+                pageLength: 10,
+                responsive: isTabletOrSmaller
             });
+
+            // Optional: listen for resize and redraw
+            $(window).on('resize', function () {
+                var newSize = window.innerWidth <= 1024;
+                var table = $('#assetTable').DataTable();
+
+                if (newSize !== table.responsive.hasResponsive()) {
+                    table.destroy();
+                    $('#assetTable').DataTable({
+                        pageLength: 10,
+                        responsive: newSize
+                    });
+                }
+            });
+        });
 
     </script>
 }

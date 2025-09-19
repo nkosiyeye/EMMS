@@ -117,7 +117,7 @@ namespace EMMS.Controllers
 
             var viewModel = new MoveRequestViewModel
             {
-                AssetTag = moveAsset.Asset.AssetTagNumber,
+                Asset = moveAsset.Asset,
                 MoveAsset = moveAsset,
                 Facilities = await repo.GetFacilities(),
                 ServicePoints = await repo.GetServicePoints(),
@@ -137,7 +137,7 @@ namespace EMMS.Controllers
 
             var viewModel = new MoveRequestViewModel
             {
-                AssetTag = moveAsset.Asset.AssetTagNumber,
+                Asset = moveAsset.Asset,
                 MoveAsset = moveAsset,
                 Facilities = await repo.GetFacilities(),
                 ServicePoints = await repo.GetServicePoints(),

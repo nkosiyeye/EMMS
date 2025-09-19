@@ -21,6 +21,7 @@ namespace EMMS.Data.Repository
 
             var moveAssets = await query
                 .Include(x => x.Asset)
+                .ThenInclude(x => x.SubCategory)
                 .Include(x => x.From)
                 .Include(x => x.Facility)
                 .Include(x => x.ServicePoint)
@@ -37,6 +38,7 @@ namespace EMMS.Data.Repository
             return await _context.AssetMovement
                 .Where(x => x.AssetId == assetId && x.DateRejected == null && x.RowState == RowStatus.Active)
                 .Include(x => x.Asset)
+                .ThenInclude(x => x.SubCategory)
                 .OrderByDescending(x => x.DateCreated)
                 .FirstOrDefaultAsync();
         }

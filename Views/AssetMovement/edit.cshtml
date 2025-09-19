@@ -1,7 +1,7 @@
 ﻿@using System.Text.Json
 @model EMMS.ViewModels.MoveRequestViewModel;
 @{
-    ViewData["Title"] = Model.AssetTag;
+    ViewData["Title"] = Model.Asset!.AssetTagNumber;
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
 }
@@ -40,7 +40,7 @@
                 <div class="col-md-6">
                     <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
                     <input asp-for="MoveAsset.AssetId" class="form-control" type="Guid" hidden/>
-                    <input class="form-control" type="text" value="@Model.AssetTag" disabled />
+                    <input class="form-control" type="text" value="@($"{Model.Asset!.AssetTagNumber} - {Model.Asset.SubCategory?.Name}")" disabled />
                 </div>
             </div>
             <div class="row mb-3">

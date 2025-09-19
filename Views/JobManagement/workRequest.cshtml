@@ -34,9 +34,9 @@
 
                 <!-- Asset Name / Tag -->
                 <div class="col-md-6">
-                    <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
+                    <label asp-for="WorkRequest.AssetId" class="form-label required-field">Asset</label>
                     <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden/>
-                    <input class="form-control" type="text" value="@Model.AssetTag" disabled />
+                    <input class="form-control" type="text" value="@($"{Model.Asset!.AssetTagNumber} - {Model.Asset.SubCategory?.Name}" )" disabled />
                 </div>
             </div>
             <div class="row mb-2">

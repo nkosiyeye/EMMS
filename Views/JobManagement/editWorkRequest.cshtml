@@ -40,7 +40,7 @@
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
                     <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden />
-                    <input class="form-control" type="text" value="@Model.WorkRequest!.Asset!.AssetTagNumber" disabled />
+                    <input class="form-control" type="text" value="@($"{Model.WorkRequest!.Asset!.AssetTagNumber} - {Model.WorkRequest.Asset.SubCategory?.Name}" )" disabled />
                 </div>
             </div>
             <div class="row mb-2">

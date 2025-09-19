@@ -108,7 +108,7 @@ namespace EMMS.Controllers
             };
             var workAssetViewModel = new WorkRequestViewModel()
             {
-                AssetTag = _arepo.AssetTagNumber,
+                Asset = _arepo,
                 WorkRequest = workRequest,
                 FaultReports = await _repo.GetFaultReports(),
                 WorkStatuses = await _repo.GetWorkStatus(),
@@ -132,7 +132,6 @@ namespace EMMS.Controllers
             {
                 work.RequestedBy = CurrentUser.UserId;
                 CreateEntity(work);
-                var assetTag = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == work.AssetId)!.AssetTagNumber;
                 _context.Add(work);
                 await _context.SaveChangesAsync();
                 await _notificationService.CreateWorkRequestNotification(CurrentUser.FacilityId,CurrentUser.UserId);
@@ -243,7 +242,7 @@ namespace EMMS.Controllers
 
             var workAssetViewModel = new WorkRequestViewModel()
             {
-                AssetTag = asset?.AssetTagNumber,
+                Asset = asset,
                 WorkRequest = workRequest,
             };
 

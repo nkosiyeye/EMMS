@@ -4,6 +4,8 @@
     ViewData["manageJob"] = "active";
     ViewData["JobManagement"] = "active";
     Model.Job.StartDate = DateTime.Today;
+    var infraCount = Model.InfrastructureWorkRequests.Where(w => w.WorkStatus?.Name == "Open").Count();
+    var workCount = Model.WorkRequests.Where(w => w.WorkStatus?.Name == "Open").Count();
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
 }
 
@@ -29,6 +31,12 @@
                         data-bs-target="#asset-requests" type="button" role="tab"
                         aria-controls="asset-requests" aria-selected="true">
                     <i class="fa fa-cogs me-1"></i> Asset Work Requests
+                    @if (workCount > 0)
+                    {
+                        <span class="badge bg-danger rounded-pill" style="font-size:xx-small">
+                            @workCount
+                        </span>
+                    }
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -36,6 +44,12 @@
                         data-bs-target="#infra-requests" type="button" role="tab"
                         aria-controls="infra-requests" aria-selected="false">
                     <i class="fa fa-building me-1"></i> Infrastructure Work Requests
+                    @if (infraCount > 0)
+                    {
+                        <span class="badge bg-danger rounded-pill" style="font-size:xx-small">
+                            @infraCount
+                        </span>
+                    }
                 </button>
             </li>
         </ul>

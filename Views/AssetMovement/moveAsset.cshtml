@@ -31,10 +31,10 @@
                             <span asp-validation-for="MoveAsset.MovementDate" class="text-danger"></span>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="MoveAsset.AssetId" class="form-label required-field"></label>
+                            <label asp-for="MoveAsset.AssetId" class="form-label required-field">Asset</label>
                             <input asp-for="MoveAsset.AssetId" class="form-control" type="Guid" hidden />
-                            <input class="form-control" type="text" value="@Model.AssetTag" disabled />   
-                        </div>
+                            <input class="form-control" type="text" value="@($"{Model.Asset!.AssetTagNumber} - {Model.Asset.SubCategory?.Name}")" disabled />
+                </div>
                     </div>
                     <div class="row mb-3">
                 <div class="col-md-6">

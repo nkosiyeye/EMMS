@@ -5,7 +5,7 @@ namespace EMMS.ViewModels
 {
     public class MoveRequestViewModel
     {
-        public string? AssetTag { get; set; }
+        public Asset? Asset { get; set; }
         public MoveAsset? MoveAsset { get; set; }
         public Facility? CurrentFacility { get; set; }
 
