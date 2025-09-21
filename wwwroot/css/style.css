@@ -12,6 +12,7 @@
     --sidebar-border: #e2e8f0;
     --border: #e2e8f0;
     --foreground: #0f172a;
+    --muted: #c7bbc9;
 }
 /* Form section headers */
 h5 {
@@ -36,8 +37,10 @@ h5 {
 .text-primary {
     color: var(--primary) !important;
 }
+.status-muted{
+    background-color: var(--muted);
+}
 /*Nav for Work Requests*/
-
 /* Tabs Styling */
 .nav-tabs .nav-link {
     border: none;
@@ -62,7 +65,52 @@ h5 {
     padding: 1rem;
     background-color: #fff;
 }
+/* ===== ALERTS ===== */
+/* Base alert style for positioning and padding */
+.alert {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 320px;
+    max-width: 90vw;
+    z-index: 9999;
+    padding: 1rem 2.5rem 1rem 1.25rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1.5px 4px rgba(0,0,0,0.08);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeInDown 0.5s;
+    border-left: 4px solid;
+}
 
+/* Success alert */
+.alert-success {
+    background-color: #dcfce7;
+    color: #166534;
+    border-left-color: #16a34a;
+}
+
+/* Danger/error alert */
+.alert-danger {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-left-color: #dc2626;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
 
 /* Button styling */
 .btn-primary {

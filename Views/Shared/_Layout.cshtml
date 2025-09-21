@@ -85,6 +85,7 @@
 
     <!-- Main Content (hidden initially) -->
     <div id="main-content">
+        @await Html.PartialAsync("_Notification")
         @* page *@
         <div class="container-fluid h-full w-full" style="height: 100vh;">
             <div class="row flex-nowrap" style="height: 100vh;">
@@ -250,6 +251,17 @@
         // Initialize selectpicker
         $(function () {
             $('.selectpicker').selectpicker();
+        });
+               setTimeout(function () {
+            document.querySelectorAll('[id^="notification-"]').forEach(function(alert) {
+                alert.remove();
+            });
+        }, 7000); // 7 seconds
+             // Remove on any click in the window
+        window.addEventListener('click', function () {
+            document.querySelectorAll('[id^="notification-"]').forEach(function(alert) {
+                alert.remove();
+            });
         });
     </script>
 

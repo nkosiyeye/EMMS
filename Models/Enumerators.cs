@@ -48,13 +48,15 @@
             Decommission = 5,
             Deployment = 6,
             Installation = 7,
-            Other = 8
+            Other = 8,
+            StolenorMissing = 9,
         }
         public enum FunctionalStatus : byte
         {
             Functional = 1,
             NonFunctional = 2,
-            UnderMaintenance = 3
+            UnderMaintenance = 3,
+            Unknown = 4,
         }
 
         public enum ProcurementStatus

@@ -8,12 +8,6 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
 }
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">
-        @TempData["Success"]
-    </div>
-}
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -54,10 +48,10 @@
                     @foreach (var asset in Model.assetViewModels!)
                     {
                         var lastMove = asset.LastMovement;
-                        <tr>
+                        <tr class="@(lastMove?.Reason == Enumerators.MovementReason.StolenorMissing ? "table-danger text-muted" : "")">
                             <td>
                                 <input type="checkbox" class="asset-checkbox"
-                                       value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
+                                value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
                             </td>
                             <td>@asset.Asset.AssetTagNumber</td>
                             <td>@Format.FormatCategory(asset.Asset?.Category?.Name)</td>
@@ -95,38 +89,66 @@
                                 }
                             </td>
                             <td>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        <i class="fa fa-ellipsis-h"></i>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li class="@(lastMove != null ? "d-none" : isAdmin || isBiomed ? "":"d-none")">
-                                            <a class="dropdown-item" asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
-                                                <i class="fa fa-edit me-1"></i> Edit Asset
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
-                                                <i class="fa fa-eye me-1"></i> View Asset
-                                            </a>
-                                        </li>
-                                        <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                            <a class="dropdown-item" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
-                                                <i class="fa fa-arrows-alt me-1"></i> Move Asset
-                                            </a>
-                                        </li>
-                                        <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                            <a class="dropdown-item" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
-                                                <i class="fa fa-toolbox me-1"></i> Work Request
-                                            </a>
-                                        </li>
-                                        <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "") d-none">
-                                            <button class="dropdown-item text-danger" title="Delete (not implemented)">
-                                                <i class="fa fa-trash me-1"></i> Delete Asset
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                                @if (lastMove?.Reason == Enumerators.MovementReason.StolenorMissing)
+                                {
+
+                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
+                                        <span class="badge bg-danger">
+                                            <i class="fa fa-eye me-1"></i>View Asset
+                                        </span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa fa-ellipsis-h"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li class="@(lastMove != null ? "d-none" : isAdmin || isBiomed ? "":"d-none")">
+                                                <a class="dropdown-item" asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-edit me-1"></i> Edit Asset
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-eye me-1"></i> View Asset
+                                                </a>
+                                            </li>
+                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                <a class="dropdown-item" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-arrows-alt me-1"></i> Move Asset
+                                                </a>
+                                            </li>
+                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                <a class="dropdown-item" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                    <i class="fa fa-toolbox me-1"></i> Work Request
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <button class="dropdown-item stolen-missing-btn"
+                                                        data-id="@asset.Asset.AssetId"
+                                                        data-tag="@asset.Asset.AssetTagNumber"
+                                                        data-name="@asset.Asset.SubCategory?.Name"
+                                                        data-category="@asset.Asset.Category?.Name"
+                                                        data-serial="@asset.Asset.SerialNumber"
+                                                        data-model="@asset.Asset.Model"
+                                                        data-location="@(lastMove?.Facility.FacilityName ?? " Unknown")"
+                                                        type="button">
+                                                    <i class="fa fa-exclamation-triangle me-1 text-danger"></i> Stolen/Missing Asset
+                                                </button>
+                                            </li>
+
+
+                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "") d-none">
+                                                <button class="dropdown-item text-danger" title="Delete (not implemented)">
+                                                    <i class="fa fa-trash me-1"></i> Delete Asset
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    
+                                }
                             </td>
                         </tr>
                     }
@@ -135,6 +157,63 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="stolenMissingModal" tabindex="-1" aria-labelledby="stolenMissingLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="stolenMissingForm" method="post" asp-controller="AssetMovement" asp-action="ReportStolenMissing">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title" id="stolenMissingLabel">
+                        Report Stolen/Missing Asset
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="AssetId" id="assetId" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Asset Tag</label>
+                            <input type="text" class="form-control" id="assetTag" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Category</label>
+                            <input type="text" class="form-control" id="assetCategory" readonly />
+                        </div>
+
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Item Name</label>
+                            <input type="text" class="form-control" id="assetName" readonly />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Serial / Model</label>
+                            <input type="text" class="form-control" id="assetSerialModel" readonly />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Current Location</label>
+                        <input type="text" class="form-control" id="assetLocation" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Police Docket Number</label>
+                        <input type="text" class="form-control" name="DocketNumber" required />
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa fa-check me-1"></i> Submit Report
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 
 
@@ -161,6 +240,25 @@
                     });
                 }
             });
+            $(document).on("click", ".stolen-missing-btn", function () {
+            const id = $(this).data("id");
+            const tag = $(this).data("tag");
+            const name = $(this).data("name");
+            const category = $(this).data("category");
+            const serial = $(this).data("serial");
+            const model = $(this).data("model");
+            const location = $(this).data("location");
+
+            $("#assetId").val(id);
+            $("#assetTag").val(tag);
+            $("#assetName").val(name);
+            $("#assetCategory").val(category);
+            $("#assetSerialModel").val(serial + " / " + model);
+            $("#assetLocation").val(location);
+
+            $("#stolenMissingModal").modal("show");
+        });
+
         });
 
     </script>

@@ -1,4 +1,5 @@
-﻿using EMMS.CustomAttributes;
+﻿using DocumentFormat.OpenXml.Office2010.Excel;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
 using EMMS.Data.Repository;
@@ -99,6 +100,7 @@ namespace EMMS.Controllers
             {
                 moveAsset.AssetId = id;
                 moveAsset.FacilityId = history.FacilityId;
+                moveAsset.MovementType = history.MovementType;
                 moveAsset.FromId = history.FacilityId;
                 moveAsset.Asset = history.Asset;
             }
@@ -113,6 +115,7 @@ namespace EMMS.Controllers
                 }
                 moveAsset.AssetId = asset.AssetId;
                 moveAsset.Asset = asset;
+                moveAsset.MovementType = MovementType.Facility;
             }
 
             var viewModel = new MoveRequestViewModel
@@ -155,7 +158,6 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
-        //[RequireLogin]
         public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
             var assetMovement = model.MoveAsset;
@@ -345,6 +347,64 @@ namespace EMMS.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+        [HttpPost]
+        public async Task<IActionResult> ReportStolenMissing(Guid AssetId, string DocketNumber)
+        {
+            var asset = await _context.Assets.FindAsync(AssetId);
+            if (asset == null)
+            {
+                TempData["Error"] = "Asset not found.";
+                return RedirectToAction("Index", "AssetManagement");
+            }
+            var repo = GetRepo();
+            var history = await repo.GetLastMovement(AssetId);
+            if (history != null && history.DateRejected == null && history.DateReceived == null)
+            {
+
+
+                TempData["Error"] = $"Asset {asset.AssetTagNumber} has a Movement Pending.";
+            }
+            else
+            {
+
+                //if (history != null)
+                //{
+                //    moveAsset.AssetId = id;
+                //    moveAsset.FacilityId = history.FacilityId;
+                //    moveAsset.MovementType = history.MovementType;
+                //    moveAsset.FromId = history.FacilityId;
+                //    moveAsset.Asset = history.Asset;
+                //}
+
+                var movement = new MoveAsset
+                {
+                    AssetId = AssetId,
+                    MovementDate = DateTime.Now,
+                    Reason = MovementReason.StolenorMissing, // <-- Enum
+                    MovementType = history?.MovementType ?? MovementType.Facility, // <-- Enum
+                    FunctionalStatus = FunctionalStatus.Unknown,
+                    Remarks = $"Reported stolen/missing. Police Docket: {DocketNumber}",
+                    FromId = history?.FromId ?? CurrentUser.FacilityId,
+                    FacilityId = history?.FacilityId ?? CurrentUser.FacilityId,
+                    ServicePointId = history?.ServicePointId,
+                    IsApproved = true,
+                    ApprovedBy = CurrentUser.UserId,
+                    DateReceived = DateTime.Now,
+                    ReceivedBy = CurrentUser.UserId,
+
+                };
+
+                CreateEntity(movement);
+                _context.AssetMovement.Add(movement);
+
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Asset {asset.AssetTagNumber} reported as Stolen/Missing.";
+
+            }
+            return RedirectToAction("Index", "AssetManagement");
+        }
+
 
         [HttpGet]
         [RequireLogin]

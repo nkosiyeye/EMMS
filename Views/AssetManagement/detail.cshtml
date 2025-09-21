@@ -156,14 +156,7 @@
                             else
                             {
                                 var funcStatus = currentLocation?.FunctionalStatus;
-                                var fsClass = funcStatus switch
-                                {
-                                    FunctionalStatus.Functional => "status-new",
-                                    FunctionalStatus.NonFunctional => "status-danger",
-                                    FunctionalStatus.UnderMaintenance => "status-warning",
-                                    _ => ""
-                                };
-                                <div class="status-btn @fsClass">@funcStatus</div>
+                                @Format.DisplayFunctionalStatus(funcStatus)
                             }
                         }
                     </dd>
@@ -259,27 +252,35 @@
                             </td>
                             <td>@(move.ServicePoint?.Name ?? "Unknown")</td>
                             <td>
-                                @if(move.Reason == MovementReason.Other)
+
+                                @if (move.Reason == MovementReason.StolenorMissing)
                                 {
-                                    @move.OtherReason
+                                    <span class="text-danger fw-bold">Stolen/Missing</span>
+                                    <button class="btn btn-sm btn-link text-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#movementDetailModal"
+                                            data-move='@Html.Raw(Json.Serialize(move))'>
+                                        View More
+                                    </button>
                                 }
                                 else
                                 {
-                                    @move.Reason
-                                    
+                                    @if (move.Reason == MovementReason.Other)
+                                    {
+                                        @move.OtherReason
+                                    }
+                                    else
+                                    {
+                                        @move.Reason
+
+                                    }
                                 }
                                 </td>
                             <td>
                                 @{
-                                    var statusLabel = move.FunctionalStatus switch
-                                    {
-                                        FunctionalStatus.Functional => "status-new",
-                                        FunctionalStatus.NonFunctional => "status-danger",
-                                        FunctionalStatus.UnderMaintenance => "status-warning",
-                                        _ => ""
-                                    };
+                                    var funcStatus = move?.FunctionalStatus;
+                                    @Format.DisplayFunctionalStatus(funcStatus)
                                 }
-                                <div class="status-btn @statusLabel">@move.FunctionalStatus</div>
                             </td>
                             <td>
                                 @if (move.RecievedUser != null)
@@ -304,4 +305,58 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="movementDetailModal" tabindex="-1" aria-labelledby="movementDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title" id="movementDetailModalLabel">
+                    <i class="fa fa-exclamation-triangle me-2"></i> Stolen / Missing Asset Details
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-4 border">Movement Date</dt>
+                    <dd class="col-8 border-top p-1" id="modalMovementDate"></dd>
+
+                    <dt class="col-4 border">Facility</dt>
+                    <dd class="col-8 border-top p-1" id="modalFacility"></dd>
+
+                    <dt class="col-4 border">Service Point</dt>
+                    <dd class="col-8 border-top p-1" id="modalServicePoint"></dd>
+
+                    <dt class="col-4 border">Remarks</dt>
+                    <dd class="col-8 fw-bold border-top p-1" id="modalRemarks"></dd>
+
+                    <dt class="col-4 border">Reported By</dt>
+                    <dd class="col-8 border-top p-1" id="modalUser"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById("movementDetailModal");
+
+            modal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                const move = JSON.parse(button.getAttribute("data-move"));
+                console.log(move);
+
+                document.getElementById("modalMovementDate").textContent = move.movementDate;
+                document.getElementById("modalFacility").textContent = move.facility?.facilityName ?? "N/A";
+                document.getElementById("modalServicePoint").textContent = move.servicePoint?.name ?? "N/A";
+                document.getElementById("modalRemarks").textContent = move.remarks;
+                document.getElementById("modalUser").textContent = move.recievedUser?.firstName ?? "Unknown";
+            });
+        });
+    </script>
+
+}
 

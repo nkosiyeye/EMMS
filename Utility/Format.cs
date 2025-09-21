@@ -40,6 +40,8 @@ namespace EMMS.Utility
                     return new HtmlString($"<div class='status-btn status-danger'>{funcStatus}</div>");
                 case FunctionalStatus.UnderMaintenance:
                     return new HtmlString($"<div class='status-btn status-warning'>{funcStatus}</div>");
+                case FunctionalStatus.Unknown:
+                    return new HtmlString($"<div class='status-btn status-muted'>{funcStatus}</div>");
                 default:
                     return new HtmlString("<div>-</div>");
             }
