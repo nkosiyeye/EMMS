@@ -27,6 +27,7 @@ namespace EMMS.Data.Repository
                 .Include(x => x.Manufacturer)
                 .Include(x => x.Vendor)
                 .Include(x => x.ServiceProvider)
+                .Where(a => a.RowState == RowStatus.Active)
                 .ToListAsync();
         }
         public async Task<IEnumerable<AssetViewModel>> GetAssetsWithMovementDb()

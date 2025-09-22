@@ -239,6 +239,21 @@ namespace EMMS.Controllers
             return false;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> HideAsset(Guid Id)
+        {
+            var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == Id);
+            if (asset != null)
+            {
+                asset.RowState = RowStatus.Inactive;
+                _context.Update(asset);
+               await  _context.SaveChangesAsync();
+
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
         async Task<AssetRegistrationViewModel> GetBaseAssetRegView (Asset asset)
         {
             return new AssetRegistrationViewModel

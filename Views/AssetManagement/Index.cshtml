@@ -140,10 +140,10 @@
                                             </li>
 
 
-                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "") d-none">
-                                                <button class="dropdown-item text-danger" title="Delete (not implemented)">
-                                                    <i class="fa fa-trash me-1"></i> Delete Asset
-                                                </button>
+                                            <li class="@((lastMove?.Reason != Enumerators.MovementReason.Decommission && isAdmin) ? "d-none" : "")">
+                                                <a asp-controller="AssetManagement" asp-action="HideAsset" asp-route-id="@asset.Asset.AssetId" class="dropdown-item text-danger" title="Remove From List">
+                                                    <i class="fa fa-eye-slash me-1"></i> Hide Asset
+                                                </a>
                                             </li>
                                         </ul>
                                     </div>
