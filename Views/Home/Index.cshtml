@@ -68,10 +68,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Tag</th>
-                                <th>Category</th>
                                 <th>Item Name</th>
-                                <th>Vendor</th>
-                                <th>Service Provider</th>
                                 <th>Procurement Status</th>
                                 <th>Location</th>
                                 <th>Functional Status</th>
@@ -85,10 +82,7 @@
                                 var lastMove = asset.LastMovement;
                                 <tr>
                                     <td>@asset.Asset.AssetTagNumber</td>
-                                    <td>@(Format.FormatCategory(asset.Asset?.Category?.Name))</td>
                                     <td>@asset.Asset?.SubCategory?.Name</td>
-                                    <td>@asset.Asset.Vendor?.Name</td>
-                                    <td>@asset.Asset.ServiceProvider?.Name</td>
                                     <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
                                     <td>
                                         @if (lastMove != null)

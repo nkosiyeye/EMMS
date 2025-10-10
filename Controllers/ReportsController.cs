@@ -14,10 +14,12 @@ namespace EMMS.Controllers
     public class ReportsController : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetManagementRepo _assetManagementRepo;
 
-        public ReportsController(ApplicationDbContext context)
+        public ReportsController(ApplicationDbContext context, AssetManagementRepo assetManagementRepo)
         {
             _context = context;
+            _assetManagementRepo = assetManagementRepo;
         }
 
         public IActionResult Index()
@@ -34,7 +36,7 @@ namespace EMMS.Controllers
                 string fileName;
                 string sheetName;
 
-                var repo = new AssetManagementRepo(_context);
+                var repo = _assetManagementRepo;
                 var assets = isAdmin ? await repo.GetAssetsWithMovementDb() 
                     : repo.GetAssetsWithMovementDb().Result.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
 

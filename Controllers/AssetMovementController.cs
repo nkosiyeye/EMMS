@@ -23,12 +23,14 @@ namespace EMMS.Controllers
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
         private readonly NotificationService _notificationService;
+        private readonly AssetManagementRepo _assetManagementRepo;
 
-        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService)
+        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, AssetManagementRepo assetManagementRepo)
         {
             _context = context;
-            _assetService = new AssetService(context);
+            _assetService = assetService;
             _notificationService = notificationService;
+            _assetManagementRepo = assetManagementRepo;
         }
 
         private AssetMovementRepo GetRepo() => new AssetMovementRepo(_context);
@@ -106,7 +108,7 @@ namespace EMMS.Controllers
             }
             else
             {
-                var asset = (await new AssetManagementRepo(_context).GetAssetsFromDb())
+                var asset = (await _assetManagementRepo.GetAssetsFromDb())
                     .FirstOrDefault(a => a.AssetId == id);
                 if (asset == null)
                 {

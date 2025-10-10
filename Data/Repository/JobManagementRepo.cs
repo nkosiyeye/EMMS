@@ -1,4 +1,5 @@
-﻿using EMMS.Models;
+﻿using EMMS.Data.Migrations;
+using EMMS.Models;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using static EMMS.Models.Enumerators;
@@ -25,7 +26,7 @@ namespace EMMS.Data.Repository
                 .OrderByDescending(w => w.RequestDate)
                 .ToListAsync();
         }
-        public async Task<IEnumerable<InfrustructureWorkRequest>> GetInfrustructureWorkRequests()
+        public async Task<IEnumerable<EMMS.Models.InfrustructureWorkRequest>> GetInfrustructureWorkRequests()
         {
             return await _context.InfrustructureWorkRequest
                 .Include(w => w.TypeOfRequest)
@@ -55,6 +56,45 @@ namespace EMMS.Data.Repository
                 .OrderByDescending(w => w.StartDate)
                 .ToListAsync();
         }
+        public async Task<int> GetJobsCount(int facilityId, bool completed, bool isAdmin)
+        {
+            var query = _context.Job.AsQueryable();
+
+            if (completed)
+                query = query.Where(j => j.EndDate != null);
+            else
+                query = query.Where(j => j.EndDate == null);
+
+            if (!isAdmin)
+                query = query.Where(j => j.FacilityId == facilityId);
+
+            return await query.CountAsync();
+        }
+        public async Task<List<WorkRequest>> GetOpenWorkRequestsByFacility(int? facilityId = null)
+        {
+            var query = _context.WorkRequest
+                .AsNoTracking()
+                .Where(w => w.WorkStatus.Name == "Open");
+
+            if (facilityId.HasValue)
+                query = query.Where(w => w.FacilityId == facilityId.Value);
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<List<EMMS.Models.InfrustructureWorkRequest>> GetOpenInfraWorkRequestsByFacility(int? facilityId = null)
+        {
+            var query = _context.InfrustructureWorkRequest
+                .AsNoTracking()
+                .Where(w => w.WorkStatus.Name == "Open");
+
+            if (facilityId.HasValue)
+                query = query.Where(w => w.FacilityId == facilityId.Value);
+
+            return await query.ToListAsync();
+        }
+
+
 
         public async Task<IEnumerable<WorkDone>> GetWorkDone()
         {

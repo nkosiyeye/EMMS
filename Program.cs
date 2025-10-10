@@ -17,6 +17,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddTransient<SessionController>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AssetManagementRepo>();
 builder.Services.AddScoped<JobManagementRepo>();
 builder.Services.AddScoped<AssetService>();

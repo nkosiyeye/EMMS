@@ -5,13 +5,16 @@ namespace EMMS.Utility
 {
     public static class Format
     {
-        public static string FormatCategory(string category)
+        public static string FormatCategory(string? category)
         {
+            if (string.IsNullOrWhiteSpace(category))
+                return string.Empty;
+
             const string keyword = "Equipment";
 
-            return category.Replace(keyword, "").Trim();
-
+            return category.Replace(keyword, "", StringComparison.OrdinalIgnoreCase).Trim();
         }
+
 
         public static IHtmlContent DisplayProcurementStatus(ProcurementStatus procStatus)
         {

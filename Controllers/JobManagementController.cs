@@ -22,12 +22,14 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
+        private readonly AssetManagementRepo _assetManagementRepo;
         private readonly NotificationService _notificationService;
-        public JobManagementController(ApplicationDbContext context, NotificationService notificationService)
+        public JobManagementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, AssetManagementRepo assetMovementRepo)
         {
             _context = context;
-            _assetService = new AssetService(context);
+            _assetService = assetService;
             _notificationService = notificationService;
+            _assetManagementRepo = assetMovementRepo;
         }
         
         public async Task<WorkRequestViewModel> WorkRequestData( WorkRequest? workmodel = null)
@@ -55,7 +57,7 @@ namespace EMMS.Controllers
                 jobmodel = new Job();
             }
             var _repo = new JobManagementRepo(_context);
-            var _Assetrepo = new AssetManagementRepo(_context);
+            var _Assetrepo = _assetManagementRepo;
             var all = await _repo.GetJobfromDbs();
             var filteredJobs = all.Where(w => w.AssignedTo == CurrentUser.UserId);
             var allInfWork = await _repo.GetInfrustructureWorkRequests();
@@ -100,7 +102,7 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> workRequest(Guid id)
         {
-            var _arepo = new AssetManagementRepo(_context).GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
+            var _arepo = _assetManagementRepo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
             var _repo = new JobManagementRepo(_context);
             var workRequest = new WorkRequest()
             {
@@ -211,7 +213,7 @@ namespace EMMS.Controllers
 
         public async Task<IActionResult> AutomateServiceRequest(Guid id)
         {
-            var _arepo = new AssetManagementRepo(_context);
+            var _arepo = _assetManagementRepo;
             var _repo = new JobManagementRepo(_context);
             
             var activeRequest = await _repo.GetWorkRequestByAssetId(id);    

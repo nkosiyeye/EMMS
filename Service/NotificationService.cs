@@ -165,6 +165,16 @@ namespace EMMS.Service
                 .Take(20)
                 .ToList();
         }
+        public async Task<List<EMMS.Models.Entities.Notification>> GetNotificationsByFacility(int? facilityId = null, int take = 5)
+        {
+            var query = _context.Notifications.AsNoTracking().OrderByDescending(n => n.DateCreated);
+
+            if (facilityId.HasValue)
+                query = (IOrderedQueryable<Models.Entities.Notification>)query.Where(n => n.FacilityId == facilityId.Value);
+
+            return await query.Take(take).ToListAsync();
+        }
+
 
 
         public async Task MarkAsReadAsync(int id)

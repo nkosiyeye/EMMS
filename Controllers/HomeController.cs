@@ -23,12 +23,14 @@ namespace EMMS.Controllers
         private readonly AssetManagementRepo _assetRepo;
         private readonly JobManagementRepo _jobRepo;
         private readonly AssetService _assetService;
+        private readonly NotificationService _notificationService;
 
-        public HomeController(AssetManagementRepo assetRepo, JobManagementRepo jobRepo, AssetService assetService, ApplicationDbContext context)
+        public HomeController(AssetManagementRepo assetRepo, JobManagementRepo jobRepo, AssetService assetService, NotificationService notificationService, ApplicationDbContext context)
         {
             _assetRepo = assetRepo;
             _jobRepo = jobRepo;
             _assetService = assetService;
+            _notificationService = notificationService;
             _context = context;
         }
         public IActionResult UserRegistration()
@@ -103,56 +105,39 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            //var asset = _context.Assets.Where(a => a.AssetTagNumber == "AS-021").FirstOrDefault();
-            //_context.Remove(asset);
-            //_context.SaveChanges();
-            var _repo = new JobManagementRepo(_context);
-            var allWork = (await _repo.GetWorkRequests()).Where(w => w.WorkStatus?.Name == "Open");
-            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            var allInfraWork = (await _repo.GetInfrustructureWorkRequests()).Where(w => w.WorkStatus?.Name == "Open");
-            var filteredInfraWork = allInfraWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
+            var isAdmin = CurrentUser.UserRole?.UserType == Enumerators.UserType.Administrator;
+
+            // Fetch work requests sequentially
+            var allWork = await _jobRepo.GetOpenWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
+            var allInfraWork = await _jobRepo.GetOpenInfraWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
+            var notifications = await _notificationService.GetNotificationsByFacility(isAdmin ? null : CurrentUser.FacilityId, 5);
+
+            var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+            var assetDueViewModel = await _assetService.GetAssetDueServiceViewModel();
+
             var model = new IndexModel
             {
                 currentUser = CurrentUser,
-                OpenWorkRequestsCount = isAdmin ? allWork.Count()+allInfraWork.Count() : filteredWork.Count()+filteredInfraWork.Count()
+                OpenWorkRequestsCount = allWork.Count + allInfraWork.Count,
+                notifications = notifications
             };
 
-            var allNotifications = await _assetRepo.GetNotifications();
-            model.notifications = isAdmin
-                ? allNotifications
-                : allNotifications.Where(n => n.FacilityId == CurrentUser.FacilityId).Take(5);
-
-            var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
-            var dueforService = (await _assetService.GetAssetDueServiceViewModel()).assetViewModels
+            // Assets
+            var dueForService = assetDueViewModel.assetViewModels
                 .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
 
-            // Filter due service assets (exclude decommissioned)
-            var dueAssets = isAdmin ? dueforService : dueforService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
-
-            // If not admin, filter by user's facility
+            var dueAssets = isAdmin ? dueForService : dueForService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
             model.assets = dueAssets;
-
             model.TotalAssets = assetViewModel.assetViewModels.Count();
 
-            // Completed Jobs
-            var completedJobs = (await _jobRepo.GetJobfromDbs())
-                .Where(j => j.EndDate != null);
-
-            model.CompletedJobs = isAdmin
-                ? completedJobs.Count()
-                : completedJobs.Count(j => j.FacilityId == CurrentUser.FacilityId);
-
-            // Pending Work Requests
-            var pendingJobs = (await _jobRepo.GetJobfromDbs())
-                .Where(w => w.EndDate == null);
-
-            model.PendingJobs = isAdmin
-                ? pendingJobs.Count()
-                : pendingJobs.Count(w => w.FacilityId == CurrentUser.FacilityId);
-
+            // Completed and Pending Jobs
+            model.CompletedJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: true, isAdmin: isAdmin);
+            model.PendingJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: false, isAdmin: isAdmin);
 
             return View(model);
         }
+
+
 
         public IActionResult Privacy()
         {
