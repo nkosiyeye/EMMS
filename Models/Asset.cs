@@ -29,8 +29,8 @@ namespace EMMS.Models
         public int SubCategoryId { get; set; }
         [ForeignKey(nameof(SubCategoryId))]
         public virtual LookupItem? SubCategory { get; set; }
+       
 
-        
         [Display(Name = "Item Name")]
         public string? ItemName { get; set; }
 

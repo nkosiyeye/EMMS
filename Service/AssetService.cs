@@ -22,37 +22,36 @@ namespace EMMS.Service
         }
         public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser)
         {
-            // Fetch assets asynchronously and without change tracking
-            var assets = await _repo.GetAssetsFromDb()
-                .ConfigureAwait(false);
+            // Get all active assets
+            var assets = await _repo.GetAssetsFromDb().ConfigureAwait(false);
+            var orderedAssets = assets?.OrderByDescending(a => a.DateCreated).ToList() ?? new List<Asset>();
 
-            
-            var orderedAssets = assets
-                .OrderByDescending(a => a.DateCreated)
-                .ToList();
-
-            var lastMovements = await _repo.GetAssetMovement()
-                .ConfigureAwait(false);
+            // Get latest movements
+            var lastMovements = await _repo.GetAssetMovement().ConfigureAwait(false);
 
             var lastMovementDict = lastMovements?
-                .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m)
+                .Where(m => m != null && m.AssetId != Guid.Empty)
+                .GroupBy(m => m.AssetId)
+                .ToDictionary(g => g.Key, g => g.First())
                 ?? new Dictionary<Guid, MoveAsset>();
 
-            
+            // Create view models safely
             var assetViewModels = orderedAssets.Select(asset => new AssetViewModel
             {
-                Asset = asset,
-                LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move) ? move : null
+                Asset = asset ?? new Asset(),
+                LastMovement = (asset != null && lastMovementDict.TryGetValue(asset.AssetId, out var move)) ? move : null
             }).ToList();
 
-            
+            // Apply facility restriction
             if (currentUser?.UserRole?.UserType != Enumerators.UserType.Administrator)
             {
+                var userFacilityId = currentUser?.FacilityId;
+                var userId = currentUser?.UserId;
+
                 assetViewModels = assetViewModels
-                    .Where(l =>
-                        (l.LastMovement != null && l.LastMovement.FacilityId == currentUser!.FacilityId) ||
-                        l.Asset.CreatedBy == currentUser!.UserId)
+                    .Where(vm =>
+                        (vm.LastMovement != null && vm.LastMovement.FacilityId == userFacilityId) ||
+                        vm.Asset.CreatedBy == userId)
                     .ToList();
             }
 
@@ -63,13 +62,14 @@ namespace EMMS.Service
             };
         }
 
+
         public async Task<AssetIndexViewModel?> GetAssetDueServiceViewModel()
         {
             // Fetch assets due for service asynchronously
             var assets = await _repo.GetAssetsDueService()
                 .ConfigureAwait(false);
 
-            var lastMovements = await _repo.GetAssetMovement()
+            var lastMovements = await _repo.GetAssetMovementFromSP()
                 .ConfigureAwait(false);
 
             var lastMovementDict = lastMovements?

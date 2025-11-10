@@ -14,6 +14,8 @@ using EMMS.CustomAttributes;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using EMMS.Service;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
+using DocumentFormat.OpenXml.InkML;
+using Microsoft.Data.SqlClient;
 
 namespace EMMS.Controllers
 {
@@ -106,36 +108,108 @@ namespace EMMS.Controllers
         public async Task<IActionResult> Index()
         {
             var isAdmin = CurrentUser.UserRole?.UserType == Enumerators.UserType.Administrator;
+            int? facilityId = isAdmin ? null : CurrentUser.FacilityId;
 
-            // Fetch work requests sequentially
-            var allWork = await _jobRepo.GetOpenWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
-            var allInfraWork = await _jobRepo.GetOpenInfraWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
-            var notifications = await _notificationService.GetNotificationsByFacility(isAdmin ? null : CurrentUser.FacilityId, 5);
 
-            var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+            var allAssets = (await _context.Assets
+                                .FromSqlRaw("EXEC sp_GetAssetsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                                .ToListAsync())
+                                .AsEnumerable();
+            // Fetch work requests using stored procedures
+            var allWork = (await _context.WorkRequest
+                                .FromSqlRaw("EXEC sp_GetOpenWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                                .ToListAsync())
+                                .AsEnumerable();
+
+            var allInfraWork = (await _context.InfrustructureWorkRequest
+                .FromSqlRaw("EXEC sp_GetOpenInfraWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                .ToListAsync())
+                .AsEnumerable(); 
+
+            var notifications = (await _context.Notifications
+                .FromSqlRaw("EXEC sp_GetNotificationsByFacility @FacilityId={0}, @Take={1}", facilityId ?? (object)DBNull.Value, 5)
+                .ToListAsync())
+                .AsEnumerable();
+
+            // Assets
+            //var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
             var assetDueViewModel = await _assetService.GetAssetDueServiceViewModel();
+
+            var dueForService = assetDueViewModel.assetViewModels
+                .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
+
+            var dueAssets = isAdmin ? dueForService : dueForService
+                .Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
 
             var model = new IndexModel
             {
                 currentUser = CurrentUser,
-                OpenWorkRequestsCount = allWork.Count + allInfraWork.Count,
+                OpenWorkRequestsCount = (allWork != null ? allWork.Count() : 0) + (allInfraWork != null ? allInfraWork.Count() : 0),
                 notifications = notifications
             };
 
-            // Assets
-            var dueForService = assetDueViewModel.assetViewModels
-                .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
-
-            var dueAssets = isAdmin ? dueForService : dueForService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
             model.assets = dueAssets;
-            model.TotalAssets = assetViewModel.assetViewModels.Count();
+            model.TotalAssets = allAssets.Count();
 
-            // Completed and Pending Jobs
-            model.CompletedJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: true, isAdmin: isAdmin);
-            model.PendingJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: false, isAdmin: isAdmin);
+            // Completed and Pending Jobs using stored procedure
+            model.CompletedJobs = await GetJobCountAsync(CurrentUser.FacilityId, true, isAdmin);
+            model.PendingJobs = await GetJobCountAsync(CurrentUser.FacilityId, false, isAdmin);
+
 
             return View(model);
         }
+        private async Task<int> GetJobCountAsync(int facilityId, bool completed, bool isAdmin)
+        {
+            using (var command = _context.Database.GetDbConnection().CreateCommand())
+            {
+                command.CommandText = "sp_GetJobsCount";
+                command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                command.Parameters.Add(new SqlParameter("@FacilityId", facilityId));
+                command.Parameters.Add(new SqlParameter("@Completed", completed));
+                command.Parameters.Add(new SqlParameter("@IsAdmin", isAdmin));
+
+                await _context.Database.OpenConnectionAsync();
+                var result = await command.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
+            }
+        }
+
+
+
+        /* public async Task<IActionResult> Index()
+         {
+             var isAdmin = CurrentUser.UserRole?.UserType == Enumerators.UserType.Administrator;
+
+             // Fetch work requests sequentially
+             var allWork = await _jobRepo.GetOpenWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
+             var allInfraWork = await _jobRepo.GetOpenInfraWorkRequestsByFacility(isAdmin ? null : CurrentUser.FacilityId);
+             var notifications = await _notificationService.GetNotificationsByFacility(isAdmin ? null : CurrentUser.FacilityId, 5);
+
+             var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+             var assetDueViewModel = await _assetService.GetAssetDueServiceViewModel();
+
+             var model = new IndexModel
+             {
+                 currentUser = CurrentUser,
+                 OpenWorkRequestsCount = allWork.Count + allInfraWork.Count,
+                 notifications = notifications
+             };
+
+             // Assets
+             var dueForService = assetDueViewModel.assetViewModels
+                 .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
+
+             var dueAssets = isAdmin ? dueForService : dueForService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
+             model.assets = dueAssets;
+             model.TotalAssets = assetViewModel.assetViewModels.Count();
+
+             // Completed and Pending Jobs
+             model.CompletedJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: true, isAdmin: isAdmin);
+             model.PendingJobs = await _jobRepo.GetJobsCount(CurrentUser.FacilityId, completed: false, isAdmin: isAdmin);
+
+             return View(model);
+         }*/
 
 
 

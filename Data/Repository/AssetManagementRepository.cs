@@ -111,7 +111,14 @@ namespace EMMS.Data.Repository
                 .ConfigureAwait(false);
         }
 
-        public async Task<List<MoveAsset?>> GetAssetMovement()
+        public async Task<IEnumerable<MoveAsset?>> GetAssetMovementFromSP()
+        {
+            return (await _context.AssetMovement
+                .FromSqlRaw("EXEC sp_GetAssetMovements")
+                .ToListAsync())
+                .AsEnumerable();
+        }
+        public async Task<IEnumerable<MoveAsset?>> GetAssetMovement()
         {
             return await _context.AssetMovement
                 .AsNoTracking()
@@ -139,13 +146,18 @@ namespace EMMS.Data.Repository
             DateTime today = DateTime.Today;
             DateTime dueDate = today.AddMonths(period);
 
-            return await _context.Assets
-                .AsNoTracking()
-                .Include(a => a.SubCategory)
-                .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= dueDate)
-                .OrderByDescending(a => a.NextServiceDate)
-                .ToListAsync()
-                .ConfigureAwait(false);
+            return (await _context.Assets
+                        .FromSqlRaw("EXEC sp_GetAssetsDueService @Period = {0}", period)
+                        .ToListAsync())
+                        .AsEnumerable();
+
+            //return await _context.Assets
+            //    .AsNoTracking()
+            //    .Include(a => a.SubCategory)
+            //    .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= dueDate)
+            //    .OrderByDescending(a => a.NextServiceDate)
+            //    .ToListAsync()
+            //    .ConfigureAwait(false);
         }
         public async Task<IEnumerable<Facility>> GetFacilities()
         {
