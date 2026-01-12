@@ -98,7 +98,7 @@
                                         <!-- Register / Forgot -->
                                         <div class="d-flex justify-content-between">
                                             <a asp-action="UserRegistration" class="small text-decoration-none">Register new account</a>
-                                            <a href="#" class="small text-decoration-none">Forgot Password?</a>
+                                            <a href="#" class="small text-decoration-none" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Forgot Password?</a>
                                         </div>
                                     </form>
                                 </div>
@@ -110,6 +110,28 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="ForgotPasswordRequest" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="forgotPasswordLabel">Forgot Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="usernameOrNumber" class="form-label">Username or Phone Number</label>
+                        <input type="text" class="form-control" id="usernameOrNumber" name="usernameOrNumber" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Request Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 
 

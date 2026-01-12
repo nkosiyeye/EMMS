@@ -8,6 +8,7 @@
             FacilityManager = 2,
             Administrator = 3,
             Biomed = 4,
+            DataCollector=5
         }
         public enum Permission : byte
         {

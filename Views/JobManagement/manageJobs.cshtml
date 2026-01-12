@@ -304,7 +304,7 @@
                             <label asp-for="Job.AssignedTo" class="form-label">Assigned To</label>
                             @if (ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator)
                             {
-                                <select asp-for="Job.AssignedTo" class="form-select" asp-items="ViewBag.Biomed" required></select>
+                                <select asp-for="Job.AssignedTo" class="form-select selectpicker col-md-6" asp-items="ViewBag.Biomed" required data-live-search="true"></select>
                             }
                             else
                             {

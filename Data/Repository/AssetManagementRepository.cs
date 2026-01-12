@@ -146,55 +146,35 @@ namespace EMMS.Data.Repository
             DateTime today = DateTime.Today;
             DateTime dueDate = today.AddMonths(period);
 
-            return (await _context.Assets
-                        .FromSqlRaw("EXEC sp_GetAssetsDueService @Period = {0}", period)
-                        .ToListAsync())
-                        .AsEnumerable();
+            //return (await _context.Assets
+            //            .FromSqlRaw("EXEC sp_GetAssetsDueService @Period = {0}", period)
+            //            .ToListAsync())
+            //            .AsEnumerable();
 
-            //return await _context.Assets
-            //    .AsNoTracking()
-            //    .Include(a => a.SubCategory)
-            //    .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= dueDate)
-            //    .OrderByDescending(a => a.NextServiceDate)
-            //    .ToListAsync()
-            //    .ConfigureAwait(false);
+            return await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.SubCategory)
+                .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= dueDate)
+                .OrderByDescending(a => a.NextServiceDate)
+                .ToListAsync()
+                .ConfigureAwait(false);
         }
         public async Task<IEnumerable<Facility>> GetFacilities()
         {
-            const string cacheKey = "Facilities_Active";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<Facility>? cachedList))
-                return cachedList;
-
+            
             var result = await _context.Facilities
-                .Where(x => x.RowState == RowStatus.Active && x.isOffSite == false)
-                .ToListAsync();
-
-            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = CacheDuration,
-                Priority = CacheItemPriority.High
-            });
+                .Where(x => x.RowState == RowStatus.Active && (x.isOffSite == false || x.isOffSite == null))
+                .ToListAsync();            
 
             return result;
         }
 
         public async Task<IEnumerable<LookupItem>> GetServicePoints()
         {
-            const string cacheKey = "Lookup_Service Point";
-
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<LookupItem>? cachedList))
-                return cachedList;
 
             var result = await _context.LookupItems
                 .Where(x => x.LookupList.Name == "Service Point" && x.RowState == RowStatus.Active)
                 .ToListAsync();
-
-            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = CacheDuration,
-                Priority = CacheItemPriority.High
-            });
 
             return result;
         }
@@ -206,11 +186,6 @@ namespace EMMS.Data.Repository
 
         private async Task<IEnumerable<LookupItem>> GetLookupItemsByName(string name)
         {
-            string cacheKey = $"Lookup_{name}";
-
-            // Check if in cache
-            if (_cache.TryGetValue(cacheKey, out IEnumerable<LookupItem>? cachedList))
-                return cachedList;
 
             // Otherwise fetch and cache
             var result = await _context.LookupItems
@@ -219,12 +194,6 @@ namespace EMMS.Data.Repository
                 .Where(x => x.LookupList.Name == name && x.RowState == RowStatus.Active)
                 .ToListAsync()
                 .ConfigureAwait(false);
-
-            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = CacheDuration,
-                Priority = CacheItemPriority.High
-            });
 
             return result;
         }

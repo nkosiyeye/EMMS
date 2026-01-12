@@ -1,0 +1,706 @@
+﻿@using EMMS.Models.Admin
+@model EMMS.ViewModels.AssetRegistrationViewModel
+
+@{
+    ViewData["Title"] = "Quick Registration";
+    ViewData["asset"] = "active";
+    var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var currentUser = ViewBag._currentUser as User;
+}
+
+<div class="card registerCard">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4>Quick Asset Registration</h4>
+        <div class="form-check d-none">
+            <input class="form-check-input" type="checkbox" id="isDeployed">
+            <label class="form-check-label fw-bold" for="isDeployed">
+                Is Already Deployed
+            </label>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div id="deploymentSection" class="row mb-3" style="display: none;">
+            <div class="col-md-6">
+                <label class="form-label">Facility</label>
+                <select id="facilityId" class="form-select selectpicker"></select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Service Point</label>
+                <select id="ServicePointId" class="form-select selectpicker"></select>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle" id="assetTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 12%;">Category</th>
+                        <th style="width: 12%;">Item name</th>
+                        <th style="width: 15%;">Department</th>
+                        <th style="width: 10%;">Manufacturer</th>
+                        <th style="width: 8%;">Model</th>
+                        <th style="width: 10%;">Serial Number</th>
+                        <th style="width: 10%;">Vendor</th>
+                        <th style="width: 10%;">Service Provider</th>
+                        <th style="width: 6%;">Status</th>
+                        <th style="width: 2%;">Donated</th>
+                        <th style="width: 2%;">Serviceable</th>
+                        <th style="width: 2%;">Already Deployed</th>
+                        <th style="width: 3%;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="assetTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <button class="btn btn-secondary" id="addRow" data-bs-toggle="modal" data-bs-target="#assetModal">Add Asset</button>
+            <button class="btn btn-primary" id="saveAssets">Save All (0)</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="assetModal" tabindex="-1" aria-labelledby="assetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-body">
+                <form class="row bg-white registrationForm" id="quickRegistrationForm" onsubmit="return false;">
+                    <h5 class="mb-3 form-subheading">General Information</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-2 d-none">
+                            <label class="form-label required-field">Asset Tag</label>
+                            <input type="text" id="asset-tag" class="form-control" readonly>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Category</label>
+                            <select id="modalCategory" class="form-select selectpicker col-md-6" onchange="updateSubCategory(this.value, 'modalSubCategory')">
+                                <option selected disabled value="">Select Category</option>
+                            </select>
+                            <span class="text-danger" id="v_modalCategory"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Item Name</label>
+                            <select id="modalSubCategory" class="form-select selectpicker col-md-6" data-live-search="true" disabled>
+                                <option selected disabled value="">Select Item Name</option>
+                            </select>
+                            <span class="text-danger" id="v_modalSubCategory"></span>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3 mt-3 form-subheading">Technical Details</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Department</label>
+                            <select id="modalDepartment" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Department</option>
+                            </select>
+                            <span class="text-danger" id="v_modalDepartment"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Manufacturer</label>
+                            <select id="modalManufacturer" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Manufacturer</option>
+                            </select>
+                            <span class="text-danger" id="v_modalManufacturer"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required-field" id="serialLabel">Serial Number</label>
+                            <input type="text" id="modalSerialNumber" class="form-control">
+                            <span class="text-danger" id="v_modalSerialNumber"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Model</label>
+                            <input type="text" id="modalModel" class="form-control">
+                            <span class="text-danger" id="v_modalModel"></span>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3 mt-3 form-subheading">Procurement & Status</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Vendor</label>
+                            <select id="modalVendor" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Vendor</option>
+                            </select>
+                            <span class="text-danger" id="v_modalVendor"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Service Provider</label>
+                            <select id="modalServiceProvider" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Service Provider</option>
+                            </select>
+                            <span class="text-danger" id="v_modalServiceProvider"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Status</label>
+                            <select id="modalStatus" class="form-select selectpicker col-md-6" data-live-search="true">
+                            </select>
+                            <span class="text-danger" id="v_modalStatus"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Procurement Date</label>
+                            <input type="date" id="modalProcurementDate" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
+                            <span class="text-danger" id="v_modalProcurementDate"></span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Cost</label>
+                            <input type="number" id="modalCost" class="form-control" min="0" step="0.01">
+                            <span class="text-danger" id="v_modalCost"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Lifespan Quantity</label>
+                            <input type="number" id="modalLifespanQuantity" class="form-control" min="0">
+                            <span class="text-danger" id="v_modalLifespanQuantity"></span>
+                        </div>
+                    </div>
+
+                    <!-- Placement, Donated, Serviceable -->
+                    <h5 class="mb-3 mt-3 form-subheading">Placement & Serviceability</h5>
+                    <div class="row">
+                        <div class="mb-3 col-md-4">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="modalPlacement">
+                                    <label class="form-check-label fw-bold">Placement</label>
+                                </div>
+                                <div class="row mb-1 d-none" id="modalPlacementDates">
+                                    <div class="col-md-6">
+                                        <input type="date" id="modalPlacementStart" class="form-control">
+                                        <span class="text-danger" id="v_modalPlacementStart"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="date" id="modalPlacementEnd" class="form-control">
+                                        <span class="text-danger" id="v_modalPlacementEnd"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 col-md-4">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="modalIsDonated">
+                                    <label class="form-check-label fw-bold">Donated</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 col-md-4">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="modalIsServiceable">
+                                    <label class="form-check-label fw-bold">Serviceable?</label>
+                                </div>
+                                <div class="row d-none" id="modalServiceFields">
+                                    <div class="col-md-6">
+                                        <input type="number" id="modalServiceInterval" placeholder="Interval (Months)" class="form-control" min="0">
+                                        <span class="text-danger" id="v_modalServiceInterval"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="date" id="modalNextServiceDate" class="form-control">
+                                        <span class="text-danger" id="v_modalNextServiceDate"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Already Deployed (Admin vs User) -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed">
+                                    <label class="form-check-label fw-bold">Already Deployed?</label>
+                                </div>
+                                <div class="row mb-1 d-none" id="modalDeploymentFields">                                    
+                                    <div class="col-sm-6 col-md-6 col-lg-4">
+                                        <input type="date" id="modalDateDeployed" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
+                                        <span class="text-danger" id="v_modalDateDeployed"></span>
+                                    </div>
+                                    <div class="col-sm-6 col-md-6 col-lg-4">
+                                        <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
+                                            <option selected disabled value="">Select Facility</option>
+                                        </select>
+                                        <span class="text-danger" id="v_modalFacility"></span>
+                                    </div>
+                                    <div class="col-sm-6 col-md-6 col-lg-4">
+                                        <select id="modalServicePoint" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
+                                            <option selected disabled value="">Select Service Point</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveAssetToTable">Add to List</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let assetList = []; // Array to hold the registered asset objects
+            let dropdownData = {};
+            let editIndex = null; // Track which asset is being edited, null if adding
+
+
+            // --- Load from localStorage if available ---
+            const savedAssets = localStorage.getItem('assetList');
+            if (savedAssets) {
+                assetList = JSON.parse(savedAssets);
+            }
+
+            // --- Small GUID helper (fallback for older browsers) ---
+            function generateGuid() {
+                if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+                function s4() { return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1); }
+                return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
+            }
+
+            // --- Populate select helper ---
+            function populateSelect(selectElement, items, placeholder = 'Select') {
+                if (!selectElement) return;
+                selectElement.innerHTML = `<option selected disabled value="">${placeholder}</option>`;
+                if (Array.isArray(items) && items.length > 0) {
+                    items.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.Id ?? item.facilityId ?? item.value ?? item.id ?? '';
+                        option.textContent = item.Name ?? item.facilityName ?? item.text ?? item.name ?? '';
+                        selectElement.appendChild(option);
+                    });
+                }
+                if ($(selectElement).hasClass('selectpicker')) $(selectElement).selectpicker('refresh');
+            }
+
+            // --- Update subcategory for modal ---
+            function updateSubCategory(categoryId, subCategorySelectId) {
+                const subCategorySelect = document.getElementById(subCategorySelectId);
+                if (!subCategorySelect) return;
+                subCategorySelect.innerHTML = '<option selected disabled value="">Loading...</option>';
+                $(subCategorySelect).prop('disabled', true).selectpicker('refresh');
+
+                if (categoryId) {
+                    fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            populateSelect(subCategorySelect, data, 'Select Item Name');
+                            $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                        })
+                        .catch(() => {
+                            populateSelect(subCategorySelect, [], 'Select Item Name');
+                            $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                        });
+                } else {
+                    populateSelect(subCategorySelect, [], 'Select Item Name');
+                    $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                }
+            }
+
+        
+
+            // --- Load dropdown data from server ---
+            fetch('/AssetManagement/GetDropdownData')
+                .then(response => response.json())
+                .then(data => {
+                    dropdownData = data || {};
+
+                    populateSelect(document.getElementById('facilityId'), data.facilities, 'Select Facility');
+                    populateSelect(document.getElementById('ServicePointId'), data.servicePoints, 'Select Service Point');
+                    populateSelect(document.getElementById('modalCategory'), data.categories, 'Select Category');
+                    populateSelect(document.getElementById('modalDepartment'), data.departments, 'Select Department');
+                    populateSelect(document.getElementById('modalManufacturer'), data.manufacturers, 'Select Manufacturer');
+                    populateSelect(document.getElementById('modalVendor'), data.vendors, 'Select Vendor');
+                    populateSelect(document.getElementById('modalServiceProvider'), data.serviceProviders, 'Select Service Provider');
+                    if (data.statuses) populateSelect(document.getElementById('modalStatus'), data.statuses, 'Select Status');
+                    populateSelect(document.getElementById('modalFacility'), data.facilities, 'Select Facility');
+                    populateSelect(document.getElementById('modalServicePoint'), data.servicePoints, 'Select Service Point');
+
+                    // Render saved assets if any
+                    renderAssetTable();
+                    document.getElementById('saveAssets').textContent = `Save All (${assetList.length})`;
+                })
+                .catch(error => console.error("Error fetching dropdown data:", error));
+
+            // --- Event Listeners ---
+            document.getElementById('modalCategory').addEventListener('change', function () {
+                updateSubCategory(this.value, 'modalSubCategory');
+            });
+
+            document.getElementById('isDeployed').addEventListener('change', function () {
+                document.getElementById('deploymentSection').style.display = this.checked ? 'flex' : 'none';
+            });
+
+            document.getElementById('modalPlacement').addEventListener('change', function () {
+                document.getElementById('modalPlacementDates').classList.toggle('d-none', !this.checked);
+            });
+
+            document.getElementById('modalIsServiceable').addEventListener('change', function () {
+                document.getElementById('modalServiceFields').classList.toggle('d-none', !this.checked);
+            });
+
+
+            document.getElementById('modalAlreadyDeployed').addEventListener('change', function () {
+                document.getElementById('modalDeploymentFields').classList.toggle('d-none', !this.checked);
+            });
+
+            // --- Reset modal on close ---
+            $('#assetModal').on('hidden.bs.modal', function () {
+                $(this).find('input[type="text"], input[type="number"], input[type="date"]').val('');
+                $(this).find('input[type="checkbox"]').prop('checked', false);
+                $(this).find('select').each(function() { $(this).val('').selectpicker('refresh'); });
+                $('#modalSubCategory').prop('disabled', true).selectpicker('refresh');
+                    document.getElementById('modalDeploymentFields').classList.add('d-none');
+                clearValidationErrors();
+                    editIndex = null;
+                    document.getElementById('saveAssetToTable').textContent = 'Add to List';
+            });
+
+            // --- Add Asset to local list ---
+         document.getElementById('saveAssetToTable').addEventListener('click', function () {
+            clearValidationErrors();
+            const asset = collectAssetDataFromModal();
+            const errors = validateAssetClient(asset);
+            if (errors.length) {
+                showValidationErrors(errors);
+                return;
+            }
+
+            if (editIndex !== null) {
+                // Update existing asset
+                asset.AssetId = assetList[editIndex].AssetId; // Preserve original ID
+                assetList[editIndex] = asset;
+                editIndex = null;
+                this.textContent = 'Add to List';
+            } else {
+                // Add new asset
+                assetList.push(asset);
+            }
+
+            renderAssetTable();
+            document.getElementById('saveAssets').textContent = `Save All (${assetList.length})`;
+            localStorage.setItem('assetList', JSON.stringify(assetList));
+
+            // Close modal
+            const modalEl = document.getElementById('assetModal');
+            const bsModal = bootstrap.Modal.getInstance(modalEl) ?? new bootstrap.Modal(modalEl);
+            bsModal.hide();
+        });
+
+
+            // --- Remove row handler (delegated) ---
+            document.getElementById('assetTableBody').addEventListener('click', function (e) {
+                if (e.target.classList.contains('removeRow')) {
+                    const index = parseInt(e.target.dataset.index);
+                    if (!isNaN(index)) {
+                        assetList.splice(index, 1);
+                        renderAssetTable();
+                        document.getElementById('saveAssets').textContent = `Save All (${assetList.length})`;
+                        localStorage.setItem('assetList', JSON.stringify(assetList));
+                    }
+                }
+                    if (e.target.classList.contains('editRow')) {
+            const index = parseInt(e.target.dataset.index);
+            if (!isNaN(index)) {
+                editIndex = index;
+                populateModalWithAsset(assetList[index]);
+                // Change button text to "Update"
+                document.getElementById('saveAssetToTable').textContent = 'Update Asset';
+                // Show modal
+                const modalEl = document.getElementById('assetModal');
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            }
+        }
+            });
+
+            // --- Save all rows to server ---
+            document.getElementById('saveAssets').addEventListener('click', function () {
+                if (assetList.length === 0) {
+                    alert("Please add at least one asset to the list.");
+                    return;
+                }
+
+                fetch('/AssetManagement/SaveAssets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(assetList)
+                })
+                .then(async response => {
+                    if (!response.ok) {
+                        const text = await response.text();
+                        throw new Error(text || 'Failed to save assets.');
+                    }
+                    return response.json().catch(() => ({}));
+                })
+                .then(result => {
+                    alert('Assets saved successfully.');
+                    assetList = [];
+                    renderAssetTable();
+                    document.getElementById('saveAssets').textContent = `Save All (0)`;
+                    localStorage.removeItem('assetList');
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error saving assets: ' + (err.message || 'Unknown error'));
+                });
+            });
+
+            // --- Collect data from modal ---
+            function collectAssetDataFromModal() {
+                const getSelectText = (id) => {
+                    const select = document.getElementById(id);
+                    if (!select || select.options.length === 0) return '';
+                    const idx = select.selectedIndex;
+                    return (idx >= 0 && select.options[idx]) ? select.options[idx].text : '';
+                };
+                const statusEl = document.getElementById('modalStatus');
+                const alreadyDeployed = document.getElementById('modalAlreadyDeployed').checked;
+                return {
+                    AssetId: generateGuid(),
+                    CategoryId: document.getElementById('modalCategory').value || null,
+                    SubCategoryId: document.getElementById('modalSubCategory').value || null,
+                    ItemName: getSelectText('modalSubCategory') || null,
+                    DepartmentId: document.getElementById('modalDepartment').value || null,
+                    ManufacturerId: document.getElementById('modalManufacturer').value || null,
+                    SerialNumber: document.getElementById('modalSerialNumber').value || null,
+                    Model: document.getElementById('modalModel').value || null,
+                    IsPlacement: document.getElementById('modalPlacement').checked,
+                    PlacementStartDate: document.getElementById('modalPlacementStart').value || null,
+                    PlacementEndDate: document.getElementById('modalPlacementEnd').value || null,
+                    IsDonated: document.getElementById('modalIsDonated').checked,
+                    IsServiceable: document.getElementById('modalIsServiceable').checked,
+                    NextServiceDate: document.getElementById('modalNextServiceDate').value || null,
+                    ServiceInterval: document.getElementById('modalServiceInterval').value || null,
+                    VendorId: document.getElementById('modalVendor').value || null,
+                    ServiceProviderId: document.getElementById('modalServiceProvider').value || null,
+                    StatusId: statusEl ? statusEl.value : null,
+                    ProcurementDate: document.getElementById('modalProcurementDate').value || null,
+                    Cost: document.getElementById('modalCost').value || null,
+                    LifespanQuantity: document.getElementById('modalLifespanQuantity').value || null,
+
+                        //DEPLOYMENT
+                    AlreadyDeployed: alreadyDeployed,
+                    DateDeployed: alreadyDeployed ? document.getElementById('modalDateDeployed').value || null : null,
+                    FacilityId: alreadyDeployed ? document.getElementById('modalFacility').value || null : null,
+                    ServicePointId: alreadyDeployed ? document.getElementById('modalServicePoint').value || null : null
+                };
+            }
+
+                        // 1. Listen for Item Name (SubCategory) change
+        document.getElementById('modalSubCategory').addEventListener('change', function () {
+            const selectedItemId = this.value;
+
+            // Fetch the specific item details to check its flags
+            fetch(`/AssetManagement/GetLookupItemDetails?id=${selectedItemId}`)
+                .then(r => r.json())
+                .then(item => {
+                    console.log(item);
+                    let requiresSerial = true;
+                    if (item.flagsJson) {
+                        const flags = JSON.parse(item.flagsJson);
+                        console.log(flags);
+                        if(flags.RequiresSerial != null){
+                            requiresSerial = flags.RequiresSerial;
+                        }
+                    }
+
+                    // Update UI: Toggle visual "required" asterisk and data attribute
+                    const serialLabel = document.getElementById('serialLabel');
+                    const serialInput = document.getElementById('modalSerialNumber');
+                    console.log(serialLabel);
+
+                    if (requiresSerial) {
+                        serialInput.dataset.required = "true";
+                        serialLabel.classList.add('required-field');
+                    } else {
+                        serialInput.dataset.required = "false";
+                        serialLabel.classList.remove('required-field');
+                    }
+                });
+        });
+
+            // --- Validation ---
+            function validateAssetClient(asset) {
+                const errs = [];
+                const serialInput = document.getElementById('modalSerialNumber');
+                const isSerialMandatory = serialInput.dataset.required === "true";
+                if (!asset.CategoryId) errs.push({ id: 'v_modalCategory', msg: 'Category is required' });
+                if (!asset.SubCategoryId) errs.push({ id: 'v_modalSubCategory', msg: 'Item name is required' });
+                if (!asset.DepartmentId) errs.push({ id: 'v_modalDepartment', msg: 'Department is required' });
+                if (!asset.ManufacturerId) errs.push({ id: 'v_modalManufacturer', msg: 'Manufacturer is required' });
+                //if (!asset.SerialNumber || asset.SerialNumber.trim() === '') errs.push({ id: 'v_modalSerialNumber', msg: 'Serial number is required' });
+                if (!asset.Model || asset.Model.trim() === '') errs.push({ id: 'v_modalModel', msg: 'Model is required' });
+                if (!asset.VendorId) errs.push({ id: 'v_modalVendor', msg: 'Vendor is required' });
+                if (!asset.ServiceProviderId) errs.push({ id: 'v_modalServiceProvider', msg: 'Service provider is required' });
+                if (!asset.StatusId) errs.push({ id: 'v_modalStatus', msg: 'Status is required' });
+
+                if (asset.IsPlacement) {
+                    if (!asset.PlacementStartDate) errs.push({ id: 'v_modalPlacementStart', msg: 'Placement start date required' });
+                    if (!asset.PlacementEndDate) errs.push({ id: 'v_modalPlacementEnd', msg: 'Placement end date required' });
+                }
+
+                if (asset.IsServiceable) {
+                    if (!asset.NextServiceDate) errs.push({ id: 'v_modalNextServiceDate', msg: 'Next service date required' });
+                    if (!asset.ServiceInterval) errs.push({ id: 'v_modalServiceInterval', msg: 'Service interval required' });
+                }
+
+                if(asset.AlreadyDeployed){
+                    if (!asset.FacilityId) errs.push({ id: 'v_modalFacility', msg: 'Facility is required' });
+                    if (!asset.DateDeployed) errs.push({ id: 'v_modalDateDeployed', msg: 'Date deployed is required' });
+
+                }
+
+                    // Conditional Serial Validation
+                if (isSerialMandatory) {
+                    if (!asset.SerialNumber || asset.SerialNumber.trim() === '') {
+                        errs.push({ id: 'v_modalSerialNumber', msg: 'Serial number is mandatory for this item type' });
+                    }
+                }                                                                           
+
+                return errs;
+            }
+
+            function showValidationErrors(errors) {
+                errors.forEach(e => {
+                    const el = document.getElementById(e.id);
+                    if (el) el.textContent = e.msg;
+                });
+                if (errors.length) {
+                    const first = document.getElementById(errors[0].id);
+                    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            function clearValidationErrors() {
+                document.querySelectorAll('#quickRegistrationForm .text-danger').forEach(sp => sp.textContent = '');
+            }
+
+            // --- Render table ---
+            function renderAssetTable() {
+            const tableBody = document.getElementById('assetTableBody');
+            tableBody.innerHTML = '';
+            assetList.forEach((asset, index) => {
+                const row = tableBody.insertRow();
+                const renderCheckbox = (isChecked) => `<input type="checkbox" class="form-check-input" ${isChecked ? 'checked' : ''} disabled>`;
+
+                row.insertCell().textContent = getNameForId(dropdownData.categories, asset.CategoryId) || asset.CategoryId || '';
+                row.insertCell().textContent = getNameForId(dropdownData.subcategories, asset.SubCategoryId) || asset.ItemName || '';
+                row.insertCell().textContent = getNameForId(dropdownData.departments, asset.DepartmentId) || asset.DepartmentId || '';
+                row.insertCell().textContent = getNameForId(dropdownData.manufacturers, asset.ManufacturerId) || asset.ManufacturerId || '';
+                row.insertCell().textContent = asset.Model || '';
+                row.insertCell().textContent = asset.SerialNumber || '';
+                row.insertCell().textContent = getNameForId(dropdownData.vendors, asset.VendorId) || asset.VendorId || '';
+                row.insertCell().textContent = getNameForId(dropdownData.serviceProviders, asset.ServiceProviderId) || asset.ServiceProviderId || '';
+                row.insertCell().textContent = getNameForId(dropdownData.statuses, asset.StatusId) || asset.StatusId || '';
+                row.insertCell().innerHTML = renderCheckbox(asset.IsDonated);
+                row.insertCell().innerHTML = renderCheckbox(asset.IsServiceable);
+                row.insertCell().innerHTML = renderCheckbox(asset.AlreadyDeployed);
+                row.insertCell().innerHTML = `
+                    <button class="btn btn-primary btn-sm editRow" data-index="${index}">Edit</button>
+                    <button class="btn btn-danger btn-sm removeRow" data-index="${index}">X</button>
+                `;
+            });
+        }
+
+
+            function getNameForId(collection, id) {
+                if (!collection || !id) return null;
+                const found = collection.find(x => String(x.Id ?? x.id ?? x.facilityId ?? x.value) === String(id));
+                return found ? (found.Name ?? found.name ?? found.facilityName ?? found.text) : null;
+            }
+
+                    // --- Edit row handler (delegated) ---
+        document.getElementById('assetTableBody').addEventListener('click', function (e) {
+            if (e.target.classList.contains('editRow')) {
+                const index = parseInt(e.target.dataset.index);
+                if (!isNaN(index)) {
+                    editIndex = index;
+                    populateModalWithAsset(assetList[index]);
+                    // Change button text to "Update"
+                    document.getElementById('saveAssetToTable').textContent = 'Update Asset';
+                    // Show modal
+                    const modalEl = document.getElementById('assetModal');
+                    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    bsModal.show();
+                }
+            }
+        });
+
+                    function populateModalWithAsset(asset) {
+            // Set selects and inputs
+            document.getElementById('modalCategory').value = asset.CategoryId || '';
+            $('#modalCategory').selectpicker('refresh');
+            updateSubCategory(asset.CategoryId, 'modalSubCategory');
+            setTimeout(() => {
+                document.getElementById('modalSubCategory').value = asset.SubCategoryId || '';
+                $('#modalSubCategory').prop('disabled', false).selectpicker('refresh');
+            }, 300); // Wait for subcategories to load
+
+            document.getElementById('modalDepartment').value = asset.DepartmentId || '';
+            $('#modalDepartment').selectpicker('refresh');
+            document.getElementById('modalManufacturer').value = asset.ManufacturerId || '';
+            $('#modalManufacturer').selectpicker('refresh');
+            document.getElementById('modalSerialNumber').value = asset.SerialNumber || '';
+            document.getElementById('modalModel').value = asset.Model || '';
+            document.getElementById('modalVendor').value = asset.VendorId || '';
+            $('#modalVendor').selectpicker('refresh');
+            document.getElementById('modalServiceProvider').value = asset.ServiceProviderId || '';
+            $('#modalServiceProvider').selectpicker('refresh');
+            document.getElementById('modalStatus').value = asset.StatusId || '';
+            $('#modalStatus').selectpicker('refresh');
+            document.getElementById('modalProcurementDate').value = asset.ProcurementDate || '';
+            document.getElementById('modalCost').value = asset.Cost || '';
+            document.getElementById('modalLifespanQuantity').value = asset.LifespanQuantity || '';
+
+            // Placement
+            document.getElementById('modalPlacement').checked = !!asset.IsPlacement;
+            document.getElementById('modalPlacementDates').classList.toggle('d-none', !asset.IsPlacement);
+            document.getElementById('modalPlacementStart').value = asset.PlacementStartDate || '';
+            document.getElementById('modalPlacementEnd').value = asset.PlacementEndDate || '';
+
+            // Donated/Serviceable
+            document.getElementById('modalIsDonated').checked = !!asset.IsDonated;
+            document.getElementById('modalIsServiceable').checked = !!asset.IsServiceable;
+            document.getElementById('modalServiceFields').classList.toggle('d-none', !asset.IsServiceable);
+            document.getElementById('modalServiceInterval').value = asset.ServiceInterval || '';
+            document.getElementById('modalNextServiceDate').value = asset.NextServiceDate || '';
+
+            // Already Deployed
+            document.getElementById('modalAlreadyDeployed').checked = !!asset.AlreadyDeployed;
+            document.getElementById('modalDeploymentFields').classList.toggle('d-none', !asset.AlreadyDeployed);
+            document.getElementById('modalDateDeployed').value = asset.DateDeployed || '';
+            document.getElementById('modalFacility').value = asset.FacilityId || '';
+            $('#modalFacility').selectpicker('refresh');
+            document.getElementById('modalServicePoint').value = asset.ServicePointId || '';
+            $('#modalServicePoint').selectpicker('refresh');
+        }
+
+        });
+    </script>
+}
+

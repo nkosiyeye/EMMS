@@ -7,6 +7,7 @@
     ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
+    var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
 }
 
 <div class="card mb-4">
@@ -16,10 +17,10 @@
             <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed ? "":"d-none")" asp-controller="AssetManagement" asp-action="registerAsset">
                 <i class="fa fa-plus me-1"></i> New Asset
             </a>
-            <button class="btn btn-success btn-sm me-2" title="Export to Excel" onclick="exportToExcel()">
-                <i class="fa fa-download me-1"></i> Excel Report
-            </button>
-            <button class="btn btn-secondary btn-sm" title="Print Stickers" onclick="printSelectedStickers()">
+            <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed || isDataCollector ? "":"d-none")" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
+                <i class="fa fa-plus me-1"></i> Add Muliple Assets
+            </a>
+            <button class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "":"d-none")" title="Print Stickers" onclick="printSelectedStickers()">
                 <i class="fa fa-print me-1"></i> Print Stickers
             </button>
         </div>
@@ -115,16 +116,26 @@
                                                     <i class="fa fa-eye me-1"></i> View Asset
                                                 </a>
                                             </li>
-                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                <a class="dropdown-item" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
-                                                    <i class="fa fa-arrows-alt me-1"></i> Move Asset
-                                                </a>
-                                            </li>
-                                            <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                <a class="dropdown-item" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
-                                                    <i class="fa fa-toolbox me-1"></i> Work Request
-                                                </a>
-                                            </li>
+                                            @if (!isDataCollector)
+                                            {
+                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                    <a class="dropdown-item" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-arrows-alt me-1"></i> Move Asset
+                                                    </a>
+                                                </li>
+                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-toolbox me-1"></i> Work Request
+                                                    </a>
+                                                </li>
+
+                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
+                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
+                                                        <i class="fa fa-toolbox me-1"></i> Service Request
+                                                    </a>
+                                                </li>
+                                                
+                                            }
                                             <li>
                                                 <button class="dropdown-item stolen-missing-btn"
                                                         data-id="@asset.Asset.AssetId"
@@ -140,7 +151,7 @@
                                             </li>
 
 
-                                            <li class="@((lastMove?.Reason != Enumerators.MovementReason.Decommission && isAdmin) ? "d-none" : "")">
+                                            <li class="@((lastMove?.Reason == Enumerators.MovementReason.Decommission && isAdmin) ? "" : "d-none")">
                                                 <a asp-controller="AssetManagement" asp-action="HideAsset" asp-route-id="@asset.Asset.AssetId" class="dropdown-item text-danger" title="Remove From List">
                                                     <i class="fa fa-eye-slash me-1"></i> Hide Asset
                                                 </a>

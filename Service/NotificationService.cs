@@ -5,6 +5,7 @@ using EMMS.Data;
 using EMMS.Models;
 using EMMS.Models.Admin;
 using static EMMS.Models.Enumerators;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace EMMS.Service
 {
@@ -16,6 +17,7 @@ namespace EMMS.Service
         Task CreateJobAssignmentNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
         Task CreateJobClaimedNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
         Task CreateJobCompletedNotification(Guid? requestorUserId, Guid createdBy);
+        Task<List<Models.Entities.Notification>> GetNotificationsAsync(User currentUser, UserType role);
     }
 
     public class NotificationService : INotificationService
@@ -84,6 +86,15 @@ namespace EMMS.Service
         {
             await AddNotificationAsync("Your work request has been completed.", "job", null, requestorUserId, createdBy);
             await NotifyAdmins("A job card has been completed.", "job", createdBy);
+        }
+        public async Task ForgetPasswordNotification(User user)
+        {
+            await NotifyAdmins($"Password reset requested for user: {user.FirstName} {user.LastName}","forgotPassword",user.UserId);
+        }
+
+        public async Task UserRegistrationNotification(User user)
+        {
+            await NotifyAdmins($"New user has been Registered: {user.FirstName} {user.LastName}", "userRegistration", user.UserId);
         }
 
         // Helpers

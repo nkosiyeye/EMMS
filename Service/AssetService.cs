@@ -54,12 +54,23 @@ namespace EMMS.Service
                         vm.Asset.CreatedBy == userId)
                     .ToList();
             }
-
-            return new AssetIndexViewModel
+            
+            if(currentUser?.UserRole.UserType == Enumerators.UserType.DataCollector)
             {
-                assetViewModels = assetViewModels,
-                moveAsset = new MoveAsset()
-            };
+                var userFacilityId = currentUser?.FacilityId;
+                var userId = currentUser?.UserId;
+
+                assetViewModels = assetViewModels
+                    .Where(vm => vm.Asset.CreatedBy == userId)
+                    .ToList();
+
+            }
+
+                return new AssetIndexViewModel
+                {
+                    assetViewModels = assetViewModels,
+                    moveAsset = new MoveAsset()
+                };
         }
 
 
@@ -69,7 +80,7 @@ namespace EMMS.Service
             var assets = await _repo.GetAssetsDueService()
                 .ConfigureAwait(false);
 
-            var lastMovements = await _repo.GetAssetMovementFromSP()
+            var lastMovements = await _repo.GetAssetMovement()
                 .ConfigureAwait(false);
 
             var lastMovementDict = lastMovements?

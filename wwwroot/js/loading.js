@@ -105,9 +105,9 @@
             loadingOverlay.classList.add('show', 'loading-fade-in');
 
             // Auto-hide after timeout (failsafe)
-            loadingTimeout = setTimeout(() => {
-                hideLoading();
-            }, timeout);
+            //loadingTimeout = setTimeout(() => {
+              //  hideLoading();
+            //}, timeout);
         };
 
         // Hide loading function

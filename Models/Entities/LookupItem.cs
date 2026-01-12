@@ -29,5 +29,33 @@ namespace EMMS.Models.Entities
         public Guid? ModifiedBy { get; set; }
         public DateTime? DateModified { get; set; }
         public RowStatus RowState { get; set; }
+
+        public string? FlagsJson { get; set; } // Stores: {"RequiresSerial": true, "IsTaxable": false}
+        [NotMapped]
+        public bool IsSerialRequired
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(FlagsJson)) return false;
+                try
+                {
+                    var flags = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(FlagsJson);
+                    return flags != null && flags.GetValueOrDefault("RequiresSerial", false);
+                }
+                catch { return false; }
+            }
+        }
+
+        public bool GetFlag(string flagName)
+        {
+            if (string.IsNullOrEmpty(FlagsJson)) return false;
+            try
+            {
+                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(FlagsJson);
+                return dict != null && dict.ContainsKey(flagName) && dict[flagName];
+            }
+            catch { return false; }
+        }
+
     }
 }

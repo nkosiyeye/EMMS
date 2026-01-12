@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using EMMS.Auth;
 using EMMS.Data;
 using EMMS.Data.Repository;
@@ -16,6 +16,7 @@ using EMMS.Service;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using DocumentFormat.OpenXml.InkML;
 using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace EMMS.Controllers
 {
@@ -66,6 +67,7 @@ namespace EMMS.Controllers
                 //user.CreatedBy = TBD 
                 _context.Add(user);
                 await _context.SaveChangesAsync();
+                await _notificationService.UserRegistrationNotification(user);
                 TempData["UserRegistrationSuccess"] = "User Registrated Successfully";
                 return RedirectToAction(nameof(Login));
             }
@@ -85,17 +87,34 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login(User user)
+        public async Task<IActionResult> Login(User user)
         {
-            var searchUser = _context.User
+            var searchUser = await _context.User
                 .Include(u => u.UserRole)
                 .Include(u => u.Facility)
-                .Where(u => u.Username == user.Username && u.RowState == RowStatus.Active).FirstOrDefault();
+                .Where(u => u.Username == user.Username && u.RowState == RowStatus.Active).FirstOrDefaultAsync();
 
             if (searchUser != null && PasswordManager.VerifyPassword(user.Password, searchUser.Password))
                 SaveUserSession(searchUser);
             else
                 TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("Invalid username or password", NotificationType.Error));
+
+            return RedirectToAction(nameof(Index));
+        }
+        [HttpPost]
+        public async Task<IActionResult> ForgotPasswordRequest(string usernameOrNumber)
+        {
+            // Find user by username or number
+            var searchUser = await _context.User.Where(u => u.Username == usernameOrNumber || u.Cellphone == usernameOrNumber).FirstOrDefaultAsync();
+            if (searchUser != null)
+            {
+                await _notificationService.ForgetPasswordNotification(searchUser);
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("Request Submitted", NotificationType.Success));
+
+            }
+            else
+                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("User not Found Try again", NotificationType.Error));
+
 
             return RedirectToAction(nameof(Index));
         }
@@ -107,57 +126,96 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
+
+            return View();
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetDashboardCounts()
+        {
+            var isAdmin = CurrentUser.UserRole?.UserType == Enumerators.UserType.Administrator;
+            var isDataCollector = CurrentUser.UserRole?.UserType == Enumerators.UserType.DataCollector;
+            int? facilityId = isAdmin ? null : CurrentUser.FacilityId;
+
+            // Assets
+            var allAssets = await _context.Assets
+                .FromSqlRaw("EXEC sp_GetAssetsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                .AsNoTracking()
+                .ToListAsync();
+
+
+            // Work requests
+            var allWork = await _context.WorkRequest
+                .FromSqlRaw("EXEC sp_GetOpenWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var allInfraWork = await _context.InfrustructureWorkRequest
+                .FromSqlRaw("EXEC sp_GetOpenInfraWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Jobs
+            var completedJobs = await GetJobCountAsync(CurrentUser.FacilityId, true, isAdmin);
+            var pendingJobs = await GetJobCountAsync(CurrentUser.FacilityId, false, isAdmin);
+
+            // Notifications (Top 5)
+            var notifications = await _context.Notifications
+                .FromSqlRaw("EXEC sp_GetNotificationsByFacility @FacilityId={0}, @Take={1}", facilityId ?? (object)DBNull.Value, 5)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return Json(new
+            {
+                totalAssets = isDataCollector ? allAssets.Where((a) => a.CreatedBy == CurrentUser.UserId).Count() : allAssets.Count,
+                openRequests = (allWork?.Count ?? 0) + (allInfraWork?.Count ?? 0),
+                completedJobs,
+                pendingJobs,
+                notifications
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAssetsDueServiceJson()
+        {
             var isAdmin = CurrentUser.UserRole?.UserType == Enumerators.UserType.Administrator;
             int? facilityId = isAdmin ? null : CurrentUser.FacilityId;
 
-
-            var allAssets = (await _context.Assets
-                                .FromSqlRaw("EXEC sp_GetAssetsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
-                                .ToListAsync())
-                                .AsEnumerable();
-            // Fetch work requests using stored procedures
-            var allWork = (await _context.WorkRequest
-                                .FromSqlRaw("EXEC sp_GetOpenWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
-                                .ToListAsync())
-                                .AsEnumerable();
-
-            var allInfraWork = (await _context.InfrustructureWorkRequest
-                .FromSqlRaw("EXEC sp_GetOpenInfraWorkRequestsByFacility @FacilityId={0}", facilityId ?? (object)DBNull.Value)
-                .ToListAsync())
-                .AsEnumerable(); 
-
-            var notifications = (await _context.Notifications
-                .FromSqlRaw("EXEC sp_GetNotificationsByFacility @FacilityId={0}, @Take={1}", facilityId ?? (object)DBNull.Value, 5)
-                .ToListAsync())
-                .AsEnumerable();
-
-            // Assets
-            //var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
-            var assetDueViewModel = await _assetService.GetAssetDueServiceViewModel();
-
-            var dueForService = assetDueViewModel.assetViewModels
+            var assetViewModel = await _assetService.GetAssetIndexViewModel(CurrentUser);
+            var dueforService = (await _assetService.GetAssetDueServiceViewModel()).assetViewModels
                 .Where(a => a.LastMovement?.Reason != MovementReason.Decommission);
 
-            var dueAssets = isAdmin ? dueForService : dueForService
-                .Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
+            // Filter due service assets (exclude decommissioned)
+            var dueAssets = isAdmin ? dueforService : dueforService.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
 
-            var model = new IndexModel
+            return Json(dueAssets.Select(a => new
             {
-                currentUser = CurrentUser,
-                OpenWorkRequestsCount = (allWork != null ? allWork.Count() : 0) + (allInfraWork != null ? allInfraWork.Count() : 0),
-                notifications = notifications
-            };
+                a.Asset.AssetId,
+                a.Asset.AssetTagNumber,
+                a.Asset.SubCategory.Name,
+                a.Asset.StatusId,
+                NextServiceDate = a.Asset.NextServiceDate?.ToString("yyyy-MM-dd"),
+                FacilityName = a.LastMovement?.Facility?.FacilityName,
+                ServicePointName = a.LastMovement?.ServicePoint?.Name,
+                FunctionalStatus = a.LastMovement?.FunctionalStatus,
+                OverDueService = a.Asset.NextServiceDate != null ? (DateTime.Now - a.Asset.NextServiceDate.Value).Days : 0
 
-            model.assets = dueAssets;
-            model.TotalAssets = allAssets.Count();
-
-            // Completed and Pending Jobs using stored procedure
-            model.CompletedJobs = await GetJobCountAsync(CurrentUser.FacilityId, true, isAdmin);
-            model.PendingJobs = await GetJobCountAsync(CurrentUser.FacilityId, false, isAdmin);
-
-
-            return View(model);
+            }));
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDashboardChartData()
+        { 
+            var vm = new DashboardViewModel(_assetService, CurrentUser);
+            await vm.OnGetAsync();
+            return Json(new
+            {
+                movementReasonCounts = vm.MovementReasonCounts,
+                functionalStatusCounts = vm.FunctionalStatusCounts,
+                procurementStatusCounts = vm.ProcurementStatusCounts,
+                nonFunctionalByFacilityCounts = vm.DecommissionedByFacilityCounts
+            });
+        }
+
         private async Task<int> GetJobCountAsync(int facilityId, bool completed, bool isAdmin)
         {
             using (var command = _context.Database.GetDbConnection().CreateCommand())

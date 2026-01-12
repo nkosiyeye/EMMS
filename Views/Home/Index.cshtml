@@ -1,7 +1,6 @@
 ﻿@using EMMS.Utility
 @using Newtonsoft.Json
 @using static EMMS.Models.Enumerators
-@model EMMS.ViewModels.IndexModel;
 
 @{
     ViewData["Title"] = "Home Page";
@@ -15,6 +14,160 @@
 
         <!-- Dashboard Summary -->
         <div class="row g-3 mb-3">
+    <!-- Total Assets -->
+    <div class="col-md-6 col-lg-3 col-xl-3">
+                <div class="card text-center h-100 shadow-sm shimmer shimmer-card loading" id="totalAssetsCard">
+            <div class="card-header bg-info text-white">Total Assets</div>
+            <div class="card-body">
+                <h2 class="card-title fw-bold shimmer-text">&nbsp;</h2>
+                <p class="card-text text-muted">&nbsp;</p>
+            </div>
+        </div>
+    </div>
+    <!-- Open Requests -->
+    <div class="col-md-6 col-lg-3 col-xl-3">
+                <div class="card text-center h-100 shadow-sm shimmer shimmer-card loading" id="openRequestsCard">
+            <div class="card-header bg-danger text-white">Open Requests</div>
+            <div class="card-body">
+                <h2 class="card-title fw-bold shimmer-text">&nbsp;</h2>
+                <p class="card-text text-muted">&nbsp;</p>
+            </div>
+        </div>
+    </div>
+    <!-- Completed Jobs -->
+    <div class="col-md-6 col-lg-3 col-xl-3">
+            <div class="card text-center h-100 shadow-sm shimmer shimmer-card loading" id="completedJobsCard">
+            <div class="card-header bg-success text-white">Completed Jobs</div>
+            <div class="card-body">
+                <h2 class="card-title fw-bold shimmer-text">&nbsp;</h2>
+                <p class="card-text text-muted">&nbsp;</p>
+            </div>
+        </div>
+    </div>
+    <!-- Pending Jobs -->
+    <div class="col-md-6 col-lg-3 col-xl-3">
+            <div class="card text-center h-100 shadow-sm shimmer shimmer-card loading" id="pendingJobsCard">
+            <div class="card-header bg-warning text-white">Pending Jobs</div>
+            <div class="card-body">
+                <h2 class="card-title fw-bold shimmer-text">&nbsp;</h2>
+                <p class="card-text text-muted">&nbsp;</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+       <div class="row mb-3">
+            <div class="col-12 col-lg-6 mb-2">
+                <div class="card h-100 shadow-sm">
+
+                    <!-- Card Header -->
+                    <div class="card-header fw-semibold">
+                        Functional Status
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body position-relative">
+
+                        <div class="chart-container" style="height:300px;">
+                            <canvas id="functionalStatusChart"></canvas>
+
+                            <!-- Loader -->
+                            <div class="chart-loader position-absolute top-0 start-0 w-100 h-100
+                            d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6 mb-2">
+                <div class="card h-100 shadow-sm">
+
+                    <!-- Card Header -->
+                    <div class="card-header fw-semibold">
+                        Procurement Status
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body position-relative">
+
+                        <div class="chart-container" style="height:300px;">
+
+                            <canvas id="procurementStatusChart"></canvas>
+
+                            <!-- Loader -->
+                            <div class="chart-loader position-absolute top-0 start-0 w-100 h-100
+                            d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-md-12 mb-2">
+                <div class="card h-100 shadow-sm">
+
+                    <!-- Card Header -->
+                    <div class="card-header fw-semibold">
+                       Movement Reason
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body position-relative">
+
+                        <div class="chart-container" style="height:300px;">
+
+                            <canvas id="movementReasonChart"></canvas>
+
+                            <!-- Loader -->
+                            <div class="chart-loader position-absolute top-0 start-0 w-100 h-100
+                            d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-md-12 mb-2">
+                <div class="card h-100 shadow-sm">
+
+                    <!-- Card Header -->
+                    <div class="card-header fw-semibold">
+                       Non-Functional Assets By Facility
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="card-body position-relative">
+
+                        <div class="chart-container" style="height:300px;">
+                            <canvas id="nonFunctionalByFacilityChart"></canvas>
+
+                            <!-- Loader -->
+                            <div class="chart-loader position-absolute top-0 start-0 w-100 h-100
+                            d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+</div>
+
+
+
+        @* <div class="row g-3 mb-3">
             <a asp-controller="AssetManagement" asp-action="Index" class="col-md-6 col-lg-3 col-xl-3">
                 <div class="card text-center h-100 shadow-sm">
                     <div class="card-header bg-info text-white">Total Assets</div>
@@ -54,21 +207,20 @@
                     </div>
                 </a>
             </div>
-        </div>
+        </div> *@
 
         <!-- Equipment Service Due Table -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-bold">Equipments Due for Service</span>
-            </div>
-
-            <div class="card-body">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Equipments Due for Service</span>
+    </div>
+    <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover table-striped" id="assetTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Tag</th>
-                                @* <th>Item Name</th> *@
+                                <th>Name</th>
                                 <th>Procurement Status</th>
                                 <th>Location</th>
                                 <th>Functional Status</th>
@@ -76,61 +228,12 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @foreach (var asset in Model.assets)
-                            {
-                                var lastMove = asset.LastMovement;
-                                <tr>
-                                    <td>@asset.Asset.AssetTagNumber</td>
-                                    @* <td>@asset.Asset?.SubCategory?.Name</td> *@
-                                    <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
-                                    <td>
-                                        @if (lastMove != null)
-                                        {
-                                            @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
-                                        }
-                                        else
-                                        {
-                                            <span>-</span>
-                                        }
-                                    </td>
-                                    <td>@Format.DisplayFunctionalStatus(lastMove?.FunctionalStatus)</td>
-                                    <td>
-                                        @(asset.Asset?.NextServiceDate != null
-                                            ? DateOnly.FromDateTime((DateTime)asset.Asset.NextServiceDate)
-                                            : "-")
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="fa-solid fa-ellipsis"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li class="@(lastMove != null ? "d-none" : "")">
-                                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-edit me-1"></i> Edit Asset
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-eye me-1"></i> View Asset
-                                                    </a>
-                                                </li>
-                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-toolbox me-1"></i> Service Request
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
+                        <tbody></tbody>
                     </table>
-                </div>
-            </div>
         </div>
+    </div>
+</div>
+
 
     </div>
 </div>
@@ -159,17 +262,288 @@
         });
     </script>
 }
-
 @section Scripts {
     <script>
+         //$(".shimmer-card").addClass("loading");
         $(document).ready(function () {
-            $('#assetTable').DataTable({
-                pageLength: 10,
-                responsive: true
-            });
+            // Show shimmer for cards while loading
+            //$(".shimmer-card").addClass("loading");
+
+            // Show loader for table
+            let loaderHtml = `
+                        <tr id="tableLoaderRow">
+            <td colspan="6" class="text-center py-5">
+                <div class="spinner">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                    <p class="mt-2 text-muted">Loading assets...</p>
+                </div>
+            </td>
+        </tr>
+        `;
+           // $("#assetTableBody").html(loaderHtml);
+
+            let assetTable;
+                 assetTable = $('#assetTable').DataTable({
+            pageLength: 5,
+            responsive: true,
+            lengthChange: false,
+            ordering: false,
+            autoWidth: false
         });
+
+        loadAssets();
+
+            // 🔹 Load Dashboard Cards
+            $.getJSON('@Url.Action("GetDashboardCounts")', function (data) {
+                $('#totalAssetsCard .card-title').text(data.totalAssets);
+                $('#openRequestsCard .card-title').text(data.openRequests);
+                $('#completedJobsCard .card-title').text(data.completedJobs);
+                $('#pendingJobsCard .card-title').text(data.pendingJobs);
+
+                $('#totalAssetsCard .card-text').text("Assets currently being tracked.");
+                $('#openRequestsCard .card-text').text("Work requests that are still open.");
+                $('#completedJobsCard .card-text').text("Jobs successfully completed.");
+                $('#pendingJobsCard .card-text').text("Jobs awaiting approval or action.");
+
+                // Remove shimmer smoothly
+                setTimeout(() => {
+                    $(".shimmer").removeClass("loading shimmer");
+                    $(".shimmer-text").removeClass("shimmer-text");
+                }, 400);
+            });
+
+                    function loadAssets() {
+
+            assetTable.clear().draw();
+
+            // Optional loading row
+            assetTable.row.add([
+                '',
+                '', '', `
+                <div class="spinner">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                    <p class="mt-2 text-muted">Loading assets...</p>
+                </div>`, '', '',''
+            ]).draw(false);
+
+            $.getJSON('@Url.Action("GetAssetsDueServiceJson")', function (data) {
+
+                assetTable.clear();
+
+                if (!data || data.length === 0) {
+                    assetTable.row.add([
+                        '<div class="text-center text-muted">No assets due for service.</div>',
+                        '', '', '', '', '',''
+                    ]).draw(false);
+                    return;
+                }
+
+                data.forEach(asset => {
+
+                    const facility = asset.facilityName ?? '';
+                    const servicePoint = asset.servicePointName
+                        ? `<strong>${asset.servicePointName}</strong>`
+                        : '';
+
+                    const location = `${facility} ${servicePoint}`.trim() || 'Not Deployed';
+
+
+                    assetTable.row.add([
+                        asset.assetTagNumber,
+                        asset.name,
+                        displayProcurementStatus(asset.statusId),
+                        location,
+                        displayFunctionalStatus(asset.functionalStatus),
+                        ` <span>${asset.nextServiceDate}</span>
+
+                            <br />
+                            <small class="text-muted">
+                                ${asset.overDueService} day(s)
+                            </small>`
+                         || '-',
+                        `
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="/AssetManagement/detail/${asset.assetId}">
+                                        <i class="fa fa-eye me-1"></i> View Asset
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/JobManagement/AutomateServiceRequest/${asset.assetId}">
+                                        <i class="fa-solid fa-toolbox me-1"></i> Service Request
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>`
+                    ]);
+                });
+
+                assetTable.draw();
+            });
+        }
+
+            // 🔹 Helper Functions
+            function displayProcurementStatus(procStatus) {
+                switch (procStatus) {
+                    case 0: return `<div class="status-btn status-new">New</div>`;
+                    case 1: return `<div class="status-btn status-info">Used</div>`;
+                    case 2: return `<div class="status-btn status-warning">Refurbished</div>`;
+                    case 3: return `<div class="status-btn status-danger">Decommissioned</div>`;
+                    default: return `<div>-</div>`;
+                }
+            }
+
+            function displayFunctionalStatus(funcStatus) {
+                switch (funcStatus) {
+                    case 1: return `<div class="status-btn status-new">Functional</div>`;
+                    case 2: return `<div class="status-btn status-danger">NonFunctional</div>`;
+                    case 3: return `<div class="status-btn status-warning">UnderMaintenance</div>`;
+                    case 4: return `<div class="status-btn status-muted">Unknown</div>`;
+                    default: return `<div>-</div>`;
+                }
+            }
+        });
+
+         document.addEventListener("DOMContentLoaded", function () {
+
+            function truncateLabel(label, maxLength = 15) {
+                if (!label) return '';
+                return label.length > maxLength
+                    ? label.substring(0, maxLength) + '...'
+                    : label;
+            }
+
+            function getLabelsAndValues(obj) {
+                return [Object.keys(obj), Object.values(obj)];
+            }
+
+                    function renderChart(canvasId, config) {
+            const canvas = document.getElementById(canvasId);
+
+            // target card-body, not card
+            const cardBody = canvas.closest('.card-body');
+
+            new Chart(canvas, config);
+
+            // hide loader
+            cardBody.classList.add('chart-loaded');
+        }
+
+
+            function baseOptions() {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: t => t[0].label
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                callback: function (value) {
+                                    return truncateLabel(this.getLabelForValue(value), 18);
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                };
+            }
+
+            fetch('/Home/GetDashboardChartData')
+                .then(res => res.json())
+                .then(data => {
+
+                    /* Functional Status */
+                    {
+                        const [labels, values] = getLabelsAndValues(data.functionalStatusCounts);
+                        renderChart('functionalStatusChart', {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Functional Status',
+                                    data: values,
+                                    backgroundColor: 'rgba(54,162,235,0.6)'
+                                }]
+                            },
+                            options: baseOptions()
+                        });
+                    }
+
+                    /* Procurement Status */
+                    {
+                        const [labels, values] = getLabelsAndValues(data.procurementStatusCounts);
+                        renderChart('procurementStatusChart', {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Procurement Status',
+                                    data: values,
+                                    backgroundColor: 'rgba(16,185,129,0.6)'
+                                }]
+                            },
+                            options: baseOptions()
+                        });
+                    }
+
+                    /* Movement Reason */
+                    {
+                        const [labels, values] = getLabelsAndValues(data.movementReasonCounts);
+                        renderChart('movementReasonChart', {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Movement Reason',
+                                    data: values,
+                                    backgroundColor: 'rgba(99,102,241,0.6)'
+                                }]
+                            },
+                            options: baseOptions()
+                        });
+                    }
+
+                    /* Non Functional By Facility */
+                    {
+                        const [labels, values] = getLabelsAndValues(data.nonFunctionalByFacilityCounts);
+                        renderChart('nonFunctionalByFacilityChart', {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [{
+                                    label: 'Non Functional Assets',
+                                    data: values,
+                                    backgroundColor: 'rgba(239,68,68,0.6)'
+                                }]
+                            },
+                            options: baseOptions()
+                        });
+                    }
+
+                });
+
+        });
+
     </script>
 }
+
+
 
 
 
