@@ -35,6 +35,8 @@
             <table class="table table-bordered align-middle" id="assetTable">
                 <thead class="table-light">
                     <tr>
+                        <th style="width: 2%;">#</th>
+                        <th style="width: 8%;">Quantity</th>
                         <th style="width: 12%;">Category</th>
                         <th style="width: 12%;">Item name</th>
                         <th style="width: 15%;">Department</th>
@@ -246,6 +248,21 @@
                                             <option selected disabled value="">Select Service Point</option>
                                         </select>
                                     </div>
+                                    @* <div class="col-sm-6 col-md-6 col-lg-4">
+                                        <select id="modalFunctionalStatus" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
+                                            <option selected disabled value="">Select Service Point</option>
+                                        </select>
+                                    </div> *@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="mb-3 col-md-12">
+                            <div class="border rounded p-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="modalIsIdle">
+                                    <label class="form-check-label fw-bold">Is Idle</label>
                                 </div>
                             </div>
                         </div>
@@ -298,28 +315,32 @@
             }
 
             // --- Update subcategory for modal ---
-            function updateSubCategory(categoryId, subCategorySelectId) {
-                const subCategorySelect = document.getElementById(subCategorySelectId);
-                if (!subCategorySelect) return;
-                subCategorySelect.innerHTML = '<option selected disabled value="">Loading...</option>';
-                $(subCategorySelect).prop('disabled', true).selectpicker('refresh');
+          function updateSubCategory(categoryId, subCategorySelectId, onLoaded) {
+            const subCategorySelect = document.getElementById(subCategorySelectId);
+            if (!subCategorySelect) return;
+            subCategorySelect.innerHTML = '<option selected disabled value="">Loading...</option>';
+            $(subCategorySelect).prop('disabled', true).selectpicker('refresh');
 
-                if (categoryId) {
-                    fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)
-                        .then(r => r.json())
-                        .then(data => {
-                            populateSelect(subCategorySelect, data, 'Select Item Name');
-                            $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
-                        })
-                        .catch(() => {
-                            populateSelect(subCategorySelect, [], 'Select Item Name');
-                            $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
-                        });
-                } else {
-                    populateSelect(subCategorySelect, [], 'Select Item Name');
-                    $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
-                }
+            if (categoryId) {
+                fetch(`/AssetManagement/GetSubCategories?categoryId=${categoryId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        populateSelect(subCategorySelect, data, 'Select Item Name');
+                        $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                        if (typeof onLoaded === 'function') onLoaded();
+                    })
+                    .catch(() => {
+                        populateSelect(subCategorySelect, [], 'Select Item Name');
+                        $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                        if (typeof onLoaded === 'function') onLoaded();
+                    });
+            } else {
+                populateSelect(subCategorySelect, [], 'Select Item Name');
+                $(subCategorySelect).prop('disabled', false).selectpicker('refresh');
+                if (typeof onLoaded === 'function') onLoaded();
             }
+        }
+
 
         
 
@@ -444,6 +465,7 @@
                     alert("Please add at least one asset to the list.");
                     return;
                 }
+                console.log(JSON.stringify(assetList));
 
                 fetch('/AssetManagement/SaveAssets', {
                     method: 'POST',
@@ -502,37 +524,52 @@
                     ProcurementDate: document.getElementById('modalProcurementDate').value || null,
                     Cost: document.getElementById('modalCost').value || null,
                     LifespanQuantity: document.getElementById('modalLifespanQuantity').value || null,
+                    //Quantity: parseInt(document.getElementById('modalQuantity').value) || 1,
 
                         //DEPLOYMENT
                     AlreadyDeployed: alreadyDeployed,
                     DateDeployed: alreadyDeployed ? document.getElementById('modalDateDeployed').value || null : null,
                     FacilityId: alreadyDeployed ? document.getElementById('modalFacility').value || null : null,
-                    ServicePointId: alreadyDeployed ? document.getElementById('modalServicePoint').value || null : null
+                    ServicePointId: alreadyDeployed ? document.getElementById('modalServicePoint').value || null : null,
+					IsIdle: document.getElementById('modalIsIdle').checked || false
                 };
             }
 
                         // 1. Listen for Item Name (SubCategory) change
-        document.getElementById('modalSubCategory').addEventListener('change', function () {
+                document.getElementById('modalSubCategory').addEventListener('change', function () {
             const selectedItemId = this.value;
 
-            // Fetch the specific item details to check its flags
+            if (!selectedItemId) return;
+
             fetch(`/AssetManagement/GetLookupItemDetails?id=${selectedItemId}`)
-                .then(r => r.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(item => {
                     console.log(item);
+
                     let requiresSerial = true;
-                    if (item.flagsJson) {
-                        const flags = JSON.parse(item.flagsJson);
-                        console.log(flags);
-                        if(flags.RequiresSerial != null){
-                            requiresSerial = flags.RequiresSerial;
+
+                    if (item && item.flagsJson) {
+                        try {
+                            const flags = JSON.parse(item.flagsJson);
+                            console.log(flags);
+
+                            if (flags?.RequiresSerial !== undefined) {
+                                requiresSerial = flags.RequiresSerial;
+                            }
+                        } catch (e) {
+                            console.error("Invalid FlagsJson:", e);
                         }
                     }
 
-                    // Update UI: Toggle visual "required" asterisk and data attribute
                     const serialLabel = document.getElementById('serialLabel');
                     const serialInput = document.getElementById('modalSerialNumber');
-                    console.log(serialLabel);
+
+                    if (!serialLabel || !serialInput) return;
 
                     if (requiresSerial) {
                         serialInput.dataset.required = "true";
@@ -541,8 +578,21 @@
                         serialInput.dataset.required = "false";
                         serialLabel.classList.remove('required-field');
                     }
+                })
+                .catch(err => {
+                    console.error("Failed to load lookup item:", err);
+
+                    // SAFE DEFAULT: require serial if error
+                    const serialLabel = document.getElementById('serialLabel');
+                    const serialInput = document.getElementById('modalSerialNumber');
+
+                    if (serialLabel && serialInput) {
+                        serialInput.dataset.required = "true";
+                        serialLabel.classList.add('required-field');
+                    }
                 });
         });
+
 
             // --- Validation ---
             function validateAssetClient(asset) {
@@ -607,7 +657,13 @@
             assetList.forEach((asset, index) => {
                 const row = tableBody.insertRow();
                 const renderCheckbox = (isChecked) => `<input type="checkbox" class="form-check-input" ${isChecked ? 'checked' : ''} disabled>`;
-
+				//const qty = asset.Quantity || 1;
+                const quantityCell = asset.SerialNumber && asset.SerialNumber.trim() !== ''
+                ? `<input type="number" class="form-control form-control-sm qty-input" min="1" value="${asset.Quantity || 1}" data-index="${index}" readonly>`
+                : `<input type="number" class="form-control form-control-sm qty-input" min="1" value="${asset.Quantity || 1}" data-index="${index}">`;
+                row.insertCell().textContent = index + 1;
+                const qtyCell = row.insertCell();
+                qtyCell.innerHTML = quantityCell;
                 row.insertCell().textContent = getNameForId(dropdownData.categories, asset.CategoryId) || asset.CategoryId || '';
                 row.insertCell().textContent = getNameForId(dropdownData.subcategories, asset.SubCategoryId) || asset.ItemName || '';
                 row.insertCell().textContent = getNameForId(dropdownData.departments, asset.DepartmentId) || asset.DepartmentId || '';
@@ -650,16 +706,24 @@
                 }
             }
         });
+          document.getElementById('assetTableBody').addEventListener('input', function (e) {
+            if (e.target.classList.contains('qty-input')) {
+                const index = parseInt(e.target.dataset.index);
+                const value = parseInt(e.target.value) || 1;
+                if (!isNaN(index) && assetList[index]) {
+                    assetList[index].Quantity = value;
+                }
+            }
+        });
 
                     function populateModalWithAsset(asset) {
             // Set selects and inputs
             document.getElementById('modalCategory').value = asset.CategoryId || '';
             $('#modalCategory').selectpicker('refresh');
-            updateSubCategory(asset.CategoryId, 'modalSubCategory');
-            setTimeout(() => {
+            updateSubCategory(asset.CategoryId, 'modalSubCategory', function () {
                 document.getElementById('modalSubCategory').value = asset.SubCategoryId || '';
                 $('#modalSubCategory').prop('disabled', false).selectpicker('refresh');
-            }, 300); // Wait for subcategories to load
+            });
 
             document.getElementById('modalDepartment').value = asset.DepartmentId || '';
             $('#modalDepartment').selectpicker('refresh');
@@ -698,6 +762,9 @@
             $('#modalFacility').selectpicker('refresh');
             document.getElementById('modalServicePoint').value = asset.ServicePointId || '';
             $('#modalServicePoint').selectpicker('refresh');
+
+            // Is Idle
+			document.getElementById('modalIsIdle').checked = !!asset.IsIdle;
         }
 
         });

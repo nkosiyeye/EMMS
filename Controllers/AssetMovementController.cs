@@ -1,4 +1,6 @@
-﻿using DocumentFormat.OpenXml.Office2010.Excel;
+﻿using Azure.Core;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Office2016.Excel;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
@@ -6,12 +8,15 @@ using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Admin;
 using EMMS.Models.Entities;
+using EMMS.Models.Pagination;
 using EMMS.Service;
+using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Drawing.Printing;
+using System.Net;
 using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -22,15 +27,18 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
+        private readonly MovementService _movementService;
         private readonly NotificationService _notificationService;
         private readonly AssetManagementRepo _assetManagementRepo;
 
-        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, AssetManagementRepo assetManagementRepo)
+        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, 
+            AssetManagementRepo assetManagementRepo, MovementService movementService)
         {
             _context = context;
             _assetService = assetService;
             _notificationService = notificationService;
             _assetManagementRepo = assetManagementRepo;
+            _movementService = movementService;
         }
 
         private AssetMovementRepo GetRepo() => new AssetMovementRepo(_context);
@@ -50,16 +58,141 @@ namespace EMMS.Controllers
         public async Task<IActionResult> Index()
         {
             var repo = GetRepo();
-            var data = await LoadViewModel();
-            var movements = await repo.GetAssetMovement();
+            //var data = await LoadViewModel();
+            //var movements = await repo.GetAssetMovement();
 
-            data.MoveAssets = isAdmin
-                ? movements
-                : movements.Where(m => m.FromId == CurrentUser.FacilityId);
+            //data.MoveAssets = isAdmin
+            //    ? movements
+            //    : movements.Where(m => m.FromId == CurrentUser.FacilityId);
+            var data = new MoveAssetViewModel();
 
             data.Conditions = await repo.GetConditions();
             return View(data);
         }
+
+        [HttpPost]
+        public IActionResult GetMovements([FromForm] DataTablesRequest request)
+        {
+            try
+            {
+                var currentUser = CurrentUser;
+                if (currentUser == null)
+                {
+                    return JsonError(request);
+                }
+
+                bool isAdmin = currentUser.UserRole?.UserType == UserType.Administrator;
+                bool isManager = currentUser.UserRole?.UserType == UserType.FacilityManager;
+
+                var result = _movementService.GetPaginatedMovements(
+                    request.Start,
+                    request.Length,
+                    request.Search?.Value?.Trim() ?? "",
+                    currentUser
+                );
+
+                var rows = result.Items.Select(m => new
+                {
+                    tag = m.Asset?.AssetTagNumber ?? "-",
+                    fromFacility = m.From?.FacilityName ?? "-",
+                    toFacility = m.Facility?.FacilityName ?? "-",
+                    servicePoint = m.ServicePoint?.Name ?? "Unknown",
+                    dateMoved = m.MovementDate.ToShortDateString(),
+                    functionalStatus = Format.DisplayFunctionalStatus(m.FunctionalStatus).ToString(),
+                    reasonForMovement = m.Reason == MovementReason.Other
+                                        ? (m.OtherReason ?? "Other")
+                                        : m.Reason.ToString(),
+
+                    // Return raw values — JavaScript will decide what to display
+                    movementId = m.MovementId.ToString(),
+                    isApproved = m.IsApproved,
+                    canApprove = isAdmin || isManager,
+                    dateReceived = m.DateReceived.HasValue,
+                    dateRejected = m.DateRejected.HasValue,
+                    // You can also return isManager/isAdmin if needed, but usually not necessary
+                }).ToList();
+
+                return Json(new
+                {
+                    draw = request.Draw,
+                    recordsTotal = result.TotalCount,
+                    recordsFiltered = result.FilteredCount,
+                    data = rows
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return JsonError(request);
+            }
+        }
+        [HttpPost]
+        public IActionResult GetAssets([FromForm] DataTablesRequest request)
+        {
+            var currentUser = CurrentUser;
+            if (currentUser == null)
+            {
+                return JsonError(request);
+            }
+
+            bool isAdmin = currentUser.UserRole?.UserType == UserType.Administrator;
+
+            // Get paginated assets (filtered by user role/facility as before)
+            var result = _assetService.GetPaginatedAssets(
+                request.Start,
+                request.Length,
+                request.Search?.Value?.Trim() ?? "",
+                currentUser
+            );
+
+            var data = result.Items.Select(assetVm =>
+            {
+                var asset = assetVm.Asset;
+                var lastMove = assetVm.LastMovement;
+
+                // Location: prefer Facility name → Service Point name → fallback
+                string location = lastMove != null
+                    ? (lastMove.Facility?.FacilityName
+                       ?? lastMove.ServicePoint?.Name
+                       ?? "N/A")
+                    : "-";
+
+                // Functional Status from last movement (or "-" if none)
+                string functionalStatus = lastMove != null
+                    ? Format.DisplayFunctionalStatus(lastMove.FunctionalStatus).ToString()
+                    : "-";
+
+                // Simple action: only "Move Asset" link (matching commented Razor)
+                string actionHtml = $@"<a class='table-cta-btn btn btn-sm btn-primary'
+                               title='Move Asset'
+                               href='/AssetMovement/moveAsset/{asset.AssetId}'>
+                                   <i class='fa fa-arrows-alt me-1'></i> Move Asset
+                               </a>";
+
+                return new
+                {
+                    tag = asset.AssetTagNumber ?? "-",
+                    category = asset.Category?.Name ?? "-",
+                    subCategory = asset.SubCategory?.Name ?? "-",
+                    placement = asset.IsPlacement ? "Yes" : "No",
+                    location,
+                    functionalStatus,
+                    action = actionHtml
+                };
+            }).ToList();
+
+            return Json(new
+            {
+                draw = request.Draw,
+                recordsTotal = result.TotalCount,
+                recordsFiltered = result.FilteredCount,
+                data
+            });
+        }
+        
+
+        private IActionResult JsonError(DataTablesRequest request) =>
+            Json(new { draw = request?.Draw ?? 1, recordsTotal = 0, recordsFiltered = 0, data = Array.Empty<object>() });
 
         [HttpGet]
         public async Task<IActionResult> GetFacilites(bool isOffSite)
@@ -96,6 +229,7 @@ namespace EMMS.Controllers
         {
             var repo = GetRepo();
             var moveAsset = new MoveAsset();
+            moveAsset.MovementDate = DateTime.Today;
             var history = await repo.GetLastMovement(id);
 
             if (history != null)
@@ -190,42 +324,67 @@ namespace EMMS.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
-
         [HttpPost]
         public async Task<IActionResult> MoveAsset(MoveRequestViewModel model)
         {
-            var assetMovement = model.MoveAsset;
-            var repo = GetRepo();
+            var repo = GetRepo(); // assuming this returns your repository
+
+            // 1. Reload the asset (critical!)
+            if (model.MoveAsset?.AssetId != Guid.Empty)
+            {
+                model.Asset = await _context.Assets
+                    .Include(a => a.SubCategory)
+                    .FirstOrDefaultAsync(a => a.AssetId == model.MoveAsset.AssetId);
+
+                if (model.Asset == null)
+                {
+                    ModelState.AddModelError("", "Selected asset not found.");
+                }
+            }
+
+            // 2. Existing validation checks
             var existing = _context.AssetMovement
                 .OrderByDescending(m => m.DateCreated)
-                .FirstOrDefault(m => m.AssetId == assetMovement.AssetId);
-
+                .FirstOrDefault(m => m.AssetId == model.MoveAsset.AssetId);
 
             if (existing != null && existing.DateRejected == null && existing.DateReceived == null)
             {
                 ModelState.AddModelError("", "Asset already has a movement pending.");
             }
-            var workrequest = _context.WorkRequest.OrderByDescending(m => m.DateCreated)
-                   .FirstOrDefault(m => m.AssetId == assetMovement.AssetId);
+
+            var workrequest = _context.WorkRequest
+                .OrderByDescending(m => m.DateCreated)
+                .FirstOrDefault(m => m.AssetId == model.MoveAsset.AssetId);
+
             if (workrequest != null && workrequest.CloseDate == null)
             {
-
-                ModelState.AddModelError("", "Cant Move an Asset that has a workrequest in progress.");
+                ModelState.AddModelError("", "Can't move an asset that has a work request in progress.");
             }
-            
 
+            // 3. If still invalid → repopulate everything and return view
             if (!ModelState.IsValid)
             {
-                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                TempData["Error"] = string.Join("; ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+
+                // Repopulate dropdowns
                 model.Facilities = await repo.GetFacilities();
                 model.ServicePoints = await repo.GetServicePoints();
                 model.Reasons = await repo.GetReasons();
                 model.FunctionalStatuses = await repo.GetFunctionalStatuses();
+
+                // VERY IMPORTANT: keep the asset loaded
+                // (already done above if AssetId was present)
+
                 return View("MoveAsset", model);
             }
 
-            //var history = await repo.GetLastMovement(assetMovement.AssetId);
+            // ── Success path ───────────────────────────────────────────────────────
+            var assetMovement = model.MoveAsset;
+
             assetMovement.FromId = (assetMovement?.FromId != null && assetMovement?.FromId != 0) ? assetMovement.FromId : CurrentUser!.FacilityId;
+
             assetMovement.MovementDate = assetMovement.MovementDate.Date
                 .AddHours(DateTime.Now.Hour)
                 .AddMinutes(DateTime.Now.Minute)
@@ -233,23 +392,26 @@ namespace EMMS.Controllers
 
             CreateEntity(assetMovement);
             _context.Add(assetMovement);
-            await _notificationService.CreateMovementRequestNotification(assetMovement.FacilityId, CurrentUser.UserId);
+
+            await _notificationService.CreateMovementRequestNotification(
+                assetMovement.FacilityId,
+                CurrentUser.UserId
+            );
 
             if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
             {
-                var asset = assetMovement.Asset;
-                if (asset != null){
-                    asset.WarrantyStartDate = assetMovement?.MovementDate ?? DateTime.Today;
-                    asset.WarrantyEndDate = model?.WarrantyEndDate ?? DateTime.Today;
+                var asset = model.Asset; // now safe because we reloaded it
+                if (asset != null)
+                {
+                    asset.WarrantyStartDate = assetMovement.MovementDate;
+                    asset.WarrantyEndDate = model.WarrantyEndDate;
                     UpdateEntity(asset);
                     _context.Update(asset);
                 }
-                else
-                {
-                    ModelState.AddModelError("", "Asset is null Reselect Asset");
-                }
             }
+
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -258,16 +420,139 @@ namespace EMMS.Controllers
         public async Task<IActionResult> RecieveAsset()
         {
             var repo = GetRepo();
-            var data = await LoadViewModel();
-            var movements = await repo.GetAssetMovement();
+            var data = new MoveAssetViewModel();
+            //var data = await LoadViewModel();
+            //var movements = await repo.GetAssetMovement();
 
-            data.MoveAssets = isAdmin
-                ? movements
-                : movements.Where(m => m.FacilityId == CurrentUser.FacilityId);
+            //data.MoveAssets = isAdmin
+            //    ? movements
+            //    : movements.Where(m => m.FacilityId == CurrentUser.FacilityId);
 
             data.Conditions = await repo.GetConditions();
             data.Reasons = await repo.GetReasons();
             return View(data);
+        }
+        [HttpPost]
+        public IActionResult GetPendingReceipts([FromForm] DataTablesRequest request)
+        {
+            var currentUser = CurrentUser;
+            if (currentUser == null) return JsonError(request);
+
+            var query = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => m.IsApproved &&
+                            m.DateReceived == null &&
+                            m.DateRejected == null &&
+                            m.RowState == RowStatus.Active);
+
+            if (!isAdmin)
+            {
+                var fid = currentUser.FacilityId;
+                query = query.Where(m => m.FacilityId == fid);
+            }
+
+            int total = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(request.Search?.Value))
+            {
+                var s = request.Search.Value.Trim().ToLower();
+                query = query.Where(m =>
+                    m.Asset.AssetTagNumber.ToLower().Contains(s) ||
+                    m.From.FacilityName.ToLower().Contains(s) ||
+                    (m.ServicePoint != null && m.ServicePoint.Name.ToLower().Contains(s)) ||
+                    m.Reason.ToString().ToLower().Contains(s)
+                );
+            }
+
+            int filtered = query.Count();
+
+            var items = query
+                .Include(m => m.Asset)
+                .Include(m => m.From)
+                .Include(m => m.ServicePoint)
+                .OrderByDescending(m => m.MovementDate)
+                .Skip(request.Start)
+                .Take(request.Length)
+                .ToList();
+
+            var data = items.Select(m => new
+            {
+                assetTag = m.Asset?.AssetTagNumber ?? "-",
+                fromFacility = m.From?.FacilityName ?? "-",
+                servicePoint = m.ServicePoint?.Name ?? "N/A",
+                dateSent = m.MovementDate.ToString("dd MMM yyyy"),
+                funcStatus = Format.DisplayFunctionalStatus(m.FunctionalStatus).ToString(),
+                reason = m.Reason.ToString(),
+                movementId = m.MovementId.ToString(),
+                action = "" // we use buttons with data attributes
+            }).ToList();
+
+            return Json(new
+            {
+                draw = request.Draw,
+                recordsTotal = total,
+                recordsFiltered = filtered,
+                data
+            });
+        }
+
+        [HttpPost]
+        public IActionResult GetReceiptHistory([FromForm] DataTablesRequest request)
+        {
+            var currentUser = CurrentUser;
+            if (currentUser == null) return JsonError(request);
+
+            var query = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => (m.DateReceived != null || m.DateRejected != null) &&
+                            m.RowState == RowStatus.Active);
+
+            if (!isAdmin)
+            {
+                var fid = currentUser.FacilityId;
+                query = query.Where(m => m.FacilityId == fid);
+            }
+
+            int total = query.Count();
+
+            if (!string.IsNullOrWhiteSpace(request.Search?.Value))
+            {
+                var s = request.Search.Value.Trim().ToLower();
+                query = query.Where(m =>
+                    m.Asset.AssetTagNumber.ToLower().Contains(s) ||
+                    m.From.FacilityName.ToLower().Contains(s) ||
+                    (m.ServicePoint != null && m.ServicePoint.Name.ToLower().Contains(s))
+                );
+            }
+
+            int filtered = query.Count();
+
+            var items = query
+                .Include(m => m.Asset)
+                .Include(m => m.From)
+                .Include(m => m.ServicePoint)
+                .OrderByDescending(m => m.DateReceived ?? m.DateRejected ?? m.MovementDate)
+                .Skip(request.Start)
+                .Take(request.Length)
+                .ToList();
+
+            var data = items.Select(m => new
+            {
+                assetTag = m.Asset?.AssetTagNumber ?? "-",
+                fromFacility = m.From?.FacilityName ?? "-",
+                servicePoint = m.ServicePoint?.Name ?? "N/A",
+                dateReceived = m.DateReceived.HasValue ? $"<span class='badge bg-success'>{m.DateReceived.Value:dd MMM yyyy}</span>" : "<span class='badge bg-secondary'>Not Received</span>",
+                dateRejected = m.DateRejected.HasValue ? $"<span class='badge bg-danger'>{m.DateRejected.Value:dd MMM yyyy}</span>" : "<span class='badge bg-secondary'>Not Rejected</span>",
+                funcStatus = Format.DisplayFunctionalStatus(m.FunctionalStatus).ToString()
+            }).ToList();
+
+            return Json(new
+            {
+                draw = request.Draw,
+                recordsTotal = total,
+                recordsFiltered = filtered,
+                data
+            });
         }
 
         [HttpPost]

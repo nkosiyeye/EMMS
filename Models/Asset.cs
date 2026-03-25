@@ -141,6 +141,12 @@ namespace EMMS.Models
 
         [NotMapped]
         public int? ServicePointId { get; set; } // modal: Selected service point
+
+        [NotMapped]
+        public int Quantity { get; set; }
+
+        [NotMapped]
+        public bool IsIdle { get; set; } // To indicate if asset is idle
     }
 }
 

@@ -46,7 +46,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var asset in Model.assetViewModels!)
+                    @* @foreach (var asset in Model.assetViewModels!)
                     {
                         var lastMove = asset.LastMovement;
                         <tr class="@(lastMove?.Reason == Enumerators.MovementReason.StolenorMissing ? "table-danger text-muted" : "")">
@@ -162,7 +162,7 @@
                                 }
                             </td>
                         </tr>
-                    }
+                    } *@
                 </tbody>
             </table>
         </div>
@@ -231,26 +231,54 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var isTabletOrSmaller = window.innerWidth <= 1024; // adjust breakpoint for tablet
+            //var isTabletOrSmaller = window.innerWidth <= 1024; // adjust breakpoint for tablet
 
-            $('#assetTable').DataTable({
-                pageLength: 10,
-                responsive: isTabletOrSmaller
-            });
+            // $('#assetTable').DataTable({
+            //     pageLength: 10,
+            //     responsive: isTabletOrSmaller
+            // });
+
+                var isTabletOrSmaller = window.innerWidth <= 1024;
+
+                    $('#assetTable').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: '@Url.Action("GetAssets", "AssetManagement")',
+                type: 'POST',
+                dataSrc: 'data'
+            },
+            pageLength: 10,
+            responsive: isTabletOrSmaller,
+            columns: [
+                { data: "checkbox", orderable: false, searchable: false },
+                { data: "tag" },
+                { data: "category" },
+                { data: "itemName" },
+                { data: "placement" },
+                { data: "vendor" },
+                { data: "serviceProvider" },
+                { data: "procurement" },
+                { data: "facility" },
+                { data: "servicePoint" },
+                { data: "status" },
+                { data: "action", orderable: false, searchable: false }
+            ]
+        });
 
             // Optional: listen for resize and redraw
-            $(window).on('resize', function () {
-                var newSize = window.innerWidth <= 1024;
-                var table = $('#assetTable').DataTable();
+            // $(window).on('resize', function () {
+            //     var newSize = window.innerWidth <= 1024;
+            //     var table = $('#assetTable').DataTable();
 
-                if (newSize !== table.responsive.hasResponsive()) {
-                    table.destroy();
-                    $('#assetTable').DataTable({
-                        pageLength: 10,
-                        responsive: newSize
-                    });
-                }
-            });
+            //     if (newSize !== table.responsive.hasResponsive()) {
+            //         table.destroy();
+            //         $('#assetTable').DataTable({
+            //             pageLength: 10,
+            //             responsive: newSize
+            //         });
+            //     }
+            // });
             $(document).on("click", ".stolen-missing-btn", function () {
             const id = $(this).data("id");
             const tag = $(this).data("tag");

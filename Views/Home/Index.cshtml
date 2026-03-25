@@ -163,6 +163,49 @@
                 </div>
             </div>
 
+            <div class="col-md-12 mb-2">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <!-- Card Header --> 
+                        <span><strong>Assets By Service Point</strong></span>
+                        <div class="d-flex align-items-center">
+                            <select name="FacilityId"
+                                    id="FacilityId"
+                                    class="form-select selectpicker col-md-6"
+                                    data-live-search="true">
+                                    <option value="" selected>All Facilities</option>
+                                @foreach (var item in ViewBag.FacilityId as SelectList)
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+
+                        </div>
+                    </div>
+
+
+                    <!-- Card Body -->
+                    <div class="card-body position-relative">
+
+                        <div class="chart-container" style="height:300px;">
+                            <canvas id="ServicePointByFacilityChart"></canvas>
+
+                            <!-- Loader -->
+                            <div class="chart-loader position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            
+
+
+
 </div>
 
 
@@ -330,64 +373,88 @@
                 </div>`, '', '',''
             ]).draw(false);
 
-            $.getJSON('@Url.Action("GetAssetsDueServiceJson")', function (data) {
+                    $.getJSON('@Url.Action("GetAssetsDueServiceJson")', function (data) {
 
-                assetTable.clear();
+            assetTable.clear();
 
-                if (!data || data.length === 0) {
-                    assetTable.row.add([
-                        '<div class="text-center text-muted">No assets due for service.</div>',
-                        '', '', '', '', '',''
-                    ]).draw(false);
-                    return;
-                }
+            if (!data || data.length === 0) {
+                assetTable.row.add([
+                    '<div class="text-center text-muted">No assets due for service.</div>',
+                    '', '', '', '', '', ''
+                ]).draw(false);
+                return;
+            }
 
-                data.forEach(asset => {
-
-                    const facility = asset.facilityName ?? '';
-                    const servicePoint = asset.servicePointName
-                        ? `<strong>${asset.servicePointName}</strong>`
-                        : '';
-
-                    const location = `${facility} ${servicePoint}`.trim() || 'Not Deployed';
-
-
-                    assetTable.row.add([
-                        asset.assetTagNumber,
-                        asset.name,
-                        displayProcurementStatus(asset.statusId),
-                        location,
-                        displayFunctionalStatus(asset.functionalStatus),
-                        ` <span>${asset.nextServiceDate}</span>
-
-                            <br />
-                            <small class="text-muted">
-                                ${asset.overDueService} day(s)
-                            </small>`
-                         || '-',
-                        `
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                <i class="fa-solid fa-ellipsis"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="/AssetManagement/detail/${asset.assetId}">
-                                        <i class="fa fa-eye me-1"></i> View Asset
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="/JobManagement/AutomateServiceRequest/${asset.assetId}">
-                                        <i class="fa-solid fa-toolbox me-1"></i> Service Request
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>`
-                    ]);
-                });
-
-                assetTable.draw();
+            // Sort by overDueService ascending
+            data.sort((a, b) => {
+                // Ensure numeric comparison, handle null/undefined gracefully
+                const aVal = parseInt(a.overDueService) || 0;
+                const bVal = parseInt(b.overDueService) || 0;
+                return bVal - aVal;
             });
+
+            data.forEach(asset => {
+
+                const facility = asset.facilityName ?? '';
+                const servicePoint = asset.servicePointName
+                    ? `Service Point: <strong>${asset.servicePointName}</strong>`
+                    : '';
+
+                const location = `
+                 <span>${facility}</span>
+                        <br />
+                        <small class="">
+                            ${servicePoint}
+                        </small>
+                ` || 'Not Deployed';
+
+                const overDueService = isNegative(asset.overDueService)
+                    ?
+                    ` <span>${asset.nextServiceDate}</span>
+                        <br />
+                        <small class="text-success">
+                            <strong>${asset.overDueService} day(s)</strong>
+                        </small>`
+                    :
+                    ` <span>${asset.nextServiceDate}</span>
+                        <br />
+                        <small class="text-danger">
+                            <strong>${asset.overDueService} day(s)</strong>
+                        </small>`;
+
+                assetTable.row.add([
+                    asset.assetTagNumber,
+                    asset.name,
+                    displayProcurementStatus(asset.statusId),
+                    location,
+                    displayFunctionalStatus(asset.functionalStatus),
+                    overDueService,
+                    `<div class="dropdown">
+                        <button class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-ellipsis"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="/AssetManagement/detail/${asset.assetId}">
+                                    <i class="fa fa-eye me-1"></i> View Asset
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/JobManagement/AutomateServiceRequest/${asset.assetId}">
+                                    <i class="fa-solid fa-toolbox me-1"></i> Service Request
+                                </a>
+                            </li>
+                        </ul>
+                    </div>`
+                ]);
+            });
+
+            assetTable.draw();
+        });
+
+        }
+        function isNegative(num) {
+          return num < 0;
         }
 
             // 🔹 Helper Functions
@@ -413,6 +480,7 @@
         });
 
          document.addEventListener("DOMContentLoaded", function () {
+             let servicePointChartInstance = null;
 
             function truncateLabel(label, maxLength = 15) {
                 if (!label) return '';
@@ -424,6 +492,57 @@
             function getLabelsAndValues(obj) {
                 return [Object.keys(obj), Object.values(obj)];
             }
+                    function renderServicePointChart(data) {
+            const [labels, values] = getLabelsAndValues(data.servicePointByFacilityCounts);
+            const canvas = document.getElementById('ServicePointByFacilityChart');
+
+            // Destroy previous chart if it exists
+            if (servicePointChartInstance) {
+                servicePointChartInstance.destroy();
+            }
+
+            servicePointChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Assets By Service Point',
+                        data: values,
+                        backgroundColor: 'rgba(99,102,241,0.6)'
+                    }]
+                },
+                options: baseOptions()
+            });
+
+            // hide loader
+            const cardBody = canvas.closest('.card-body');
+            cardBody.classList.add('chart-loaded');
+        }
+
+
+
+        function loadServicePointChart(facilityId) {
+            let url = '/Home/GetDashboardChartData';
+            if (facilityId) url += '?facilityId=' + facilityId;
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    renderServicePointChart(data);
+                });
+        }
+
+        $(document).ready(function () {
+            // Initial load
+            loadServicePointChart();
+
+            // On facility change
+            $('select[name="FacilityId"]').on('change', function () {
+                const facilityId = $(this).val();
+                console.log(facilityId);
+                loadServicePointChart(facilityId);
+            });
+        });
+
 
                     function renderChart(canvasId, config) {
             const canvas = document.getElementById(canvasId);
@@ -521,7 +640,7 @@
 
                     /* Non Functional By Facility */
                     {
-                        const [labels, values] = getLabelsAndValues(data.nonFunctionalByFacilityCounts);
+                        const [labels, values] = getLabelsAndValues(data.decommissionedByFacilityCounts);
                         renderChart('nonFunctionalByFacilityChart', {
                             type: 'bar',
                             data: {

@@ -58,6 +58,7 @@
             NonFunctional = 2,
             UnderMaintenance = 3,
             Unknown = 4,
+            Idle = 5,
         }
 
         public enum ProcurementStatus

@@ -6,10 +6,11 @@ using EMMS.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using EMMS.Data.Migrations;
 using Microsoft.Extensions.Caching.Memory;
+using EMMS.Models.Pagination;
 
 namespace EMMS.Service
 {
-    public class AssetService
+    public class AssetService : IAssetService
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetManagementRepo _repo;
@@ -20,7 +21,7 @@ namespace EMMS.Service
             _context = context;
             _repo = repo;
         }
-        public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser)
+        public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser,bool isDashboard=false)
         {
             // Get all active assets
             var assets = await _repo.GetAssetsFromDb().ConfigureAwait(false);
@@ -60,7 +61,7 @@ namespace EMMS.Service
                 var userFacilityId = currentUser?.FacilityId;
                 var userId = currentUser?.UserId;
 
-                assetViewModels = assetViewModels
+                assetViewModels = isDashboard ? assetViewModels : assetViewModels
                     .Where(vm => vm.Asset.CreatedBy == userId)
                     .ToList();
 
@@ -98,6 +99,100 @@ namespace EMMS.Service
             {
                 assetViewModels = assetViewModels,
                 moveAsset = new MoveAsset()
+            };
+        }
+        public PaginatedResult<AssetViewModel> GetPaginatedAssets(int start, int length, string search, User currentUser)
+        {
+            var query = _context.Assets
+                .Include(a => a.Category)
+                .Include(a => a.SubCategory)
+                .Include(a => a.Vendor)
+                .Include(a => a.ServiceProvider)
+                .AsQueryable();
+
+            bool isAdmin = currentUser?.UserRole?.UserType == Enumerators.UserType.Administrator;
+
+            // If NOT admin → only show assets currently located in the user's facility
+            if (!isAdmin)
+            {
+                if (currentUser?.FacilityId == null)
+                {
+                    return new PaginatedResult<AssetViewModel>
+                    {
+                        TotalCount = 0,
+                        FilteredCount = 0,
+                        Items = new List<AssetViewModel>()
+                    };
+                }
+
+                var userFacilityId = currentUser.FacilityId;
+
+                // Filter assets whose *latest* movement is in the user's facility
+                query = query.Where(a => _context.AssetMovement
+                    .Where(m => m.AssetId == a.AssetId)
+                    .OrderByDescending(m => m.DateCreated)
+                    .Select(m => m.FacilityId)
+                    .FirstOrDefault() == userFacilityId);
+            }
+
+            int totalCount = query.Count();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(a =>
+                    a.AssetTagNumber.Contains(search) ||
+                    a.SubCategory.Name.Contains(search) ||
+                    a.Category.Name.Contains(search));
+            }
+
+            int filteredCount = query.Count();
+
+            var assets = query
+                .OrderByDescending(a => a.DateCreated)
+                .Skip(start)
+                .Take(length)
+                .ToList();
+
+            // Now load last movements — restrict to user's facility when not admin
+            var assetIds = assets.Select(a => a.AssetId).ToList();
+
+            // 1. Start with the base query and filtering
+            var lastMovementsQuery = _context.AssetMovement
+                .Where(m => assetIds.Contains(m.AssetId));
+
+            // 2. Apply security/facility filtering
+            if (!isAdmin)
+            {
+                var userFacilityId = currentUser.FacilityId;
+                lastMovementsQuery = lastMovementsQuery.Where(m => m.FacilityId == userFacilityId);
+            }
+
+            // 3. Apply sorting and includes LAST
+            var lastMovements = lastMovementsQuery
+                .Include(m => m.Facility)
+                .Include(m => m.ServicePoint)
+                .OrderByDescending(m => m.MovementDate) // Sorting happens here
+                .ToList();
+
+            var lastMovementDict = lastMovements
+                .GroupBy(m => m.AssetId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.FirstOrDefault());
+
+            var items = assets.Select(asset => new AssetViewModel
+            {
+                Asset = asset,
+                LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move)
+                    ? move
+                    : null
+            }).OrderByDescending(m => m.Asset.DateCreated).ToList();
+
+            return new PaginatedResult<AssetViewModel>
+            {
+                TotalCount = totalCount,
+                FilteredCount = filteredCount,
+                Items = items
             };
         }
     }

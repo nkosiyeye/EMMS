@@ -20,10 +20,11 @@ namespace EMMS.ViewModels
         public Dictionary<string, int> FunctionalStatusCounts { get; set; }
         public Dictionary<string, int> ProcurementStatusCounts { get; set; }
         public Dictionary<string, int> DecommissionedByFacilityCounts { get; set; }
+        public Dictionary<string, int> ServicePointByFacilityCounts { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int? facilityId = null)
         {
-            var viewModel = await _assetService.GetAssetIndexViewModel(currentUser);
+            var viewModel = await _assetService.GetAssetIndexViewModel(currentUser,true);
 
             MovementReasonCounts = viewModel.assetViewModels
                 .Where(vm => vm.LastMovement != null)
@@ -59,6 +60,18 @@ namespace EMMS.ViewModels
                             g => g.Key,
                             g => g.Count()
                         );
+            ServicePointByFacilityCounts = viewModel.assetViewModels
+                .Where(vm => vm.LastMovement != null
+                    && vm.LastMovement.ServicePointId != null
+                    && vm.LastMovement.FacilityId != null
+                    && (!facilityId.HasValue || vm.LastMovement.FacilityId == facilityId))
+                .GroupBy(vm => vm.LastMovement.ServicePoint.Name ?? "Unknown")
+                .OrderByDescending(g => g.Count())
+                .Take(20)
+                .ToDictionary(
+                        g => g.Key,
+                        g => g.Count()
+                    );       
 
 
 

@@ -126,7 +126,7 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-
+            ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName");
             return View();
         }
         [HttpGet]
@@ -203,18 +203,20 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDashboardChartData()
-        { 
+        public async Task<IActionResult> GetDashboardChartData(int? facilityId = null)
+        {
             var vm = new DashboardViewModel(_assetService, CurrentUser);
-            await vm.OnGetAsync();
+            await vm.OnGetAsync(facilityId);
             return Json(new
             {
                 movementReasonCounts = vm.MovementReasonCounts,
                 functionalStatusCounts = vm.FunctionalStatusCounts,
                 procurementStatusCounts = vm.ProcurementStatusCounts,
-                nonFunctionalByFacilityCounts = vm.DecommissionedByFacilityCounts
+                decommissionedByFacilityCounts = vm.DecommissionedByFacilityCounts,
+                servicePointByFacilityCounts = vm.ServicePointByFacilityCounts
             });
         }
+
 
         private async Task<int> GetJobCountAsync(int facilityId, bool completed, bool isAdmin)
         {

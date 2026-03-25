@@ -50,6 +50,23 @@
                                 </select>
                             </div>
                         }
+                        @if (Model.LookupList?.Name == "SubCategory")
+                        {
+                            <div class="mb-3">
+                                <label class="form-label d-block">Configuration Flags</label>
+                                <div class="border rounded p-3 bg-light">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input flag-checkbox" id="flag_RequiresSerial" data-flag="RequiresSerial">
+                                        <label class="form-check-label fw-bold" for="flag_RequiresSerial">
+                                            Requires Serial Number
+                                        </label>
+                                        <div class="form-text text-muted">If checked, assets of this type will require a serial number during registration.</div>
+                                    </div>
+                                </div>
+
+                                <input type="hidden" asp-for="_lookupItem.FlagsJson" id="FlagsJson" />
+                            </div>
+                        }
 
                         <div class="mb-3">
                             <label asp-for="_lookupItem.RowState" for="RowState" class="form-label">Status</label>
@@ -68,4 +85,42 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const flagsInput = document.getElementById('FlagsJson');
+            const checkboxes = document.querySelectorAll('.flag-checkbox');
+
+            // 1. Initialize checkboxes from existing JSON
+            if (flagsInput.value) {
+                try {
+                    const currentFlags = JSON.parse(flagsInput.value);
+                    checkboxes.forEach(cb => {
+                        const flagName = cb.dataset.flag;
+                        if (currentFlags[flagName] === true) {
+                            cb.checked = true;
+                        }
+                    });
+                } catch (e) {
+                    console.error("Error parsing FlagsJson:", e);
+                }
+            }
+
+            // 2. Update the JSON string whenever a checkbox is toggled
+            // Or alternatively, do it right before the form submits
+            const form = flagsInput.closest('form');
+            form.addEventListener('submit', function () {
+                let flagsObj = {};
+                checkboxes.forEach(cb => {
+                    const flagName = cb.dataset.flag;
+                    flagsObj[flagName] = cb.checked;
+                });
+
+                // Set the hidden input value to the JSON string
+                flagsInput.value = JSON.stringify(flagsObj);
+            });
+        });
+    </script>
+}
 

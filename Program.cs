@@ -24,6 +24,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AssetManagementRepo>();
 builder.Services.AddScoped<JobManagementRepo>();
 builder.Services.AddScoped<AssetService>();
+builder.Services.AddScoped<MovementService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSession();

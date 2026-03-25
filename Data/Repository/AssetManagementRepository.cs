@@ -63,6 +63,7 @@ namespace EMMS.Data.Repository
             var movements = await _context.AssetMovement
                 .AsNoTracking()
                 .Include(a => a.Facility)
+                .Include(a => a.ServicePoint)
                 .Where(m => assetIds.Contains(m.AssetId))
                 .GroupBy(m => m.AssetId)
                 .Select(g => g.OrderByDescending(m => m.MovementDate).FirstOrDefault())
@@ -154,7 +155,7 @@ namespace EMMS.Data.Repository
             return await _context.Assets
                 .AsNoTracking()
                 .Include(a => a.SubCategory)
-                .Where(a => a.NextServiceDate >= today && a.NextServiceDate <= dueDate)
+                .Where(a => a.NextServiceDate >= today || a.NextServiceDate <= dueDate)
                 .OrderByDescending(a => a.NextServiceDate)
                 .ToListAsync()
                 .ConfigureAwait(false);
