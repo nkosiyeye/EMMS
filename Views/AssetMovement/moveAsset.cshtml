@@ -3,7 +3,7 @@
     ViewData["Title"] = "Move Assets";
     ViewData["moveAsset"] = "active";
     ViewData["JobMovement"] = "active";
-    Model.MoveAsset!.MovementDate = DateTime.Today;
+    //Model.MoveAsset.MovementDate = Model.MoveAsset.MovementDate ?? DateTime.Today;
 }
 
 <!-- Modal -->
@@ -14,14 +14,14 @@
             </div>
             <div class="card-body">
 
-        @if (TempData["MovementError"] != null)
+       @*  @if (TempData["MovementError"] != null)
         {
             <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
                 @TempData["MovementError"]
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
-        }
+        } *@
              
                 <form asp-action="MoveAsset" asp-controller="AssetMovement" method="post">
                     <div class="row mb-3">

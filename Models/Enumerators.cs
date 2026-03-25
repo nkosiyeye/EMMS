@@ -8,6 +8,7 @@
             FacilityManager = 2,
             Administrator = 3,
             Biomed = 4,
+            DataCollector=5
         }
         public enum Permission : byte
         {
@@ -57,6 +58,7 @@
             NonFunctional = 2,
             UnderMaintenance = 3,
             Unknown = 4,
+            Idle = 5,
         }
 
         public enum ProcurementStatus

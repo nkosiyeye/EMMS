@@ -23,7 +23,66 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.Admin.User> User { get; set; }
         public DbSet<EMMS.Models.Admin.UserRole> UserRole { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
+            // Assets
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasIndex(a => a.AssetId)
+                .IsUnique();
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasIndex(a => a.RowState);
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasIndex(a => a.DateCreated);
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasIndex(a => a.SerialNumber);
+
+            // MoveAsset (AssetMovement)
+            modelBuilder.Entity<EMMS.Models.MoveAsset>()
+                .HasIndex(m => m.AssetId);
+            modelBuilder.Entity<EMMS.Models.MoveAsset>()
+                .HasIndex(m => m.MovementDate);
+
+            // WorkRequest
+            modelBuilder.Entity<EMMS.Models.WorkRequest>()
+                .HasIndex(w => w.WorkRequestId)
+                .IsUnique();
+            modelBuilder.Entity<EMMS.Models.WorkRequest>()
+                .HasIndex(w => w.AssetId);
+
+            // InfrustructureWorkRequest
+            modelBuilder.Entity<EMMS.Models.InfrustructureWorkRequest>()
+                .HasIndex(i => i.WorkRequestId)
+                .IsUnique();
+
+            // Job
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .HasIndex(j => j.JobId)
+                .IsUnique();
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .HasIndex(j => j.AssetId);
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .HasIndex(j => j.StatusId);
+
+            // Notification
+            modelBuilder.Entity<EMMS.Models.Entities.Notification>()
+                .HasIndex(n => n.UserId);
+
+            // User
+            modelBuilder.Entity<EMMS.Models.Admin.User>()
+                .HasIndex(u => u.UserId)
+                .IsUnique();
+
+            // LookupItem
+            modelBuilder.Entity<EMMS.Models.Entities.LookupItem>()
+                .HasIndex(l => l.LookupListId);
+
+            // Facility
+            modelBuilder.Entity<EMMS.Models.Entities.Facility>()
+                .HasIndex(f => f.FacilityId)
+                .IsUnique();
+        }
 
 
     }

@@ -8,7 +8,8 @@ using static EMMS.Models.Enumerators;
 
 namespace EMMS.Models
 {
-    public class Asset : BaseEntity    {
+    public class Asset : BaseEntity    
+    {
         [Required]
         [Display(Name = "Asset Id")]
         public Guid AssetId { get; set; }
@@ -29,8 +30,8 @@ namespace EMMS.Models
         public int SubCategoryId { get; set; }
         [ForeignKey(nameof(SubCategoryId))]
         public virtual LookupItem? SubCategory { get; set; }
+       
 
-        
         [Display(Name = "Item Name")]
         public string? ItemName { get; set; }
 
@@ -127,6 +128,25 @@ namespace EMMS.Models
         public Guid? ModifiedBy { get; set; }
         public DateTime? DateModified { get; set; }
         public RowStatus RowState { get; set; }
+
+        //For Multi Deployment
+        [NotMapped]
+        public bool AlreadyDeployed { get; set; }   // modal: Is checkbox checked?
+
+        [NotMapped]
+        public DateTime? DateDeployed { get; set; }  // modal: Deployment date
+
+        [NotMapped]
+        public int? FacilityId { get; set; }  // modal: Selected facility
+
+        [NotMapped]
+        public int? ServicePointId { get; set; } // modal: Selected service point
+
+        [NotMapped]
+        public int Quantity { get; set; }
+
+        [NotMapped]
+        public bool IsIdle { get; set; } // To indicate if asset is idle
     }
 }
 

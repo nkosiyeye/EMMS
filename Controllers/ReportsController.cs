@@ -112,9 +112,8 @@ namespace EMMS.Controllers
             // Headers
             var headers = new[]
             {
-            "Asset Code", "Asset Name", "Category","Cost","Status", "Facility",
-            "Functional Status","Movement Reason", "Created By", "Date Created",
-            "Last Service Date", "Next Service Date"
+            "Asset Code", "Asset Name","S/N", "Category","Department","Cost","Status", "Facility","Service Point",
+            "Functional Status","Movement Reason", "Created By", "Deployment Date", "Date Created", "Next Service Date"
         };
 
             for (int i = 0; i < headers.Length; i++)
@@ -133,17 +132,20 @@ namespace EMMS.Controllers
                 var row = i + 2;
 
                 worksheet.Cell(row, 1).Value = asset.AssetTagNumber ?? "";
-                worksheet.Cell(row, 2).Value = asset.ItemName ?? "";
-                worksheet.Cell(row, 3).Value = asset.Category?.Name ?? "";
-                worksheet.Cell(row, 4).Value = asset.Cost.ToString() ?? "";
-                worksheet.Cell(row, 5).Value = ((ProcurementStatus)asset.StatusId).ToString() ?? "";
-                worksheet.Cell(row, 6).Value = movement?.Facility?.FacilityName ?? "";
-                worksheet.Cell(row, 7).Value = movement?.FunctionalStatus.ToString() ?? ""; // adjust if you have Lookup for Status
-                worksheet.Cell(row, 8).Value = movement?.Reason.ToString() ?? ""; // adjust if you have Lookup for Status
-                worksheet.Cell(row, 9).Value = asset.User?.FirstName ?? "";
-                worksheet.Cell(row, 10).Value = asset.DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
-                worksheet.Cell(row, 11).Value = ""; // last service date - add if available
-                worksheet.Cell(row, 12).Value = asset.NextServiceDate?.ToString("yyyy-MM-dd") ?? "";
+                worksheet.Cell(row, 2).Value = asset.SubCategory?.Name ?? "";
+                worksheet.Cell(row, 3).Value = asset.SerialNumber ?? "";
+                worksheet.Cell(row, 4).Value = asset.Category?.Name ?? "";
+                worksheet.Cell(row, 5).Value = asset.Department?.Name ?? "";
+                worksheet.Cell(row, 6).Value = asset.Cost.ToString() ?? "";
+                worksheet.Cell(row, 7).Value = ((ProcurementStatus)asset.StatusId).ToString() ?? "";
+                worksheet.Cell(row, 8).Value = movement?.Facility?.FacilityName ?? "";
+                worksheet.Cell(row, 9).Value = movement?.ServicePoint?.Name ?? "";
+                worksheet.Cell(row, 10).Value = movement?.FunctionalStatus.ToString() ?? ""; // adjust if you have Lookup for Status
+                worksheet.Cell(row, 11).Value = movement?.Reason.ToString() ?? ""; // adjust if you have Lookup for Status
+                worksheet.Cell(row, 12).Value = asset.User?.FirstName ?? "";
+                worksheet.Cell(row, 13).Value = movement?.MovementDate.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+                worksheet.Cell(row, 14).Value = asset.DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
+                worksheet.Cell(row, 15).Value = asset.NextServiceDate?.ToString("yyyy-MM-dd") ?? "";
             }
 
             worksheet.Columns().AdjustToContents();

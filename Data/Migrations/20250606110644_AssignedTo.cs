@@ -21,7 +21,7 @@ namespace EMMS.Data.Migrations
                 column: "AssignedTo",
                 principalTable: "User",
                 principalColumn: "UserId",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.NoAction);
         }
 
         /// <inheritdoc />

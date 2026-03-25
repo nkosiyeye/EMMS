@@ -37,7 +37,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var movement in Model.MoveAssets)
+                   @*  @foreach (var movement in Model.MoveAssets)
                     {
                         <tr>
                             <td>@movement.Asset?.AssetTagNumber</td>
@@ -145,7 +145,7 @@
                                 }
                             </td>
                         </tr>
-                    }
+                    } *@
                 </tbody>
             </table>
 
@@ -179,7 +179,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @if(Model.AssetIndex.assetViewModels != null)
+                               @*  @if(Model.AssetIndex.assetViewModels != null)
                                 {
                                     @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason != Enumerators.MovementReason.Decommission))
                                     {
@@ -211,8 +211,8 @@
                                                     <span>-</span>
                                                 }
                                                 </td>
-                                            @* <td width="10%">@asset.Location</td> // from movement history todo?
-                                <td width="10%">@asset.FunctionalStatus</td> *@
+                                             <td width="10%">@asset.Location</td> // from movement history todo?
+                                <td width="10%">@asset.FunctionalStatus</td> 
                                             <td width="5%" class="action-container">
 
                                                 <a
@@ -224,7 +224,7 @@
                                             </td>
                                         </tr>
                                     }
-                                }                       
+                                } *@                       
                                 </tbody>
                         </table>
                     </div>
@@ -240,15 +240,133 @@
 @section Scripts {
     <script>
                 $(document).ready(function () {
-            $('#movementHistoryTable').DataTable({
-                pageLength: 10,
-                order: []
-            });
+            // $('#movementHistoryTable').DataTable({
+            //     pageLength: 10,
+            //     order: []
+            // });
 
-            $('#modalAssetTable').DataTable({
-                pageLength: 10,
-                order: []
-            });
+
+
+            //console.log("hello");
+            var isTabletOrSmaller = window.innerWidth <= 1024;
+                  $('#movementHistoryTable').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: '@Url.Action("GetMovements", "AssetMovement")',
+                type: 'POST',
+                dataSrc: 'data'
+            },
+            pageLength: 10,
+            responsive: window.innerWidth <= 1024,
+            columns: [
+                { data: "tag" },
+                { data: "fromFacility" },
+                { data: "toFacility" },
+                { data: "servicePoint" },
+                { data: "dateMoved" },
+                { data: "functionalStatus" },
+                { data: "reasonForMovement" },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row) {
+                        if (row.isApproved) {
+                            return '<span class="badge bg-success">Approved</span>';
+                        } else if(row.canApprove) {
+                            // You can add role check here if you pass isManager/isAdmin from server
+                            // For simplicity assuming the user can approve if not approved
+                            return `<a class="btn btn-sm btn-success"
+                                       href="/AssetMovement/approveMovement/${row.movementId}">
+                                       <i class="fa fa-check-circle"></i> Approve
+                                   </a>`;
+                        }else{
+                            return '<span class="badge bg-warning">Pending</span>';
+                        }
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row) {
+                        if (row.dateRejected) {
+                            return '<span class="badge bg-danger">Rejected</span>';
+                        } else if (row.dateReceived) {
+                            return '<span class="badge bg-success">Received</span>';
+                        } else {
+                            return '<span class="badge bg-secondary">Pending</span>';
+                        }
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row) {
+                        let html = '<div class="btn-group btn-group-sm">';
+
+                        // Edit & Delete — only if not received and not approved
+                        if (!row.dateReceived && !row.isApproved) {
+                            html += `
+                                <a class="btn btn-primary"
+                                   href="/AssetMovement/edit/${row.movementId}"
+                                   title="Edit">
+                                    <i class="fa fa-edit"></i>
+                                </a>
+                                <form action="/AssetMovement/deleteMovement" method="post" style="display:inline;"
+                                      onsubmit="return confirm('Delete this movement?');">
+                                    <input type="hidden" name="id" value="${row.movementId}" />
+                                    <button type="submit" class="btn btn-danger" title="Delete">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>`;
+                        }
+
+                        // Gate Pass — only if approved
+                        if (row.isApproved) {
+                            html += `
+                                <a class="btn btn-secondary ms-1"
+                                   href="/AssetMovement/GatePass/${row.movementId}"
+                                   target="_blank"
+                                   title="Print Gate Pass">
+                                    <i class="fa fa-print"></i> Pass
+                                </a>`;
+                        }
+
+                        html += '</div>';
+                        return html;
+                    }
+                }
+            ]
         });
+
+                         $('#modalAssetTable').DataTable({
+            serverSide: true,
+            processing: true,
+            ajax: {
+                url: '@Url.Action("GetAssets", "AssetMovement")',
+                type: 'POST',
+                dataSrc: 'data'
+            },
+            pageLength: 10,
+            responsive: isTabletOrSmaller,
+            columns: [
+                { data: "tag" },                // Asset Tag
+                { data: "category" },           // Category
+                { data: "subCategory" },        // SubCategory / Item name
+                { data: "placement" },          // Placement (Yes/No)
+                { data: "location" },           // Location (Facility or Service Point)
+                { data: "functionalStatus" },   // Functional Status
+                { data: "action", orderable: false, searchable: false }  // Move Asset button
+            ]
+        });
+
+        //     $('#modalAssetTable').DataTable({
+        //         pageLength: 10,
+        //         order: []
+        //     });
+         });
     </script>
 }

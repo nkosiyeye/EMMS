@@ -35,6 +35,12 @@
                                     case "approval":
                                         <i class="fa-solid fa-arrows-turn-to-dots text-warning fa-lg"></i>
                                         break;
+                                    case "forgotPassword":
+                                        <i class="fa-solid fa-lock text-danger fa-lg"></i>
+                                        break;
+                                    case "userRegistration":
+                                        <i class="fa-solid fa-user text-primary fa-lg"></i>
+                                        break;
                                     default:
                                         <i class="fas fa-bell text-secondary fa-lg"></i>
                                         break;
@@ -50,12 +56,14 @@
                             @{
                                 var action = item.Type switch
                                 {
-                                    "work" => Url.Action("Index", "JobManagement"),
-                                    "job" => Url.Action("manageJobs", "JobManagement"),
-                                    "asset" => Url.Action("Index", "AssetManagement"),
-                                    "approval" => Url.Action("Index", "AssetMovement"),
-                                    "reception" => Url.Action("recieveAsset", "AssetMovement"),
-                                    _ => ""
+                                "work" => Url.Action("Index", "JobManagement"),
+                                "job" => Url.Action("manageJobs", "JobManagement"),
+                                "asset" => Url.Action("Index", "AssetManagement"),
+                                "approval" => Url.Action("Index", "AssetMovement"),
+                                "reception" => Url.Action("recieveAsset", "AssetMovement"),
+                                "forgotPassword" => Url.Action("Edit", "Users", new{id = item.CreatedBy}),
+                                "userRegistration" => Url.Action("Edit", "Users", new { id = item.CreatedBy }),
+                                            _ => ""
                                 };
                             }
 

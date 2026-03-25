@@ -6,6 +6,7 @@
     ViewData["Title"] = "Register Asset";
     ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
+    var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
     var currentUser = ViewBag._currentUser as User;
 }
 
@@ -221,7 +222,7 @@
                                 <div class="row">
                                     <div class="col-md-8 col-lg-6 col-xl-6">
                                         <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
-                                        <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
+                                        <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
                                     </div>
                                     <div class="col-md-8 col-lg-6 col-xl-6" id="facilityField">
                                         <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
@@ -271,7 +272,7 @@
                                 <div class="row">
                                     <div class="col-md-8 col-lg-6 col-xl-6">
                                         <label asp-for="@Model.dateDeployed" for="start-field" class="form-label required-field">Date Deployed</label>
-                                        <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control">
+                                        <input asp-for="@Model.dateDeployed" type="date" id="start-field" placeholder="Duration" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
                                     </div>
                                     <div class="col-md-8 col-lg-6 col-xl-6" id="facilityField">
                                         <label asp-for="@Model.facilityId" class="form-label required-field">Facility Deployed To</label>
@@ -316,7 +317,52 @@
 </div>
 @section Scripts {
     <script>
+         $(document).ready(function () {
+                fetch('/AssetManagement/GetDropdownData')
+                    .then(response => response.json())
+                    .then(data => {
+                                if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+                                    populateSelect('category', data.categories);
+                                }
+
+                                if (data.departments && Array.isArray(data.departments) && data.departments.length > 0) {
+                                    populateSelect('department', data.departments);
+                                }
+
+                                if (data.manufacturers && Array.isArray(data.manufacturers) && data.manufacturers.length > 0) {
+                                    populateSelect('manufacturer', data.manufacturers);
+                                }
+
+                                if (data.vendors && Array.isArray(data.vendors) && data.vendors.length > 0) {
+                                    populateSelect('vendor', data.vendors);
+                                }
+
+                                if (data.serviceProviders && Array.isArray(data.serviceProviders) && data.serviceProviders.length > 0) {
+                                    populateSelect('service-provider', data.serviceProviders);
+                                }
+
+                                if (data.facilities && Array.isArray(data.facilities) && data.facilities.length > 0) {
+                                    populateSelect('facilityId', data.facilities);
+                                }
+
+                                if (data.servicePoints && Array.isArray(data.servicePoints) && data.servicePoints.length > 0) {
+                                    populateSelect('ServicePointId', data.servicePoints);
+                                }
+
+                        // Refresh the selectpicker UI if using Bootstrap Select
+                        // Hide loader and show form
+                        //document.getElementById('loading-spinner').style.display = 'none';
+                        //document.getElementById('form-container').style.display = 'block';
+
+                        if ($('.selectpicker').length > 0) {
+                            $('.selectpicker').selectpicker('refresh');
+                        }
+                    });
+         });
          document.addEventListener('DOMContentLoaded', function() {
+        
+
+        
             const categorySelector = document.getElementById('category');
             if (categorySelector) {
                 const selectedCategory = categorySelector.value;
@@ -344,6 +390,7 @@
                 checkAlreadyDeployed(deployedCheckbox);
             }
         });
+
         function checkPlacement(checkbox) {
             const durationField = document.getElementById('duration-field-container');
             if (checkbox.checked) {
@@ -410,8 +457,26 @@
                 }
             }
         }
+                function populateSelect(selectId, items) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            select.innerHTML = '<option selected disabled>Select</option>';
+            if (!Array.isArray(items) || items.length === 0) {
+                console.warn(`No items found for select #${selectId}`, items);
+                return;
+            }
+
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.Id || item.facilityId || item.id;
+                option.textContent = item.Name || item.facilityName || item.name;
+                select.appendChild(option);
+            });
+        }
 
 
+        
 
     </script>
     @{

@@ -3,7 +3,7 @@
 
 @{
     
-    var notifications = Model; // Limit to top 3
+    var notifications = Model.Take(4); // Limit to top 3
 }
 
 <script>

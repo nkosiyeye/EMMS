@@ -593,6 +593,18 @@ namespace EMMS.Controllers
                 work.DateModified = DateTime.Now;
 
                 _context.Update(work);
+                if(work.Description!.ToLower() == "service request for asset")
+                {
+                    var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == work.AssetId);
+                    if (asset is not null && asset.IsServiceable && asset.ServiceInterval != null)
+                    {
+                        asset.NextServiceDate = DateTime.Now.AddMonths((int)asset.ServiceInterval);
+                        UpdateEntity(asset);
+                        _context.Update(asset);
+                    }
+                    
+
+                }
             }
             else if (infraWork != null)
             {

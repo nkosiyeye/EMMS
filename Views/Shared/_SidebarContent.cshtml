@@ -4,6 +4,7 @@
     var isAdmin = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.Biomed;
     var isManager = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.FacilityManager;
+    var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
     var currentUser = ViewBag._currentUser as User;
 }
 
@@ -19,22 +20,25 @@
             <a asp-controller="AssetManagement" asp-action="Index" class="@ViewData["asset"] list-group-item border-0 d-inline-block text-truncate">
                 <i class="fa-solid fa-box-open"></i> <span>Asset Management</span>
             </a>
-
-            <a href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
-                <div>
-                    <i class="fa-solid fa-arrows-turn-to-dots"></i>
-                    <span>Asset Movement</span>
+            @if (!isDataCollector)
+            {
+                <a href="#movementmenu" data-bs-toggle="collapse" class="@ViewData["JobMovement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
+                    <div>
+                        <i class="fa-solid fa-arrows-turn-to-dots"></i>
+                        <span>Asset Movement</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
+                </a>
+                <div id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
+                    <a asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Move Asset
+                    </a>
+                    <a asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Receive Asset
+                    </a>
                 </div>
-                <i class="fa-solid fa-chevron-down float-end fa-align-center collapse-icon"></i>
-            </a>
-            <div id="movementmenu" class="collapse list-group border-1 rounded-0 text-sm-start">
-                <a asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
-                    Move Asset
-                </a>
-                <a asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
-                    Receive Asset
-                </a>
-            </div>
+                
+            
 
             <a href="#jobmenu" data-bs-toggle="collapse" class="@ViewData["JobManagement"] list-group-item border-0 d-flex align-items-center justify-content-between text-truncate text-dark collapsed" aria-expanded="false">
                <div>
@@ -62,6 +66,7 @@
             <a asp-controller="Notification" asp-action="Index" class="@ViewData["Notification"] list-group-item border-0 d-inline-block text-truncate">
                 <i class="fa-solid fa-bell"></i> <span>Notifications</span>
             </a>
+            }
 
             @if (isAdmin)
             {

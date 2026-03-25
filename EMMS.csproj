@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Data\SQL Queries\" />
     <Folder Include="Views\Admin\Dashboard\" />
     <Folder Include="Views\Admin\Lookups\" />
     <Folder Include="Views\Admin\UserManagement\" />
