@@ -15,6 +15,9 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.AssetCylinderDetail> AssetCylinderDetails { get; set; }
         public DbSet<EMMS.Models.MovementQueueItem> MovementQueueItems { get; set; }
         public DbSet<EMMS.Models.HomeBasedCarePatient> HomeBasedCarePatients { get; set; }
+        public DbSet<EMMS.Models.CylinderRequest> CylinderRequests { get; set; }
+        public DbSet<EMMS.Models.CylinderOrder> CylinderOrders { get; set; }
+        public DbSet<EMMS.Models.CylinderOrderItem> CylinderOrderItems { get; set; }
         public DbSet<EMMS.Models.Entities.Facility> Facilities { get; set; }
         public DbSet<EMMS.Models.MoveAsset> AssetMovement { get; set; }
         public DbSet<EMMS.Models.WorkRequest> WorkRequest { get; set; }
@@ -86,6 +89,32 @@ namespace EMMS.Data
 
             modelBuilder.Entity<EMMS.Models.HomeBasedCarePatient>()
                 .HasIndex(p => p.Number);
+
+            // Cylinder request -> order -> dispatched items; nothing cascades
+            modelBuilder.HasSequence<long>("CylinderOrderSeq");
+            modelBuilder.Entity<EMMS.Models.CylinderRequest>(e =>
+            {
+                e.HasIndex(r => new { r.FacilityId, r.Status });
+                e.HasOne(r => r.Facility).WithMany().HasForeignKey(r => r.FacilityId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(r => r.Description).WithMany().HasForeignKey(r => r.DescriptionId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(r => r.Size).WithMany().HasForeignKey(r => r.SizeId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(r => r.Content).WithMany().HasForeignKey(r => r.ContentId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(r => r.Approver).WithMany().HasForeignKey(r => r.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(r => r.Requester).WithMany().HasForeignKey(r => r.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<EMMS.Models.CylinderOrder>(e =>
+            {
+                e.HasIndex(o => o.OrderNumber).IsUnique();
+                e.HasOne(o => o.Request).WithMany().HasForeignKey(o => o.RequestId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(o => o.OrderedByUser).WithMany().HasForeignKey(o => o.OrderedBy).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<EMMS.Models.CylinderOrderItem>(e =>
+            {
+                e.HasIndex(i => i.AssetId);
+                e.HasOne(i => i.Order).WithMany(o => o.Items).HasForeignKey(i => i.OrderId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(i => i.Asset).WithMany().HasForeignKey(i => i.AssetId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(i => i.Movement).WithMany().HasForeignKey(i => i.MovementId).OnDelete(DeleteBehavior.Restrict);
+            });
 
             // WorkRequest
             modelBuilder.Entity<EMMS.Models.WorkRequest>()

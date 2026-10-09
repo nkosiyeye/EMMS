@@ -73,7 +73,7 @@
                             <select asp-for="MoveAsset.Reason" class="form-select selectpicker col-md-6"
                             data-live-search="true" onchange="onchangereason()" id="movementReason">
                         <option selected disabled>Select Movement Reason</option>
-                        @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementReason)).Cast<EMMS.Models.Enumerators.MovementReason>())
+                        @foreach (var type in Enum.GetValues(typeof(EMMS.Models.Enumerators.MovementReason)).Cast<EMMS.Models.Enumerators.MovementReason>().Where(r => r != EMMS.Models.Enumerators.MovementReason.Dispatch)) @* Dispatch comes from cylinder orders *@
                         {
                             <option value="@(Convert.ToInt32(type))">@type.ToString()</option>
                         }

@@ -24,6 +24,8 @@ namespace EMMS.Data.Migrations
 
             modelBuilder.HasSequence("AssetTagSeq");
 
+            modelBuilder.HasSequence("CylinderOrderSeq");
+
             modelBuilder.Entity("EMMS.Models.Admin.User", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -294,6 +296,158 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("SizeId");
 
                     b.ToTable("AssetCylinderDetails");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("OrderedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("OrderedBy");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("CylinderOrders");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderOrderItem", b =>
+                {
+                    b.Property<Guid>("OrderItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MovementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("OrderItemId");
+
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("MovementId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("CylinderOrderItems");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderRequest", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ContentId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateApproved")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DescriptionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FacilityId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequisitionName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("RequisitionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("SizeId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("RequestId");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("ContentId");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DescriptionId");
+
+                    b.HasIndex("SizeId");
+
+                    b.HasIndex("FacilityId", "Status");
+
+                    b.ToTable("CylinderRequests");
                 });
 
             modelBuilder.Entity("EMMS.Models.Entities.Facility", b =>
@@ -1303,6 +1457,100 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Size");
                 });
 
+            modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
+                {
+                    b.HasOne("EMMS.Models.Admin.User", "OrderedByUser")
+                        .WithMany()
+                        .HasForeignKey("OrderedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.CylinderRequest", "Request")
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OrderedByUser");
+
+                    b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderOrderItem", b =>
+                {
+                    b.HasOne("EMMS.Models.Asset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.MoveAsset", "Movement")
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.CylinderOrder", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("Movement");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderRequest", b =>
+                {
+                    b.HasOne("EMMS.Models.Admin.User", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Content")
+                        .WithMany()
+                        .HasForeignKey("ContentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.User", "Requester")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Description")
+                        .WithMany()
+                        .HasForeignKey("DescriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.Facility", "Facility")
+                        .WithMany()
+                        .HasForeignKey("FacilityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Size")
+                        .WithMany()
+                        .HasForeignKey("SizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Content");
+
+                    b.Navigation("Description");
+
+                    b.Navigation("Facility");
+
+                    b.Navigation("Requester");
+
+                    b.Navigation("Size");
+                });
+
             modelBuilder.Entity("EMMS.Models.Entities.LookupItem", b =>
                 {
                     b.HasOne("EMMS.Models.Entities.LookupList", "LookupList")
@@ -1647,6 +1895,11 @@ namespace EMMS.Data.Migrations
             modelBuilder.Entity("EMMS.Models.Asset", b =>
                 {
                     b.Navigation("CylinderDetail");
+                });
+
+            modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

@@ -32,10 +32,12 @@ namespace EMMS.Controllers
         private readonly NotificationService _notificationService;
         private readonly AssetManagementRepo _assetManagementRepo;
         private readonly MovementQueueService _queueService;
+        private readonly CylinderOrderService _orderService;
 
         public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, 
-            AssetManagementRepo assetManagementRepo, MovementService movementService, MovementQueueService queueService)
+            AssetManagementRepo assetManagementRepo, MovementService movementService, MovementQueueService queueService, CylinderOrderService orderService)
         {
+            _orderService = orderService;
             _queueService = queueService;
             _context = context;
             _assetService = assetService;
@@ -377,6 +379,14 @@ namespace EMMS.Controllers
             }
             if (model.MoveAsset != null) model.MoveAsset.Patient = null;
 
+            // Dispatch only comes from a cylinder order; Return only goes to the central store
+            if (model.MoveAsset != null)
+            {
+                bool toCentralStore = await _context.Facilities.AnyAsync(f => f.FacilityId == model.MoveAsset.FacilityId && f.IsCentralStore);
+                foreach (var error in MovementQueueService.ValidateReason(model.MoveAsset.Reason, toCentralStore, dispatch: false))
+                    ModelState.AddModelError("", error);
+            }
+
             // 3. If still invalid → repopulate everything and return view
             if (!ModelState.IsValid)
             {
@@ -597,6 +607,8 @@ namespace EMMS.Controllers
 
             _context.Update(movement);
             await _context.SaveChangesAsync();
+            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
 
@@ -622,6 +634,8 @@ namespace EMMS.Controllers
             movement.Remarks = model.MoveAsset.Remarks;
 
             _context.Update(movement);
+            await _context.SaveChangesAsync();
+            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
@@ -717,35 +731,56 @@ namespace EMMS.Controllers
         // ------------------------------------------------------------------------------------------
         [HttpGet]
         [RequireLogin]
-        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
-        public async Task<IActionResult> Queue()
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> Queue(Guid? orderId)
         {
-            return View("Queue", await LoadQueueViewModel(new BatchMoveRequest()));
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null)
+            {
+                TempData["CylinderError"] = error;
+                return RedirectToAction("Index", "Cylinder");
+            }
+            return View("Queue", await LoadQueueViewModel(new BatchMoveRequest(), order));
         }
 
-        private async Task<MovementQueueViewModel> LoadQueueViewModel(BatchMoveRequest request)
+        private async Task<MovementQueueViewModel> LoadQueueViewModel(BatchMoveRequest request, CylinderOrder? order = null)
         {
             return new MovementQueueViewModel
             {
                 Items = await _queueService.GetQueueAsync(CurrentUser!.UserId),
                 Request = request,
-                ServicePoints = await GetRepo().GetServicePoints()
+                ServicePoints = await GetRepo().GetServicePoints(),
+                Dispatch = order == null ? null : CylinderOrderService.ToRow(order, isCms: true)
             };
+        }
+
+        // Dispatch mode: the order must be dispatchable and the user a CMS officer at the central store
+        private async Task<(CylinderOrder? order, string? error)> LoadDispatchOrder(Guid? orderId)
+        {
+            if (orderId == null) return (null, null);
+            if (!await _orderService.IsCmsUserAsync(CurrentUser)) return (null, "Only a CMS officer at the central store can dispatch orders.");
+            var order = await _orderService.GetOrderForDispatchAsync(orderId.Value);
+            if (order == null) return (null, "Order not found.");
+            if (!CylinderOrderService.CanDispatch(order.Status, order.Quantity, CylinderOrderService.ActiveDispatched(order)))
+                return (null, $"Order {order.OrderNumber} cannot be dispatched ({order.Status}).");
+            return (order, null);
         }
 
         [HttpPost]
         [RequireLogin]
-        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
-        public async Task<IActionResult> QueueScan([FromForm] string? tag)
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> QueueScan([FromForm] string? tag, [FromForm] Guid? orderId)
         {
-            var result = await _queueService.ScanAsync(tag, CurrentUser!);
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null) return Json(new { code = "Error", message = error, item = (object?)null, queueCount = 0 });
+            var result = await _queueService.ScanAsync(tag, CurrentUser!, order);
             return Json(new { code = result.Code.ToString(), result.Message, result.Item, result.QueueCount });
         }
 
         // "Move selected" from the asset grid: same checks as scanning, for facilities without a scanner
         [HttpPost]
         [RequireLogin]
-        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
         public async Task<IActionResult> QueueAddSelected(List<string> tags)
         {
             var results = await _queueService.AddManyAsync(tags ?? new List<string>(), CurrentUser!);
@@ -774,14 +809,21 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [RequireLogin]
-        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
-        public async Task<IActionResult> QueueSubmit(MovementQueueViewModel model)
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> QueueSubmit(MovementQueueViewModel model, Guid? orderId)
         {
             var request = model.Request ?? new BatchMoveRequest();
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null)
+            {
+                TempData["CylinderError"] = error;
+                return RedirectToAction("Index", "Cylinder");
+            }
+
             QueueSubmitResult result;
             try
             {
-                result = await _queueService.SubmitAsync(CurrentUser!, request);
+                result = await _queueService.SubmitAsync(CurrentUser!, request, order);
             }
             catch (Exception ex)
             {
@@ -792,10 +834,13 @@ namespace EMMS.Controllers
             if (!result.Success)
             {
                 TempData["QueueErrors"] = string.Join("\n", result.Errors);
-                return View("Queue", await LoadQueueViewModel(request));
+                if (order != null) order = await _orderService.GetOrderForDispatchAsync(order.OrderId);
+                return View("Queue", await LoadQueueViewModel(request, order));
             }
 
-            TempData["Success"] = $"Batch submitted: {result.Count} movement(s) awaiting approval.";
+            TempData["Success"] = order != null
+                ? $"Order {order.OrderNumber}: {result.Count} cylinder(s) dispatched (pre-approved)."
+                : $"Batch submitted: {result.Count} movement(s) awaiting approval.";
             return RedirectToAction(nameof(Batch), new { id = result.BatchId });
         }
 
@@ -834,6 +879,49 @@ namespace EMMS.Controllers
         {
             var movements = (await _queueService.GetBatchAsync(id)).Where(m => m.IsApproved && m.DateRejected == null).ToList();
             return movements.Count == 0 ? NotFound() : View("BatchGatePass", movements);
+        }
+
+        // ------------------------------------------------------------------------------------------
+        // Scan to Receive (batch)
+        // ------------------------------------------------------------------------------------------
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> IncomingBatches()
+        {
+            return Json(await _queueService.GetIncomingBatchesAsync(CurrentUser!));
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> BatchReceiveItems(Guid id)
+        {
+            return Json(await _queueService.GetBatchForReceiveAsync(id, CurrentUser!));
+        }
+
+        public class ReceiveBatchRequest
+        {
+            public Guid BatchId { get; set; }
+            public List<Guid> MovementIds { get; set; } = new();
+            public int? ConditionId { get; set; }
+            public string? Remarks { get; set; }
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> ReceiveBatch([FromBody] ReceiveBatchRequest? request)
+        {
+            if (request == null || request.BatchId == Guid.Empty)
+                return BadRequest(new { errors = new[] { "Choose a batch and scan at least one asset." } });
+            try
+            {
+                var result = await _queueService.ReceiveBatchAsync(CurrentUser!, request.BatchId, request.MovementIds, request.ConditionId, request.Remarks);
+                return result.Errors.Any() ? BadRequest(new { errors = result.Errors }) : Json(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return BadRequest(new { errors = new[] { "The receipt could not be saved. Nothing was changed." } });
+            }
         }
 
         [HttpGet]

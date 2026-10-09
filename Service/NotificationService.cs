@@ -15,6 +15,10 @@ namespace EMMS.Service
         Task CreateMovementApprovalNotification(int facilityId, Guid createdBy);
         Task CreateBatchMovementRequestNotification(int facilityId, int count, Guid createdBy);
         Task CreateBatchMovementApprovalNotification(int facilityId, int count, Guid createdBy);
+        Task CreateCylinderRequestNotification(int facilityId, Guid createdBy);
+        Task CreateCylinderRequestApprovedNotification(Guid createdBy);
+        Task CreateUserNotification(Guid? userId, string message, string type, Guid createdBy);
+        Task CreateBatchReceiptDiscrepancyNotification(int sourceFacilityId, int missing, Guid createdBy);
         Task CreateWorkRequestNotification(int facilityId, Guid createdBy);
         Task CreateJobAssignmentNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
         Task CreateJobClaimedNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
@@ -74,6 +78,42 @@ namespace EMMS.Service
         {
             var message = $"A batch of {count} asset(s) is on its way and requires reception.";
             await NotifyFacilityStakeholders(facilityId, message, "reception", createdBy);
+        }
+
+        // Cylinder request submitted: the facility's pharmacists approve it
+        public async Task CreateCylinderRequestNotification(int facilityId, Guid createdBy)
+        {
+            var pharmacists = await _context.User.Include(u => u.UserRole)
+                .Where(u => u.FacilityId == facilityId && u.UserRole.UserType == Enumerators.UserType.Pharmacist && u.RowState == RowStatus.Active)
+                .ToListAsync();
+            foreach (var user in pharmacists)
+                await AddNotificationAsync("A cylinder request is waiting for your approval.", "cylinder", facilityId, user.UserId, createdBy);
+        }
+
+        // Cylinder request approved: CMS officers (central store) and admins create the order
+        public async Task CreateCylinderRequestApprovedNotification(Guid createdBy)
+        {
+            var recipients = await _context.User.Include(u => u.UserRole).Include(u => u.Facility)
+                .Where(u => u.RowState == RowStatus.Active &&
+                            (u.UserRole.UserType == Enumerators.UserType.Administrator ||
+                             (u.UserRole.UserType == Enumerators.UserType.CmsOfficer && u.Facility!.IsCentralStore)))
+                .ToListAsync();
+            foreach (var user in recipients)
+                await AddNotificationAsync("An approved cylinder request is ready to be ordered.", "cylinder", null, user.UserId, createdBy);
+        }
+
+        // Direct message to one user (e.g. the requester when their request is rejected or returned)
+        public async Task CreateUserNotification(Guid? userId, string message, string type, Guid createdBy)
+        {
+            if (userId == null) return;
+            await AddNotificationAsync(message, type, null, userId, createdBy);
+        }
+
+        // Batch received with unscanned items: the sending facility follows up
+        public async Task CreateBatchReceiptDiscrepancyNotification(int sourceFacilityId, int missing, Guid createdBy)
+        {
+            var message = $"{missing} asset(s) in a dispatched batch were not scanned at receipt and need follow-up.";
+            await NotifyFacilityManagersAndAdmins(sourceFacilityId, message, "reception", createdBy);
         }
 
         // Work request created: notify Biomed in facility + Admin

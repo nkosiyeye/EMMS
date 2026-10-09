@@ -10,6 +10,9 @@ namespace EMMS.ViewModels
         public List<QueueItemViewModel> Items { get; set; } = new();
         public BatchMoveRequest Request { get; set; } = new();
         public IEnumerable<LookupItem>? ServicePoints { get; set; }
+
+        // Set when the queue is opened to dispatch a cylinder order
+        public CylinderOrderRow? Dispatch { get; set; }
     }
 
     public class QueueItemViewModel
@@ -70,6 +73,32 @@ namespace EMMS.ViewModels
         public bool Success => Errors.Count == 0 && BatchId != null;
         public Guid? BatchId { get; set; }
         public int Count { get; set; }
+        public List<string> Errors { get; set; } = new();
+    }
+
+    // Scan to Receive: a batch addressed to the user's facility
+    public class IncomingBatchViewModel
+    {
+        public Guid BatchId { get; set; }
+        public string Label { get; set; } = "";   // order number for a dispatch, otherwise the short batch id
+        public string? From { get; set; }
+        public int Pending { get; set; }
+        public DateTime Sent { get; set; }
+    }
+
+    public class ReceiveItemViewModel
+    {
+        public Guid MovementId { get; set; }
+        public string? Tag { get; set; }
+        public string? Serial { get; set; }
+        public string? ItemName { get; set; }
+        public bool Received { get; set; }
+    }
+
+    public class ReceiveBatchResult
+    {
+        public int Received { get; set; }
+        public int Flagged { get; set; }
         public List<string> Errors { get; set; } = new();
     }
 

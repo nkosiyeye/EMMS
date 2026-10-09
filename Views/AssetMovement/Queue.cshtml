@@ -5,12 +5,25 @@
     ViewData["movementQueue"] = "active";
     ViewData["JobMovement"] = "active";
     var req = Model.Request;
-    var reasons = Enum.GetValues<MovementReason>().Where(r => r != MovementReason.StolenorMissing); // stolen/missing has its own report
+    // Stolen/missing has its own report; Dispatch only comes from a cylinder order
+    var reasons = Enum.GetValues<MovementReason>().Where(r => r != MovementReason.StolenorMissing && r != MovementReason.Dispatch);
+    var dispatch = Model.Dispatch;
+    var order = dispatch?.Order;
 }
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span><strong>Movement Queue</strong> <span class="text-muted">(evolved from Move Asset)</span></span>
+        @if (order != null)
+        {
+            <span><strong>Dispatch Order <span class="font-monospace">@order.OrderNumber</span></strong>
+                <span class="text-muted">to @order.Request?.Facility?.FacilityName</span>
+                <span class="badge bg-primary ms-2 fs-6"><span id="dispatchCount">@(dispatch!.Dispatched + Model.Items.Count)</span> / @order.Quantity</span>
+            </span>
+        }
+        else
+        {
+            <span><strong>Movement Queue</strong> <span class="text-muted"></span></span>
+        }
         <a class="btn btn-outline-secondary btn-sm" asp-controller="AssetMovement" asp-action="Index">
             <i class="fa fa-list me-1"></i> Movement History
         </a>
@@ -26,6 +39,11 @@
         @if (TempData["QueueErrors"] != null)
         {
             <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">@TempData["QueueErrors"]<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+        }
+
+        @if (order != null && Model.Items.Any())
+        {
+            <div class="alert alert-warning small">Your queue already held @Model.Items.Count asset(s) before this dispatch. Each must match order @order.OrderNumber, or remove it.</div>
         }
 
         <div class="row g-4">
@@ -85,7 +103,42 @@
                     </table>
                 </div>
 
-                <form asp-action="QueueSubmit" asp-controller="AssetMovement" method="post" id="queueSubmitForm" class="registrationForm">
+                <form asp-action="QueueSubmit" asp-controller="AssetMovement" asp-route-orderId="@order?.OrderId" method="post" id="queueSubmitForm" class="registrationForm">
+                    @if (order != null)
+                    {
+                        <h5 class="mb-3 mt-2 form-subheading">Dispatch (from the order)</h5>
+                        <div class="row mb-3 small">
+                            <div class="col-md-6"><strong>To:</strong> @order.Request?.Facility?.FacilityName</div>
+                            <div class="col-md-6"><strong>Item:</strong> @order.Request?.Description?.Name · @order.Request?.Size?.Name / @order.Request?.Content?.Name</div>
+                            <div class="col-md-6"><strong>Reason:</strong> Dispatch</div>
+                            <div class="col-md-6"><strong>Still needed:</strong> @(order.Quantity - dispatch!.Dispatched) of @order.Quantity</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
+                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker">
+                                    @foreach (var status in Enum.GetValues<FunctionalStatus>())
+                                    {
+                                        <option value="@((int)status)">@status</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Request.MovementDate" class="form-label required-field"></label>
+                                <input asp-for="Request.MovementDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Request.Remarks" class="form-label"></label>
+                            <input asp-for="Request.Remarks" class="form-control" />
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a class="btn btn-outline-secondary btn-sm" asp-controller="Cylinder" asp-action="Index">Back to orders</a>
+                            <button type="submit" class="btn btn-primary" id="submitBatch" @(Model.Items.Any() ? "" : "disabled")>Dispatch (<span class="queue-count">@Model.Items.Count</span>)</button>
+                        </div>
+                    }
+                    else
+                    {
                     <h5 class="mb-3 mt-2 form-subheading">Destination (chosen once for the batch)</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -183,12 +236,14 @@
                         <button type="submit" class="btn btn-outline-danger btn-sm" form="queueClearForm" onclick="return confirm('Remove every asset from the queue?');">Clear queue</button>
                         <button type="submit" class="btn btn-primary" id="submitBatch" @(Model.Items.Any() ? "" : "disabled")>Submit Batch (<span class="queue-count">@Model.Items.Count</span>)</button>
                     </div>
+                    }
                 </form>
                 <form asp-action="QueueClear" asp-controller="AssetMovement" method="post" id="queueClearForm"></form>
 
                 <div class="alert alert-light border small mt-3 mb-0 alert-dismissible fade show" role="alert">
                     Submit revalidates every asset, then creates one movement per asset under one batch in a single transaction and clears the queue.
-                    If anything fails, nothing is moved and the queue stays as it is. The batch then follows the normal approve and receive steps.
+                    If anything fails, nothing is moved and the queue stays as it is.
+                    @(order != null ? "A dispatch is pre-approved: the facility receives it directly." : "The batch then follows the normal approve and receive steps.")
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </div>
@@ -201,6 +256,8 @@
         // Enum values rendered from the server (no magic numbers)
         const MOVEMENT_TYPE = { Facility: '@((int)MovementType.Facility)', ServicePoint: '@((int)MovementType.ServicePoint)', OffSite: '@((int)MovementType.OffSite)' };
         const REASON = { Installation: '@((int)MovementReason.Installation)', Other: '@((int)MovementReason.Other)' };
+        const ORDER_ID = '@(order?.OrderId)';
+        const ALREADY_DISPATCHED = @(dispatch?.Dispatched ?? 0);
 
         document.addEventListener('DOMContentLoaded', function () {
             const scanInput = document.getElementById('queueScan');
@@ -213,6 +270,8 @@
                 document.querySelectorAll('.queue-count').forEach(el => el.textContent = n);
                 document.getElementById('submitBatch').disabled = n === 0;
                 document.getElementById('queueEmpty').classList.toggle('d-none', n > 0);
+                const counter = document.getElementById('dispatchCount');
+                if (counter) counter.textContent = ALREADY_DISPATCHED + n;
             }
 
             function addRow(item) {
@@ -246,7 +305,7 @@
                     const response = await fetch('/AssetMovement/QueueScan', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ tag })
+                        body: new URLSearchParams(ORDER_ID ? { tag, orderId: ORDER_ID } : { tag })
                     });
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     const result = await response.json();
@@ -292,8 +351,9 @@
                 scanInput.focus();
             });
 
-            // --- Destination fields ---
+            // --- Destination fields (not shown when dispatching an order) ---
             const typeSelect = document.getElementById('movementType');
+            if (!typeSelect) return;
             const facilitySelect = document.getElementById('facility');
             const servicePointSelect = document.getElementById('servicePoint');
 

@@ -1,0 +1,359 @@
+@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.CylinderIndexViewModel
+@{
+    ViewData["Title"] = "Cylinder Requests";
+    ViewData["cylinder"] = "active";
+
+    string RequestBadge(CylinderRequestStatus s) => s switch
+    {
+        CylinderRequestStatus.Approved => "<span class='badge bg-success'>Approved</span>",
+        CylinderRequestStatus.Rejected => "<span class='badge bg-danger'>Rejected</span>",
+        _ => "<span class='badge bg-warning text-dark'>Pending approval</span>"
+    };
+    string OrderBadge(CylinderOrderStatus s) => s switch
+    {
+        CylinderOrderStatus.Ordered => "<span class='badge bg-info text-dark'>Ordered</span>",
+        CylinderOrderStatus.Modified => "<span class='badge bg-warning text-dark'>Modified</span>",
+        CylinderOrderStatus.Dispatched => "<span class='badge bg-primary'>Dispatched</span>",
+        CylinderOrderStatus.Received => "<span class='badge bg-success'>Received</span>",
+        _ => "<span class='badge bg-secondary'>Plant down</span>"
+    };
+    var orderedRequestIds = Model.Orders.Where(o => o.Order.Status != CylinderOrderStatus.PlantDown).Select(o => o.Order.RequestId).ToHashSet();
+}
+
+@if (TempData["CylinderError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">@TempData["CylinderError"]<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+}
+
+<div class="row g-4 mb-4">
+    <!-- Request form (facility user) -->
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Request Cylinders</strong> <span class="text-muted">(facility user)</span></div>
+            <div class="card-body">
+                <form asp-action="SubmitRequest" method="post" id="requestForm" class="registrationForm">
+                    <input type="hidden" asp-for="Form.RequestId" id="requestId" />
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="Form.DescriptionId" class="form-label required-field"></label>
+                            <select asp-for="Form.DescriptionId" id="reqItem" class="form-select" asp-items="@(new SelectList(Model.Items, "Id", "Name"))">
+                                @if (Model.Items.Count() != 1) { <option value="">Select Item</option> }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Form.SizeId" class="form-label required-field"></label>
+                            <select asp-for="Form.SizeId" id="reqSize" class="form-select" asp-items="@(new SelectList(Model.Sizes, "Id", "Name"))">
+                                <option value="">Select Size</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.ContentId" class="form-label required-field"></label>
+                            <select asp-for="Form.ContentId" id="reqContent" class="form-select" asp-items="@(new SelectList(Model.Contents, "Id", "Name"))">
+                                <option value="">Select Content</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Form.Quantity" class="form-label required-field"></label>
+                            <input asp-for="Form.Quantity" id="reqQuantity" type="number" min="1" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.RequisitionNumber" class="form-label required-field"></label>
+                            <input asp-for="Form.RequisitionNumber" id="reqNumber" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Form.RequisitionName" class="form-label required-field"></label>
+                        <input asp-for="Form.RequisitionName" id="reqName" class="form-control" />
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="submit" class="btn btn-primary" id="requestSubmit">Submit Request</button>
+                            <button type="button" class="btn btn-link d-none" id="cancelRevise">Cancel revision</button>
+                        </div>
+                        <span class="badge bg-warning text-dark">Pharmacist approval required</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending requests for CMS -->
+    <div class="col-xl-6">
+        <div class="card h-100">
+            <div class="card-header"><strong>Pending Requests</strong> <span class="text-muted">(Central Medical Stores)</span></div>
+            <div class="card-body">
+                @if (!Model.IsCmsUser)
+                {
+                    <p class="text-muted mb-0">Approved requests are ordered and dispatched by a CMS officer at the central store.</p>
+                }
+                else if (!Model.ApprovedRequests.Any())
+                {
+                    <p class="text-muted mb-0">No approved requests are waiting for an order.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle small">
+                            <thead class="table-light">
+                                <tr><th>Facility</th><th>Item / Size / Content</th><th>Qty</th><th>Approved</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in Model.ApprovedRequests)
+                                {
+                                    <tr>
+                                        <td>@r.Facility?.FacilityName</td>
+                                        <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
+                                        <td>@r.Quantity</td>
+                                        <td>@r.DateApproved?.ToString("dd MMM")</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-primary create-order"
+                                                    data-request-id="@r.RequestId" data-facility="@r.Facility?.FacilityName"
+                                                    data-item="@($"{r.Size?.Name} / {r.Content?.Name}")" data-qty="@r.Quantity">
+                                                Create Order &rarr;
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.IsCmsUser)
+{
+    <div class="card mb-4 d-none" id="createOrderCard">
+        <div class="card-header"><strong>Create Order</strong> <span class="text-muted">(assigns stock, then opens the Movement Queue to dispatch)</span></div>
+        <div class="card-body">
+            <form asp-action="CreateOrder" method="post">
+                <input type="hidden" name="requestId" id="orderRequestId" />
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Order Number</label>
+                        <input class="form-control" value="ORD-@DateTime.Today.Year-#### (auto)" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Facility</label>
+                        <input class="form-control" id="orderFacility" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Size / Content</label>
+                        <input class="form-control" id="orderItem" disabled />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label required-field">Quantity</label>
+                        <input class="form-control" type="number" min="1" name="quantity" id="orderQuantity" required />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Order &amp; Assign Stock &rarr;</button>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- Requests of this facility -->
+<div class="card mb-4">
+    <div class="card-header"><strong>@(Model.IsAdmin ? "All Requests" : "Facility Requests")</strong></div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover align-middle small">
+                <thead class="table-dark">
+                    <tr><th>Requisition</th>@if (Model.IsAdmin) { <th>Facility</th> }<th>Item / Size / Content</th><th>Qty</th><th>Requested</th><th>By</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    @if (!Model.FacilityRequests.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted fst-italic">No requests yet.</td></tr>
+                    }
+                    @foreach (var r in Model.FacilityRequests)
+                    {
+                        bool canDecide = r.Status == CylinderRequestStatus.Requested && (Model.IsAdmin || (Model.IsPharmacist && r.FacilityId == Model.CurrentFacilityId));
+                        bool canRevise = (r.Status == CylinderRequestStatus.Rejected || (r.Status == CylinderRequestStatus.Requested && r.DecisionReason != null))
+                                         && (Model.IsAdmin || r.FacilityId == Model.CurrentFacilityId);
+                        <tr class="@(r.Status == CylinderRequestStatus.Requested ? "table-warning" : "")">
+                            <td>@r.RequisitionNumber<div class="text-muted">@r.RequisitionName</div></td>
+                            @if (Model.IsAdmin) { <td>@r.Facility?.FacilityName</td> }
+                            <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
+                            <td>@r.Quantity</td>
+                            <td>@r.DateCreated?.ToString("dd MMM")</td>
+                            <td>@r.Requester?.FirstName @r.Requester?.LastName</td>
+                            <td>
+                                @Html.Raw(orderedRequestIds.Contains(r.RequestId) ? "<span class='badge bg-primary'>Ordered</span>" : RequestBadge(r.Status))
+                                @if (!string.IsNullOrEmpty(r.DecisionReason)) { <div class="text-danger">@r.DecisionReason</div> }
+                            </td>
+                            <td class="text-nowrap">
+                                @if (canDecide)
+                                {
+                                    <form asp-action="ApproveRequest" asp-route-id="@r.RequestId" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="fa fa-check"></i> Approve</button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-danger reject-request" data-request-id="@r.RequestId" data-requisition="@r.RequisitionNumber"><i class="fa fa-times"></i> Reject</button>
+                                }
+                                @if (canRevise)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-primary revise-request"
+                                            data-request-id="@r.RequestId" data-item="@r.DescriptionId" data-size="@r.SizeId" data-content="@r.ContentId"
+                                            data-qty="@r.Quantity" data-number="@r.RequisitionNumber" data-name="@r.RequisitionName">
+                                        <i class="fa fa-edit"></i> Revise &amp; resubmit
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Orders -->
+<div class="card mb-4">
+    <div class="card-header"><strong>Orders</strong></div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover align-middle small">
+                <thead class="table-dark">
+                    <tr><th>Order</th><th>Facility</th><th>Item / Size / Content</th><th>Qty</th><th>Dispatched</th><th>Received</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Orders.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted fst-italic">No orders yet.</td></tr>
+                    }
+                    @foreach (var row in Model.Orders)
+                    {
+                        var o = row.Order;
+                        bool open = o.Status is not (CylinderOrderStatus.PlantDown or CylinderOrderStatus.Received);
+                        <tr>
+                            <td class="font-monospace">@o.OrderNumber</td>
+                            <td>@o.Request?.Facility?.FacilityName</td>
+                            <td>@o.Request?.Description?.Name · @o.Request?.Size?.Name / @o.Request?.Content?.Name</td>
+                            <td>@o.Quantity</td>
+                            <td>@row.Dispatched / @o.Quantity</td>
+                            <td>@row.Received / @row.Dispatched</td>
+                            <td>@Html.Raw(OrderBadge(o.Status))</td>
+                            <td class="text-nowrap">
+                                @if (row.CanDispatch)
+                                {
+                                    <a class="btn btn-sm btn-primary" asp-action="Dispatch" asp-route-id="@o.OrderId"><i class="fa fa-barcode me-1"></i> Dispatch</a>
+                                }
+                                @if (Model.IsCmsUser && open)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary modify-order" data-order-id="@o.OrderId" data-order="@o.OrderNumber" data-qty="@o.Quantity" data-min="@Math.Max(1, row.Dispatched)">Modify</button>
+                                    @if (o.Status == CylinderOrderStatus.Modified)
+                                    {
+                                        <form asp-action="ResubmitOrder" asp-route-id="@o.OrderId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Re-submit</button>
+                                        </form>
+                                    }
+                                    @if (row.Dispatched == 0)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger plant-down" data-order-id="@o.OrderId" data-order="@o.OrderNumber">Plant down</button>
+                                    }
+                                }
+                                @foreach (var batchId in row.BatchIds)
+                                {
+                                    <a class="btn btn-sm btn-outline-dark" asp-controller="AssetMovement" asp-action="Batch" asp-route-id="@batchId"><i class="fa fa-layer-group"></i> Batch</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- One small modal for reject / modify / plant down -->
+<div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="post" id="actionForm">
+            <div class="modal-header">
+                <h6 class="modal-title" id="actionTitle"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label required-field" id="actionLabel" for="actionInput"></label>
+                <input class="form-control" id="actionInput" required />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="actionSubmit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+            const form = document.getElementById('actionForm');
+            const input = document.getElementById('actionInput');
+
+            function openAction(action, title, label, name, type, value, min, required) {
+                form.action = action;
+                document.getElementById('actionTitle').textContent = title;
+                document.getElementById('actionLabel').textContent = label;
+                input.name = name;
+                input.type = type;
+                input.value = value || '';
+                if (min) input.min = min; else input.removeAttribute('min');
+                input.required = required;
+                document.getElementById('actionLabel').classList.toggle('required-field', required);
+                modal.show();
+                setTimeout(() => input.focus(), 300);
+            }
+
+            document.querySelectorAll('.reject-request').forEach(btn => btn.addEventListener('click', () =>
+                openAction(`/Cylinder/RejectRequest/${btn.dataset.requestId}`, `Reject request ${btn.dataset.requisition}`, 'Reason for rejection', 'reason', 'text', '', null, true)));
+
+            document.querySelectorAll('.modify-order').forEach(btn => btn.addEventListener('click', () =>
+                openAction(`/Cylinder/ModifyOrder/${btn.dataset.orderId}`, `Modify order ${btn.dataset.order}`, 'New quantity', 'quantity', 'number', btn.dataset.qty, btn.dataset.min, true)));
+
+            document.querySelectorAll('.plant-down').forEach(btn => btn.addEventListener('click', () =>
+                openAction(`/Cylinder/PlantDown/${btn.dataset.orderId}`, `Plant down - return order ${btn.dataset.order} to the facility`, 'Note for the facility (optional)', 'note', 'text', '', null, false)));
+
+            // Create Order from an approved request
+            document.querySelectorAll('.create-order').forEach(btn => btn.addEventListener('click', () => {
+                const card = document.getElementById('createOrderCard');
+                document.getElementById('orderRequestId').value = btn.dataset.requestId;
+                document.getElementById('orderFacility').value = btn.dataset.facility;
+                document.getElementById('orderItem').value = btn.dataset.item;
+                document.getElementById('orderQuantity').value = btn.dataset.qty;
+                card.classList.remove('d-none');
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('orderQuantity').focus();
+            }));
+
+            // Revise a rejected / returned request in the form above
+            const cancel = document.getElementById('cancelRevise');
+            document.querySelectorAll('.revise-request').forEach(btn => btn.addEventListener('click', () => {
+                document.getElementById('requestId').value = btn.dataset.requestId;
+                document.getElementById('reqItem').value = btn.dataset.item;
+                document.getElementById('reqSize').value = btn.dataset.size;
+                document.getElementById('reqContent').value = btn.dataset.content;
+                document.getElementById('reqQuantity').value = btn.dataset.qty;
+                document.getElementById('reqNumber').value = btn.dataset.number;
+                document.getElementById('reqName').value = btn.dataset.name;
+                document.getElementById('requestSubmit').textContent = 'Resubmit Request';
+                cancel.classList.remove('d-none');
+                document.getElementById('requestForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }));
+            cancel.addEventListener('click', () => {
+                document.getElementById('requestForm').reset();
+                document.getElementById('requestId').value = '';
+                document.getElementById('requestSubmit').textContent = 'Submit Request';
+                cancel.classList.add('d-none');
+            });
+        });
+    </script>
+}

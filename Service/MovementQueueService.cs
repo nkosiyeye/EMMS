@@ -27,6 +27,13 @@ namespace EMMS.Service
         public string? QueueSourceFacilityName { get; set; }
         public bool AlreadyQueued { get; set; }
         public bool QueuedByCurrentUser { get; set; }
+
+        // Dispatch mode (queue opened for a cylinder order)
+        public bool DispatchMode { get; set; }
+        public bool AtCentralStore { get; set; }
+        public bool MatchesOrder { get; set; }
+        public bool OrderHasRoom { get; set; }
+        public string? OrderNumber { get; set; }
     }
 
     /// <summary>
@@ -37,11 +44,13 @@ namespace EMMS.Service
     {
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly CylinderOrderService _orderService;
 
-        public MovementQueueService(ApplicationDbContext context, INotificationService notificationService)
+        public MovementQueueService(ApplicationDbContext context, INotificationService notificationService, CylinderOrderService orderService)
         {
             _context = context;
             _notificationService = notificationService;
+            _orderService = orderService;
         }
 
         // ------------------------------------------------------------------------------------------
@@ -57,8 +66,11 @@ namespace EMMS.Service
             if (f.Decommissioned) return QueueScanResult.Decommissioned;
             if (f.OpenWorkRequest) return QueueScanResult.OpenWorkRequest;
             if (!f.IsAdmin && f.CurrentFacilityId != f.UserFacilityId) return QueueScanResult.NotAtYourFacility;
+            if (f.DispatchMode && !f.AtCentralStore) return QueueScanResult.NotAtCentralStore;
+            if (f.DispatchMode && !f.MatchesOrder) return QueueScanResult.WrongItem;
             if (f.QueueSourceFacilityId != null && f.QueueSourceFacilityId != f.CurrentFacilityId) return QueueScanResult.MixedSource;
             if (f.AlreadyQueued) return QueueScanResult.AlreadyQueued;
+            if (f.DispatchMode && !f.OrderHasRoom) return QueueScanResult.OrderFull;
             return QueueScanResult.Added;
         }
 
@@ -75,6 +87,9 @@ namespace EMMS.Service
             QueueScanResult.NotAtYourFacility => $"{tag} is at {f.CurrentFacilityName}, not at your facility.",
             QueueScanResult.MixedSource => $"{tag} is at {f.CurrentFacilityName}, but this queue holds assets from {f.QueueSourceFacilityName}. Submit or clear the queue first.",
             QueueScanResult.AlreadyQueued => f.QueuedByCurrentUser ? $"{tag} is already in your queue." : $"{tag} is in another user's queue.",
+            QueueScanResult.NotAtCentralStore => $"{tag} is at {f.CurrentFacilityName}; dispatches leave from the central store.",
+            QueueScanResult.WrongItem => $"{tag} does not match order {f.OrderNumber} (item, size or content).",
+            QueueScanResult.OrderFull => $"Order {f.OrderNumber} already has every cylinder it needs.",
             _ => code.ToString()
         };
 
@@ -106,6 +121,7 @@ namespace EMMS.Service
             var lastReceived = movements.FirstOrDefault(m => m.DateReceived != null);
 
             facts.HasLocation = lastReceived != null;
+            facts.AtCentralStore = lastReceived?.Facility?.IsCentralStore == true;
             facts.CurrentFacilityId = lastReceived?.FacilityId;
             facts.CurrentFacilityName = lastReceived?.Facility?.FacilityName;
             facts.InTransit = latest != null && latest.DateReceived == null && latest.DateRejected == null;
@@ -143,7 +159,7 @@ namespace EMMS.Service
         // ------------------------------------------------------------------------------------------
         // Queue
         // ------------------------------------------------------------------------------------------
-        public async Task<QueueScanResponse> ScanAsync(string? rawTag, User user)
+        public async Task<QueueScanResponse> ScanAsync(string? rawTag, User user, CylinderOrder? order = null)
         {
             // Same clean-up as serials: scanners can add CR/LF/TAB
             var tag = SerialNumber.Normalize(rawTag) ?? "";
@@ -159,6 +175,11 @@ namespace EMMS.Service
                 .FirstOrDefaultAsync();
 
             var facts = await GatherFactsAsync(asset, user, queueSource);
+            if (order != null)
+            {
+                int queued = await _context.MovementQueueItems.CountAsync(q => q.UserId == user.UserId);
+                ApplyOrderFacts(facts, asset, order, queued);
+            }
             var code = Evaluate(facts);
             var displayTag = asset?.AssetTagNumber ?? tag;
 
@@ -200,6 +221,17 @@ namespace EMMS.Service
                 response.Message = $"Added {displayTag} - {asset!.SubCategory?.Name}{(asset.CylinderDetail?.Size != null ? ", " + asset.CylinderDetail.Size.Name : "")}, from {facts.CurrentFacilityName}";
             }
             return response;
+        }
+
+        // Dispatch checks: same item, size and content as the request, and room left on the order
+        private static void ApplyOrderFacts(QueueScanFacts facts, Asset? asset, CylinderOrder order, int alreadyQueued)
+        {
+            var request = order.Request!;
+            facts.DispatchMode = true;
+            facts.OrderNumber = order.OrderNumber;
+            facts.MatchesOrder = asset != null && asset.SubCategoryId == request.DescriptionId &&
+                                 asset.CylinderDetail?.SizeId == request.SizeId && asset.CylinderDetail?.ContentId == request.ContentId;
+            facts.OrderHasRoom = CylinderOrderService.ActiveDispatched(order) + alreadyQueued < order.Quantity;
         }
 
         public async Task<List<QueueScanResponse>> AddManyAsync(IEnumerable<string> tags, User user)
@@ -250,11 +282,21 @@ namespace EMMS.Service
         // Submit: revalidate everything, then one transaction (movements + patient + clear queue + notification).
         // Any failure leaves the queue untouched.
         // ------------------------------------------------------------------------------------------
-        public async Task<QueueSubmitResult> SubmitAsync(User user, BatchMoveRequest request)
+        public async Task<QueueSubmitResult> SubmitAsync(User user, BatchMoveRequest request, CylinderOrder? order = null)
         {
             var result = new QueueSubmitResult();
+            if (order != null)
+            {
+                // Dispatch: destination and reason come from the order, not the form
+                request.MovementType = MovementType.Facility;
+                request.FacilityId = order.Request!.FacilityId;
+                request.ServicePointId = null;
+                request.Reason = MovementReason.Dispatch;
+                request.FunctionalStatus ??= FunctionalStatus.Functional;
+            }
+
             var items = await _context.MovementQueueItems
-                .Include(q => q.Asset)
+                .Include(q => q.Asset!).ThenInclude(a => a.CylinderDetail)
                 .Where(q => q.UserId == user.UserId)
                 .OrderBy(q => q.AddedAt)
                 .ToListAsync();
@@ -271,12 +313,22 @@ namespace EMMS.Service
                 .FirstOrDefaultAsync(l => l.Id == request.ServicePointId);
             bool requiresPatient = servicePoint?.GetFlag(LookupFlags.RequiresPatient) == true;
 
-            result.Errors.AddRange(await ValidateRequestAsync(request, items, servicePoint, requiresPatient));
+            result.Errors.AddRange(await ValidateRequestAsync(request, items, servicePoint, requiresPatient, dispatch: order != null));
+            if (order != null)
+            {
+                int remaining = order.Quantity - CylinderOrderService.ActiveDispatched(order);
+                if (items.Count > remaining) result.Errors.Add($"Order {order.OrderNumber} needs {remaining} more cylinder(s); the queue holds {items.Count}.");
+            }
 
             // Revalidate every queued asset: things may have changed since it was scanned
             foreach (var item in items)
             {
                 var facts = await GatherFactsAsync(item.Asset, user, item.SourceFacilityId, ignoreQueue: true);
+                if (order != null)
+                {
+                    ApplyOrderFacts(facts, item.Asset, order, 0);
+                    facts.OrderHasRoom = true; // the total is checked above
+                }
                 var code = Evaluate(facts);
                 if (code != QueueScanResult.Added)
                     result.Errors.Add(Describe(code, item.Asset?.AssetTagNumber ?? "?", facts));
@@ -293,9 +345,13 @@ namespace EMMS.Service
 
                 foreach (var item in items)
                 {
+                    var movementId = Guid.NewGuid();
+                    if (order != null)
+                        _context.CylinderOrderItems.Add(new CylinderOrderItem { OrderItemId = Guid.NewGuid(), OrderId = order.OrderId, AssetId = item.AssetId, MovementId = movementId });
+
                     _context.AssetMovement.Add(new MoveAsset
                     {
-                        MovementId = Guid.NewGuid(),
+                        MovementId = movementId,
                         MovementDate = movementDate,
                         AssetId = item.AssetId,
                         MovementType = request.MovementType,
@@ -305,8 +361,10 @@ namespace EMMS.Service
                         Reason = request.Reason!.Value,
                         OtherReason = request.Reason == MovementReason.Other ? request.OtherReason?.Trim() : null,
                         FunctionalStatus = request.FunctionalStatus!.Value,
-                        IsApproved = false,
-                        Remarks = request.Remarks,
+                        // A dispatch from an approved order is pre-approved; everything else follows the normal approval
+                        IsApproved = order != null,
+                        ApprovedBy = order != null ? user.UserId : null,
+                        Remarks = order != null ? $"Order {order.OrderNumber}" + (string.IsNullOrWhiteSpace(request.Remarks) ? "" : " - " + request.Remarks) : request.Remarks,
                         BatchId = batchId,
                         PatientId = patientId,
                         CreatedBy = user.UserId,
@@ -326,8 +384,18 @@ namespace EMMS.Service
                 _context.MovementQueueItems.RemoveRange(items);
                 await _context.SaveChangesAsync();
 
-                // One notification (per approver) for the whole batch
-                await _notificationService.CreateBatchMovementRequestNotification(request.FacilityId!.Value, items.Count, user.UserId);
+                if (order != null)
+                {
+                    // Reload items (incl. the new ones) and derive the order status
+                    await _orderService.RefreshOrdersForMovementsAsync(_context.ChangeTracker.Entries<MoveAsset>().Where(e => e.Entity.BatchId == batchId).Select(e => e.Entity.MovementId));
+                    await _context.SaveChangesAsync();
+                    await _notificationService.CreateBatchMovementApprovalNotification(request.FacilityId!.Value, items.Count, user.UserId);
+                }
+                else
+                {
+                    // One notification (per approver) for the whole batch
+                    await _notificationService.CreateBatchMovementRequestNotification(request.FacilityId!.Value, items.Count, user.UserId);
+                }
 
                 await transaction.CommitAsync();
                 result.BatchId = batchId;
@@ -343,14 +411,18 @@ namespace EMMS.Service
             return result;
         }
 
-        private async Task<List<string>> ValidateRequestAsync(BatchMoveRequest r, List<MovementQueueItem> items, Models.Entities.LookupItem? servicePoint, bool requiresPatient)
+        private async Task<List<string>> ValidateRequestAsync(BatchMoveRequest r, List<MovementQueueItem> items, Models.Entities.LookupItem? servicePoint, bool requiresPatient, bool dispatch = false)
         {
             var errors = new List<string>();
 
+            var destination = r.FacilityId == null ? null
+                : await _context.Facilities.AsNoTracking().FirstOrDefaultAsync(f => f.FacilityId == r.FacilityId && f.RowState == RowStatus.Active);
             if (r.FacilityId == null)
                 errors.Add("Destination facility is required.");
-            else if (!await _context.Facilities.AnyAsync(f => f.FacilityId == r.FacilityId && f.RowState == RowStatus.Active))
+            else if (destination == null)
                 errors.Add("Destination facility was not found.");
+
+            errors.AddRange(ValidateReason(r.Reason, destination?.IsCentralStore == true, dispatch));
 
             if (r.MovementType == MovementType.ServicePoint)
             {
@@ -372,6 +444,17 @@ namespace EMMS.Service
             if (requiresPatient && r.MovementType == MovementType.ServicePoint)
                 errors.AddRange(ValidatePatient(r.Patient));
 
+            return errors;
+        }
+
+        /// <summary>Dispatch only comes from a cylinder order; Return only goes to the central store. Also used by the single Move Asset form.</summary>
+        public static List<string> ValidateReason(MovementReason? reason, bool destinationIsCentralStore, bool dispatch)
+        {
+            var errors = new List<string>();
+            if (reason == MovementReason.Dispatch && !dispatch)
+                errors.Add("Dispatch movements are created from a cylinder order (Cylinder Requests > Orders > Dispatch).");
+            if (reason == MovementReason.Return && !destinationIsCentralStore)
+                errors.Add("Return is only for assets going back to the central store (CMS).");
             return errors;
         }
 
@@ -435,6 +518,125 @@ namespace EMMS.Service
                 .Include(m => m.ApprovedUser!).ThenInclude(u => u.Designations)
                 .OrderBy(m => m.Asset!.AssetTagNumber)
                 .ToListAsync();
+        }
+
+        // ------------------------------------------------------------------------------------------
+        // Scan to Receive: tick off a batch; unscanned items are flagged for follow-up, never blocking
+        // ------------------------------------------------------------------------------------------
+        private IQueryable<MoveAsset> PendingForUser(User user) =>
+            _context.AssetMovement.Where(m => m.BatchId != null && m.IsApproved && m.DateReceived == null && m.DateRejected == null &&
+                                              m.RowState == RowStatus.Active &&
+                                              (user.UserRole!.UserType == UserType.Administrator || m.FacilityId == user.FacilityId));
+
+        public async Task<List<IncomingBatchViewModel>> GetIncomingBatchesAsync(User user)
+        {
+            var pending = await PendingForUser(user)
+                .AsNoTracking()
+                .Select(m => new { m.MovementId, BatchId = m.BatchId!.Value, From = m.From!.FacilityName, m.MovementDate })
+                .ToListAsync();
+            var movementIds = pending.Select(p => p.MovementId).ToList();
+            var orderNumbers = await _context.CylinderOrderItems.AsNoTracking()
+                .Where(i => i.MovementId != null && movementIds.Contains(i.MovementId.Value))
+                .Select(i => new { MovementId = i.MovementId!.Value, i.Order!.OrderNumber })
+                .ToDictionaryAsync(x => x.MovementId, x => x.OrderNumber);
+
+            return pending.GroupBy(p => p.BatchId)
+                .Select(g => new IncomingBatchViewModel
+                {
+                    BatchId = g.Key,
+                    Label = g.Select(p => orderNumbers.GetValueOrDefault(p.MovementId)).FirstOrDefault(n => n != null) ?? g.Key.ToString()[..8].ToUpperInvariant(),
+                    From = g.First().From,
+                    Pending = g.Count(),
+                    Sent = g.Min(p => p.MovementDate)
+                })
+                .OrderBy(b => b.Sent)
+                .ToList();
+        }
+
+        public async Task<List<ReceiveItemViewModel>> GetBatchForReceiveAsync(Guid batchId, User user)
+        {
+            bool admin = user.UserRole?.UserType == UserType.Administrator;
+            return await _context.AssetMovement.AsNoTracking()
+                .Where(m => m.BatchId == batchId && m.IsApproved && m.DateRejected == null && m.RowState == RowStatus.Active &&
+                            (admin || m.FacilityId == user.FacilityId))
+                .OrderBy(m => m.Asset!.AssetTagNumber)
+                .Select(m => new ReceiveItemViewModel
+                {
+                    MovementId = m.MovementId,
+                    Tag = m.Asset!.AssetTagNumber,
+                    Serial = m.Asset.SerialNumber != m.Asset.AssetTagNumber ? m.Asset.SerialNumber : null,
+                    ItemName = m.Asset.SubCategory!.Name + (m.Asset.CylinderDetail != null ? " · " + m.Asset.CylinderDetail.Size!.Name : ""),
+                    Received = m.DateReceived != null
+                })
+                .ToListAsync();
+        }
+
+        public async Task<ReceiveBatchResult> ReceiveBatchAsync(User user, Guid batchId, IReadOnlyCollection<Guid> scannedMovementIds, int? conditionId, string? remarks)
+        {
+            var result = new ReceiveBatchResult();
+            var pending = await PendingForUser(user).Where(m => m.BatchId == batchId).ToListAsync();
+            if (pending.Count == 0)
+            {
+                result.Errors.Add("Nothing in this batch is waiting to be received at your facility.");
+                return result;
+            }
+
+            var scanned = pending.Where(m => scannedMovementIds.Contains(m.MovementId)).ToList();
+            var unscanned = pending.Except(scanned).ToList();
+            if (scanned.Count == 0)
+            {
+                result.Errors.Add("Scan or tick at least one asset before confirming.");
+                return result;
+            }
+            if (scannedMovementIds.Except(pending.Select(m => m.MovementId)).Any())
+            {
+                result.Errors.Add("Some scanned assets are not pending in this batch (already received, rejected, or not for your facility). Reload and try again.");
+                return result;
+            }
+
+            var now = DateTime.Now;
+            var receiverName = $"{user.FirstName} {user.LastName}".Trim();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var m in scanned)
+                {
+                    m.DateReceived = now;
+                    m.ReceivedBy = user.UserId;
+                    m.ConditionId = conditionId;
+                    if (!string.IsNullOrWhiteSpace(remarks)) m.Remarks = string.IsNullOrWhiteSpace(m.Remarks) ? remarks.Trim() : m.Remarks + " | " + remarks.Trim();
+                    m.ModifiedBy = user.UserId;
+                    m.DateModified = now;
+                }
+
+                // Not scanned: stays in transit (receive or reject it later) and is flagged for follow-up
+                foreach (var m in unscanned)
+                {
+                    var flag = $"Not scanned at batch receipt {now:dd MMM yyyy HH:mm} by {receiverName}; follow up";
+                    m.Remarks = string.IsNullOrWhiteSpace(m.Remarks) ? flag : m.Remarks + " | " + flag;
+                    m.ModifiedBy = user.UserId;
+                    m.DateModified = now;
+                }
+
+                await _context.SaveChangesAsync();
+                await _orderService.RefreshOrdersForMovementsAsync(scanned.Select(m => m.MovementId));
+                await _context.SaveChangesAsync();
+
+                if (unscanned.Count > 0)
+                    await _notificationService.CreateBatchReceiptDiscrepancyNotification(unscanned[0].FromId, unscanned.Count, user.UserId);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+                throw;
+            }
+
+            result.Received = scanned.Count;
+            result.Flagged = unscanned.Count;
+            return result;
         }
 
         /// <summary>Approves every pending movement in the batch; one notification for the batch.</summary>
