@@ -13,6 +13,8 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.Entities.LookupList> LookupLists { get; set; }
         public DbSet<EMMS.Models.Asset> Assets { get; set; }
         public DbSet<EMMS.Models.AssetCylinderDetail> AssetCylinderDetails { get; set; }
+        public DbSet<EMMS.Models.MovementQueueItem> MovementQueueItems { get; set; }
+        public DbSet<EMMS.Models.HomeBasedCarePatient> HomeBasedCarePatients { get; set; }
         public DbSet<EMMS.Models.Entities.Facility> Facilities { get; set; }
         public DbSet<EMMS.Models.MoveAsset> AssetMovement { get; set; }
         public DbSet<EMMS.Models.WorkRequest> WorkRequest { get; set; }
@@ -63,6 +65,27 @@ namespace EMMS.Data
                 .HasIndex(m => m.AssetId);
             modelBuilder.Entity<EMMS.Models.MoveAsset>()
                 .HasIndex(m => m.MovementDate);
+
+            modelBuilder.Entity<EMMS.Models.MoveAsset>()
+                .HasIndex(m => m.BatchId);
+            modelBuilder.Entity<EMMS.Models.MoveAsset>()
+                .HasOne(m => m.Patient).WithMany().HasForeignKey(m => m.PatientId).OnDelete(DeleteBehavior.Restrict);
+
+            // Movement queue: an asset can be queued once; deleting a user/asset/facility never cascades here
+            modelBuilder.Entity<EMMS.Models.MovementQueueItem>()
+                .HasIndex(q => q.AssetId)
+                .IsUnique();
+            modelBuilder.Entity<EMMS.Models.MovementQueueItem>()
+                .HasIndex(q => q.UserId);
+            modelBuilder.Entity<EMMS.Models.MovementQueueItem>()
+                .HasOne(q => q.User).WithMany().HasForeignKey(q => q.UserId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<EMMS.Models.MovementQueueItem>()
+                .HasOne(q => q.Asset).WithMany().HasForeignKey(q => q.AssetId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<EMMS.Models.MovementQueueItem>()
+                .HasOne(q => q.SourceFacility).WithMany().HasForeignKey(q => q.SourceFacilityId).OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EMMS.Models.HomeBasedCarePatient>()
+                .HasIndex(p => p.Number);
 
             // WorkRequest
             modelBuilder.Entity<EMMS.Models.WorkRequest>()

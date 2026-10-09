@@ -94,6 +94,30 @@
                         </div>
                     </div>
 
+            <!-- Service point flag RequiresPatient (e.g. Home Based Care) -->
+            <div class="border rounded p-3 mb-3 d-none" id="patientFields">
+                <h6 class="mb-3">Patient <span class="text-muted small">(required for this service point)</span></h6>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <label asp-for="Patient!.Number" class="form-label required-field"></label>
+                        <input asp-for="Patient!.Number" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Patient!.Address" class="form-label required-field"></label>
+                        <input asp-for="Patient!.Address" class="form-control" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label asp-for="Patient!.Name" class="form-label required-field"></label>
+                        <input asp-for="Patient!.Name" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Patient!.Surname" class="form-label required-field"></label>
+                        <input asp-for="Patient!.Surname" class="form-control" />
+                    </div>
+                </div>
+            </div>
             <div class="row mb-3 d-none" id="warrantyField">
                 <div class="col-md-6">
                         <label asp-for="WarrantyEndDate" class="form-label required-field"></label>
@@ -224,8 +248,12 @@
                         var option = document.createElement('option');
                         option.value = item.id;
                         option.text = item.name;
+                        var flags = {};
+                        try { flags = item.flagsJson ? JSON.parse(item.flagsJson) : {}; } catch (e) { }
+                        option.dataset.requiresPatient = flags.RequiresPatient === true;
                         servicePointSelect.appendChild(option);
                     });
+                    togglePatientFields();
 
                     // Refresh bootstrap-select if used
                     if ($(servicePointSelect).hasClass('selectpicker')) {
@@ -236,6 +264,17 @@
                     //document.getElementById("servicePointField").classList.remove("d-none");
                 });
         }
+
+        // Patient is captured only for a service point flagged RequiresPatient
+        function togglePatientFields() {
+            const servicePointSelect = document.querySelector('#servicePointField select');
+            const option = servicePointSelect.selectedOptions[0];
+            const show = document.getElementById("movementType").value === "@((int)EMMS.Models.Enumerators.MovementType.ServicePoint)"
+                && option && option.dataset.requiresPatient === 'true';
+            document.getElementById('patientFields').classList.toggle('d-none', !show);
+        }
+        document.querySelector('#servicePointField select').addEventListener('change', togglePatientFields);
+        document.getElementById('movementType').addEventListener('change', togglePatientFields);
 
           document.getElementById('facility').addEventListener('change', function () {
             const facilityId = this.value;

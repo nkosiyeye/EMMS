@@ -33,6 +33,9 @@
                     <a asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
                         Move Asset
                     </a>
+                    <a asp-controller="AssetMovement" asp-action="Queue" class="@ViewData["movementQueue"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Movement Queue
+                    </a>
                     <a asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
                         Receive Asset
                     </a>

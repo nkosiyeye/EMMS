@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Excel;
+using EMMS.Constants;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
@@ -30,10 +31,12 @@ namespace EMMS.Controllers
         private readonly MovementService _movementService;
         private readonly NotificationService _notificationService;
         private readonly AssetManagementRepo _assetManagementRepo;
+        private readonly MovementQueueService _queueService;
 
         public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, 
-            AssetManagementRepo assetManagementRepo, MovementService movementService)
+            AssetManagementRepo assetManagementRepo, MovementService movementService, MovementQueueService queueService)
         {
+            _queueService = queueService;
             _context = context;
             _assetService = assetService;
             _notificationService = notificationService;
@@ -109,6 +112,7 @@ namespace EMMS.Controllers
                     canApprove = isAdmin || isManager,
                     dateReceived = m.DateReceived.HasValue,
                     dateRejected = m.DateRejected.HasValue,
+                    batchId = m.BatchId?.ToString(),
                     // You can also return isManager/isAdmin if needed, but usually not necessary
                 }).ToList();
 
@@ -361,6 +365,18 @@ namespace EMMS.Controllers
                 ModelState.AddModelError("", "Can't move an asset that has a work request in progress.");
             }
 
+            // Service point flagged RequiresPatient (e.g. Home Based Care): capture the patient
+            bool requiresPatient = false;
+            if (model.MoveAsset?.MovementType == MovementType.ServicePoint && model.MoveAsset.ServicePointId != null)
+            {
+                var servicePoint = await _context.LookupItems.AsNoTracking().FirstOrDefaultAsync(l => l.Id == model.MoveAsset.ServicePointId);
+                requiresPatient = servicePoint?.GetFlag(LookupFlags.RequiresPatient) == true;
+                if (requiresPatient)
+                    foreach (var error in MovementQueueService.ValidatePatient(model.Patient))
+                        ModelState.AddModelError("", error);
+            }
+            if (model.MoveAsset != null) model.MoveAsset.Patient = null;
+
             // 3. If still invalid → repopulate everything and return view
             if (!ModelState.IsValid)
             {
@@ -389,6 +405,9 @@ namespace EMMS.Controllers
                 .AddHours(DateTime.Now.Hour)
                 .AddMinutes(DateTime.Now.Minute)
                 .AddSeconds(DateTime.Now.Second);
+
+            if (requiresPatient)
+                assetMovement.PatientId = await _queueService.UpsertPatientAsync(model.Patient!, CurrentUser!);
 
             CreateEntity(assetMovement);
             _context.Add(assetMovement);
@@ -692,6 +711,130 @@ namespace EMMS.Controllers
             return RedirectToAction("Index", "AssetManagement");
         }
 
+
+        // ------------------------------------------------------------------------------------------
+        // Movement Queue: scan or tick assets, choose the destination once, submit one batch
+        // ------------------------------------------------------------------------------------------
+        [HttpGet]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
+        public async Task<IActionResult> Queue()
+        {
+            return View("Queue", await LoadQueueViewModel(new BatchMoveRequest()));
+        }
+
+        private async Task<MovementQueueViewModel> LoadQueueViewModel(BatchMoveRequest request)
+        {
+            return new MovementQueueViewModel
+            {
+                Items = await _queueService.GetQueueAsync(CurrentUser!.UserId),
+                Request = request,
+                ServicePoints = await GetRepo().GetServicePoints()
+            };
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
+        public async Task<IActionResult> QueueScan([FromForm] string? tag)
+        {
+            var result = await _queueService.ScanAsync(tag, CurrentUser!);
+            return Json(new { code = result.Code.ToString(), result.Message, result.Item, result.QueueCount });
+        }
+
+        // "Move selected" from the asset grid: same checks as scanning, for facilities without a scanner
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
+        public async Task<IActionResult> QueueAddSelected(List<string> tags)
+        {
+            var results = await _queueService.AddManyAsync(tags ?? new List<string>(), CurrentUser!);
+            var added = results.Count(r => r.Code == QueueScanResult.Added);
+            TempData["QueueInfo"] = $"{added} of {results.Count} selected asset(s) added to the queue.";
+            var rejected = results.Where(r => r.Code != QueueScanResult.Added).Select(r => r.Message).ToList();
+            if (rejected.Any()) TempData["QueueErrors"] = string.Join("\n", rejected);
+            return RedirectToAction(nameof(Queue));
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> QueueRemove(Guid id)
+        {
+            var count = await _queueService.RemoveAsync(CurrentUser!.UserId, id);
+            return Json(new { queueCount = count });
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> QueueClear()
+        {
+            await _queueService.ClearAsync(CurrentUser!.UserId);
+            return RedirectToAction(nameof(Queue));
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser))]
+        public async Task<IActionResult> QueueSubmit(MovementQueueViewModel model)
+        {
+            var request = model.Request ?? new BatchMoveRequest();
+            QueueSubmitResult result;
+            try
+            {
+                result = await _queueService.SubmitAsync(CurrentUser!, request);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                result = new QueueSubmitResult { Errors = { "The batch could not be saved. Nothing was moved and the queue is unchanged." } };
+            }
+
+            if (!result.Success)
+            {
+                TempData["QueueErrors"] = string.Join("\n", result.Errors);
+                return View("Queue", await LoadQueueViewModel(request));
+            }
+
+            TempData["Success"] = $"Batch submitted: {result.Count} movement(s) awaiting approval.";
+            return RedirectToAction(nameof(Batch), new { id = result.BatchId });
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> Batch(Guid id)
+        {
+            var movements = await _queueService.GetBatchAsync(id);
+            if (movements.Count == 0) return NotFound();
+
+            var userType = CurrentUser?.UserRole?.UserType;
+            var vm = new BatchViewModel
+            {
+                BatchId = id,
+                Movements = movements,
+                CanApprove = userType == UserType.Administrator || userType == UserType.FacilityManager,
+                // Patient details only for admins and the two facilities involved
+                CanSeePatient = isAdmin || movements.Any(m => m.FromId == CurrentUser?.FacilityId || m.FacilityId == CurrentUser?.FacilityId)
+            };
+            return View("Batch", vm);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        public async Task<IActionResult> ApproveBatch(Guid id)
+        {
+            var count = await _queueService.ApproveBatchAsync(id, CurrentUser!);
+            TempData["Success"] = $"{count} movement(s) approved.";
+            return RedirectToAction(nameof(Batch), new { id });
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> BatchGatePass(Guid id)
+        {
+            var movements = (await _queueService.GetBatchAsync(id)).Where(m => m.IsApproved && m.DateRejected == null).ToList();
+            return movements.Count == 0 ? NotFound() : View("BatchGatePass", movements);
+        }
 
         [HttpGet]
         [RequireLogin]

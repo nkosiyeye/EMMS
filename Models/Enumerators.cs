@@ -52,6 +52,21 @@
             Other = 8,
             StolenorMissing = 9,
         }
+        // Result of scanning a tag into the Movement Queue (checked in this order, see MovementQueueService.Evaluate)
+        public enum QueueScanResult : byte
+        {
+            Added = 0,
+            NotFound = 1,
+            Inactive = 2,
+            NoLocation = 3,
+            InTransit = 4,
+            StolenMissing = 5,
+            Decommissioned = 6,
+            OpenWorkRequest = 7,
+            NotAtYourFacility = 8,
+            MixedSource = 9,
+            AlreadyQueued = 10,
+        }
         public enum FunctionalStatus : byte
         {
             Functional = 1,

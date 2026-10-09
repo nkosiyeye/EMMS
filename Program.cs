@@ -27,6 +27,7 @@ builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<IAssetTagSequence, AssetTagSequenceRepo>();
 builder.Services.AddScoped<AssetTagService>();
 builder.Services.AddScoped<MovementService>();
+builder.Services.AddScoped<MovementQueueService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSession();

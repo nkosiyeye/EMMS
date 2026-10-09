@@ -515,6 +515,50 @@ namespace EMMS.Data.Migrations
                     b.ToTable("ExternalWorkDone");
                 });
 
+            modelBuilder.Entity("EMMS.Models.HomeBasedCarePatient", b =>
+                {
+                    b.Property<Guid>("PatientId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Surname")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("PatientId");
+
+                    b.HasIndex("Number");
+
+                    b.ToTable("HomeBasedCarePatients");
+                });
+
             modelBuilder.Entity("EMMS.Models.InfrustructureWorkRequest", b =>
                 {
                     b.Property<Guid>("WorkRequestId")
@@ -695,6 +739,9 @@ namespace EMMS.Data.Migrations
                     b.Property<Guid>("AssetId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("ConditionId")
                         .HasColumnType("int");
 
@@ -737,6 +784,9 @@ namespace EMMS.Data.Migrations
                     b.Property<string>("OtherReason")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte>("Reason")
                         .HasColumnType("tinyint");
 
@@ -764,6 +814,8 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("AssetId");
 
+                    b.HasIndex("BatchId");
+
                     b.HasIndex("ConditionId");
 
                     b.HasIndex("FacilityId");
@@ -771,6 +823,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("FromId");
 
                     b.HasIndex("MovementDate");
+
+                    b.HasIndex("PatientId");
 
                     b.HasIndex("ReceivedBy");
 
@@ -781,6 +835,51 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("ServicePointId");
 
                     b.ToTable("AssetMovement");
+                });
+
+            modelBuilder.Entity("EMMS.Models.MovementQueueItem", b =>
+                {
+                    b.Property<Guid>("QueueItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int>("SourceFacilityId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("QueueItemId");
+
+                    b.HasIndex("AssetId")
+                        .IsUnique();
+
+                    b.HasIndex("SourceFacilityId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MovementQueueItems");
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkDone", b =>
@@ -1374,6 +1473,11 @@ namespace EMMS.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("EMMS.Models.HomeBasedCarePatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EMMS.Models.Admin.User", "RecievedUser")
                         .WithMany()
                         .HasForeignKey("ReceivedBy");
@@ -1400,6 +1504,8 @@ namespace EMMS.Data.Migrations
 
                     b.Navigation("From");
 
+                    b.Navigation("Patient");
+
                     b.Navigation("RecievedUser");
 
                     b.Navigation("RejectedReason");
@@ -1407,6 +1513,33 @@ namespace EMMS.Data.Migrations
                     b.Navigation("RejectedUser");
 
                     b.Navigation("ServicePoint");
+                });
+
+            modelBuilder.Entity("EMMS.Models.MovementQueueItem", b =>
+                {
+                    b.HasOne("EMMS.Models.Asset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.Facility", "SourceFacility")
+                        .WithMany()
+                        .HasForeignKey("SourceFacilityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("SourceFacility");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkRequest", b =>

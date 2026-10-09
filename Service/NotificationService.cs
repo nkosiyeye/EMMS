@@ -13,6 +13,8 @@ namespace EMMS.Service
     {
         Task CreateMovementRequestNotification(int facilityId, Guid createdBy);
         Task CreateMovementApprovalNotification(int facilityId, Guid createdBy);
+        Task CreateBatchMovementRequestNotification(int facilityId, int count, Guid createdBy);
+        Task CreateBatchMovementApprovalNotification(int facilityId, int count, Guid createdBy);
         Task CreateWorkRequestNotification(int facilityId, Guid createdBy);
         Task CreateJobAssignmentNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
         Task CreateJobClaimedNotification(Guid? biomedUserId, Guid? requestorUserId, Guid createdBy);
@@ -57,6 +59,20 @@ namespace EMMS.Service
         public async Task CreateMovementApprovalNotification(int facilityId, Guid createdBy)
         {
             var message = "An equipment is on its way and requires reception.";
+            await NotifyFacilityStakeholders(facilityId, message, "reception", createdBy);
+        }
+
+        // Movement Queue batch submitted: one notification per approver for the whole batch
+        public async Task CreateBatchMovementRequestNotification(int facilityId, int count, Guid createdBy)
+        {
+            var message = $"A batch of {count} asset movement(s) has been submitted and requires approval.";
+            await NotifyFacilityManagersAndAdmins(facilityId, message, "approval", createdBy);
+        }
+
+        // Batch approved: one notification per receiving stakeholder for the whole batch
+        public async Task CreateBatchMovementApprovalNotification(int facilityId, int count, Guid createdBy)
+        {
+            var message = $"A batch of {count} asset(s) is on its way and requires reception.";
             await NotifyFacilityStakeholders(facilityId, message, "reception", createdBy);
         }
 

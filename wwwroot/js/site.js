@@ -171,6 +171,24 @@ function printAssetDetail() {
 
 
 
+// Posts a list of asset tags as a normal form submit (name="tags"), optionally into a new tab.
+function emmsPostTags(action, tags, target) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = action;
+    if (target) form.target = target;
+    tags.forEach(tag => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'tags';
+        input.value = tag;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+}
+
 // Opens the server-rendered sticker sheet (Code 128 barcode of each asset tag) in a new tab.
 // tags: optional array of asset tags; defaults to the ticked .asset-checkbox values.
 function printSelectedStickers(tags) {
@@ -183,20 +201,71 @@ function printSelectedStickers(tags) {
         return;
     }
 
-    const form = document.createElement('form');
-    form.method = 'post';
-    form.action = '/AssetManagement/PrintStickers';
-    form.target = '_blank';
-    selected.forEach(tag => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'tags';
-        input.value = tag;
-        form.appendChild(input);
-    });
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
+    emmsPostTags('/AssetManagement/PrintStickers', selected, '_blank');
+}
+
+// Short confirmation tone for scanning: high beep = accepted, low buzz = rejected.
+function emmsBeep(ok) {
+    try {
+        const ctx = emmsBeep.ctx || (emmsBeep.ctx = new (window.AudioContext || window.webkitAudioContext)());
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = ok ? 'sine' : 'square';
+        osc.frequency.value = ok ? 880 : 220;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + (ok ? 0.12 : 0.35));
+    } catch (e) { /* audio not available */ }
+}
+
+// Phone/tablet camera scanning (Code 128) where the browser supports BarcodeDetector.
+// Needs HTTPS (or localhost). Calls onCode for every new code until the overlay is closed.
+function emmsCameraScanSupported() {
+    return 'BarcodeDetector' in window && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+
+async function emmsOpenCameraScanner(onCode) {
+    const detector = new BarcodeDetector({ formats: ['code_128'] });
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = '<video playsinline muted style="max-width:95vw;max-height:65vh;border-radius:8px;background:#000"></video>' +
+        '<div class="text-white mt-2" data-role="status">Point the camera at the barcode</div>' +
+        '<button type="button" class="btn btn-light mt-3">Done</button>';
+    document.body.appendChild(overlay);
+
+    const video = overlay.querySelector('video');
+    const status = overlay.querySelector('[data-role="status"]');
+    let stream = null, stopped = false, lastCode = null, lastAt = 0;
+    const stop = () => { stopped = true; if (stream) stream.getTracks().forEach(t => t.stop()); overlay.remove(); };
+    overlay.querySelector('button').addEventListener('click', stop);
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        await video.play();
+    } catch (e) {
+        stop();
+        alert('Camera not available: ' + e.message);
+        return;
+    }
+
+    const tick = async () => {
+        if (stopped) return;
+        try {
+            const codes = await detector.detect(video);
+            const now = Date.now();
+            if (codes.length && (codes[0].rawValue !== lastCode || now - lastAt > 2000)) {
+                lastCode = codes[0].rawValue;
+                lastAt = now;
+                status.textContent = 'Read ' + lastCode;
+                onCode(lastCode);
+            }
+        } catch (e) { /* frame not ready */ }
+        requestAnimationFrame(tick);
+    };
+    tick();
 }
 
 // Barcode scanner support. Handheld scanners act as a keyboard: they type the code, then press Enter.
