@@ -222,6 +222,28 @@ namespace EMMS.Data.Repository
         public async Task<IEnumerable<LookupItem>> GetStatuses() => await GetLookupItemsByName("Status");
         public async Task<IEnumerable<LookupItem>> GetUnitOfMeasures() => await GetLookupItemsByName("Unit of Measure");
         public async Task<IEnumerable<LookupItem>> GetLifespanPeriods() => await GetLookupItemsByName("Period");
+        public async Task<IEnumerable<LookupItem>> GetCylinderSizes() => (await GetLookupItemsByName(Constants.LookupListNames.CylinderSize)).OrderBy(x => x.SortIndex);
+        public async Task<IEnumerable<LookupItem>> GetCylinderContents() => (await GetLookupItemsByName(Constants.LookupListNames.CylinderContent)).OrderBy(x => x.SortIndex);
+
+        public async Task<int?> GetCentralStoreFacilityId()
+        {
+            return await _context.Facilities
+                .AsNoTracking()
+                .Where(f => f.IsCentralStore && f.RowState == RowStatus.Active)
+                .Select(f => (int?)f.FacilityId)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+        }
+
+        public async Task<AssetCylinderDetail?> GetCylinderDetail(Guid assetId)
+        {
+            return await _context.AssetCylinderDetails
+                .AsNoTracking()
+                .Include(d => d.Size)
+                .Include(d => d.Content)
+                .FirstOrDefaultAsync(d => d.AssetId == assetId)
+                .ConfigureAwait(false);
+        }
 
         // ------------------------------
         // Cached Lookup Properties

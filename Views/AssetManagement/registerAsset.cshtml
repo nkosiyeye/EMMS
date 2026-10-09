@@ -45,6 +45,21 @@
                     <span asp-validation-for="asset.SubCategoryId" class="text-danger"></span>
                 </div>
             </div>
+            @* Shown only when the Category has FlagsJson.CylinderProfile = true; disabled (not posted) otherwise *@
+            <div class="row mb-3 d-none" id="cylinder-fields">
+                <div class="col-md-6">
+                    <label for="cylinder-size" class="form-label required-field">Size</label>
+                    <select asp-for="asset.CylinderDetail!.SizeId" id="cylinder-size" class="form-select selectpicker col-md-6 cylinder-input" data-live-search="true" asp-items="@(new SelectList(Model?.CylinderSizes ?? Enumerable.Empty<EMMS.Models.Entities.LookupItem>(), "Id", "Name"))" disabled>
+                        <option selected disabled value="">Select Size</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="cylinder-content" class="form-label required-field">Content</label>
+                    <select asp-for="asset.CylinderDetail!.ContentId" id="cylinder-content" class="form-select selectpicker col-md-6 cylinder-input" data-live-search="true" asp-items="@(new SelectList(Model?.CylinderContents ?? Enumerable.Empty<EMMS.Models.Entities.LookupItem>(), "Id", "Name"))" disabled>
+                        <option selected disabled value="">Select Content</option>
+                    </select>
+                </div>
+            </div>
             @*  <div class="row mb-3 d-none">
                 <div class="col-md-6 d-none">
                     <label asp-for="asset.ItemName" for="item-name" class="form-label required-field">Item Name</label>
@@ -74,7 +89,13 @@
 
                 <div class="col-md-6">
                     <label asp-for="asset.SerialNumber" for="serial-number" class="form-label required-field">Serial Number</label>
-                    <input asp-for="asset.SerialNumber" type="text" id="serial-number" class="form-control">
+                    <div class="input-group">
+                        <input asp-for="asset.SerialNumber" type="text" id="serial-number" class="form-control" data-scan-input autocomplete="off">
+                        <button type="button" class="btn btn-outline-secondary" data-scan-target="serial-number" title="Click, then scan the serial number barcode">
+                            <i class="fa fa-barcode me-1"></i> Scan
+                        </button>
+                    </div>
+                    <div class="form-text text-muted d-none" id="serial-hint">Typed or scanned by the user - never auto-generated. Required for cylinders.</div>
                     <span asp-validation-for="asset.SerialNumber" class="text-danger"></span>
                 </div>
 
@@ -217,6 +238,9 @@
                                 <div class="form-text text-muted">
                                     Is this equipment already in use at a Facility
                                 </div>
+                                <div class="form-text text-success fw-bold d-none cylinder-location-hint">
+                                    Required for cylinders: where is this cylinder physically today? (defaults to Central Medical Stores)
+                                </div>
                             </div>
                             <div class="row mb-1 d-none" id="isdeployed-field-container">
                                 <div class="row">
@@ -266,6 +290,9 @@
                                 </label>
                                 <div class="form-text text-muted">
                                     Is this equipment already in use at a Facility
+                                </div>
+                                <div class="form-text text-success fw-bold d-none cylinder-location-hint">
+                                    Required for cylinders: where is this cylinder physically today? (defaults to Central Medical Stores)
                                 </div>
                             </div>
                             <div class="row mb-1 d-none" id="isdeployed-field-container">
@@ -349,6 +376,17 @@
                                     populateSelect('ServicePointId', data.servicePoints);
                                 }
 
+                                if (data.cylinderSizes && data.cylinderSizes.length > 0) {
+                                    populateSelect('cylinder-size', data.cylinderSizes);
+                                }
+
+                                if (data.cylinderContents && data.cylinderContents.length > 0) {
+                                    populateSelect('cylinder-content', data.cylinderContents);
+                                }
+
+                                centralStoreFacilityId = data.centralStoreFacilityId || null;
+                                loadCategoryProfile(document.getElementById('category').value);
+
                         // Refresh the selectpicker UI if using Bootstrap Select
                         // Hide loader and show form
                         //document.getElementById('loading-spinner').style.display = 'none';
@@ -360,6 +398,9 @@
                     });
          });
          document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('category')?.addEventListener('change', function () {
+                loadCategoryProfile(this.value);
+            });
         
 
         
@@ -461,6 +502,7 @@
             const select = document.getElementById(selectId);
             if (!select) return;
 
+            const current = select.value; // keep a server-selected value (e.g. after a validation error)
             select.innerHTML = '<option selected disabled>Select</option>';
             if (!Array.isArray(items) || items.length === 0) {
                 console.warn(`No items found for select #${selectId}`, items);
@@ -473,6 +515,44 @@
                 option.textContent = item.Name || item.facilityName || item.name;
                 select.appendChild(option);
             });
+            if (current && Array.from(select.options).some(o => o.value === current)) select.value = current;
+        }
+
+        // --- Category flag CylinderProfile: adds Size, Content and a required initial location ---
+        let centralStoreFacilityId = null;
+
+        function loadCategoryProfile(categoryId) {
+            if (!categoryId || isNaN(parseInt(categoryId))) { setCylinderProfile(false); return; }
+            fetch(`/AssetManagement/GetLookupItemDetails?id=${categoryId}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(item => {
+                    let flags = {};
+                    try { flags = item && item.flagsJson ? JSON.parse(item.flagsJson) : {}; } catch (e) { console.error("Invalid FlagsJson:", e); }
+                    setCylinderProfile(flags.CylinderProfile === true);
+                })
+                .catch(() => setCylinderProfile(false));
+        }
+
+        function setCylinderProfile(isCylinder) {
+            document.getElementById('cylinder-fields').classList.toggle('d-none', !isCylinder);
+            $('.cylinder-input').prop('disabled', !isCylinder).selectpicker('refresh');
+            document.getElementById('serial-hint').classList.toggle('d-none', !isCylinder);
+            document.querySelectorAll('.cylinder-location-hint').forEach(el => el.classList.toggle('d-none', !isCylinder));
+            if (!isCylinder) return;
+
+            // Initial location is required for cylinders: reuse Already Deployed, default to the central store
+            const deployed = document.getElementById('deployed-checkbox');
+            if (deployed && !deployed.disabled && !deployed.checked) {
+                deployed.checked = true;
+                checkAlreadyDeployed(deployed);
+            }
+            const dateInput = document.querySelector('input[name="dateDeployed"]');
+            if (dateInput && !dateInput.value) dateInput.value = new Date().toLocaleDateString('en-CA');
+            const facility = document.querySelector('select[name="facilityId"]');
+            if (facility && !facility.value.match(/^\d+$/) && centralStoreFacilityId) {
+                facility.value = String(centralStoreFacilityId);
+                $(facility).selectpicker('refresh');
+            }
         }
 
 

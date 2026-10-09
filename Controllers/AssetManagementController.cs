@@ -245,6 +245,8 @@ namespace EMMS.Controllers
                 .Include(a => a.Vendor)
                 .Include(a => a.ServiceProvider)
                 .Include(u => u.User)
+                .Include(a => a.CylinderDetail!.Size)
+                .Include(a => a.CylinderDetail!.Content)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
 
             var serviceHistory = await _context.Job
@@ -331,6 +333,8 @@ namespace EMMS.Controllers
                 LifespanPeriods = new List<LookupItem>(),
                 Facilities = new List<Facility>(),
                 ServicePoints = new List<LookupItem>(),
+                CylinderSizes = new List<LookupItem>(),
+                CylinderContents = new List<LookupItem>(),
             };
         }
         [HttpGet]
@@ -346,6 +350,8 @@ namespace EMMS.Controllers
             var lifespanPeriods = await _repo.GetLifespanPeriods();
             var facilities = await _repo.GetFacilities();
             var servicePoints = await _repo.GetServicePoints();
+            var cylinderSizes = await _repo.GetCylinderSizes();
+            var cylinderContents = await _repo.GetCylinderContents();
 
             var data = new
             {
@@ -360,6 +366,9 @@ namespace EMMS.Controllers
                 Facilities = facilities.Select(f => new { f.FacilityId, f.FacilityName }),
                 ServicePoints = servicePoints.Select(s => new { s.Id, s.Name }),
                 Statuses = procurementStatusList,
+                CylinderSizes = cylinderSizes.Select(s => new { s.Id, s.Name }),
+                CylinderContents = cylinderContents.Select(c => new { c.Id, c.Name }),
+                CentralStoreFacilityId = await _repo.GetCentralStoreFacilityId(),
             };
 
             return Json(data);
@@ -371,7 +380,10 @@ namespace EMMS.Controllers
         {
             var assets = await _repo.GetAssetsFromDb();
             var asset = assets.FirstOrDefault(a => a.AssetId == id)!;
+            asset.CylinderDetail = await _repo.GetCylinderDetail(id);
             var viewModel = await GetBaseAssetRegView(asset);
+            viewModel.CylinderSizes = await _repo.GetCylinderSizes();
+            viewModel.CylinderContents = await _repo.GetCylinderContents();
 
             return View("edit", viewModel);
 
@@ -382,6 +394,19 @@ namespace EMMS.Controllers
         public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
+
+            // Cylinder detail is saved separately (insert, update or remove) so Update(asset) never touches it
+            var detail = asset.CylinderDetail;
+            asset.CylinderDetail = null;
+            bool isCylinder = (await GetCylinderCategoryIds(new[] { asset.CategoryId })).Any();
+            RemoveCylinderModelState(); // CylinderRules owns the Size/Content messages
+            if (isCylinder)
+            {
+                var (sizeIds, contentIds) = await GetCylinderLookupIds();
+                foreach (var error in CylinderRules.ValidateDetail(detail?.SizeId, detail?.ContentId, sizeIds, contentIds))
+                    ModelState.AddModelError("", error);
+            }
+
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
@@ -390,11 +415,26 @@ namespace EMMS.Controllers
                 //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 _context.Update(asset);
+
+                var existing = await _context.AssetCylinderDetails.FindAsync(asset.AssetId);
+                if (isCylinder && existing == null)
+                    _context.AssetCylinderDetails.Add(new AssetCylinderDetail { AssetId = asset.AssetId, SizeId = detail!.SizeId, ContentId = detail.ContentId });
+                else if (isCylinder)
+                {
+                    existing!.SizeId = detail!.SizeId;
+                    existing.ContentId = detail.ContentId;
+                }
+                else if (existing != null)
+                    _context.AssetCylinderDetails.Remove(existing);
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
+            asset.CylinderDetail = detail;
             var viewModel = await GetBaseAssetRegView(asset);
+            viewModel.CylinderSizes = await _repo.GetCylinderSizes();
+            viewModel.CylinderContents = await _repo.GetCylinderContents();
 
             return View("edit", viewModel);
         }
@@ -409,6 +449,20 @@ namespace EMMS.Controllers
             if (asset.SerialNumber != null && await IsDuplicate(asset.SerialNumber))
             {
                 ModelState.AddModelError("asset.SerialNumber", "An asset with this serial number already exists.");
+            }
+
+            // Category flag CylinderProfile is re-read here; the form's show/hide is never trusted
+            RemoveCylinderModelState(); // CylinderRules owns the Size/Content messages
+            if ((await GetCylinderCategoryIds(new[] { asset.CategoryId })).Any())
+            {
+                var (sizeIds, contentIds) = await GetCylinderLookupIds();
+                foreach (var error in CylinderRules.Validate(asset.CylinderDetail?.SizeId, asset.CylinderDetail?.ContentId,
+                             sizeIds, contentIds, asset.SerialNumber, Assetmodel.alreadyDeployed, Assetmodel.facilityId))
+                    ModelState.AddModelError("", error);
+            }
+            else
+            {
+                asset.CylinderDetail = null;
             }
 
             if (!ModelState.IsValid)
@@ -428,6 +482,8 @@ namespace EMMS.Controllers
                     LifespanPeriods = await _repo.GetLifespanPeriods(),
                     Facilities = await _mrepo.GetFacilities(),
                     ServicePoints = await _mrepo.GetServicePoints(),
+                    CylinderSizes = await _repo.GetCylinderSizes(),
+                    CylinderContents = await _repo.GetCylinderContents(),
                     alreadyDeployed = Assetmodel.alreadyDeployed,
                     dateDeployed = Assetmodel.dateDeployed,
                     facilityId = Assetmodel.facilityId,
@@ -441,6 +497,7 @@ namespace EMMS.Controllers
 
             // Generate AssetId
             asset.AssetId = Guid.NewGuid();
+            if (asset.CylinderDetail != null) asset.CylinderDetail.AssetId = asset.AssetId;
 
             // Determine facility code
             var facilityCode = isAdmin && Assetmodel.facilityId.HasValue
@@ -455,8 +512,6 @@ namespace EMMS.Controllers
             // Add asset
             CreateEntity(asset);
             _context.Add(asset);
-
-            await _context.SaveChangesAsync();
 
             if (Assetmodel.alreadyDeployed)
             {
@@ -487,12 +542,11 @@ namespace EMMS.Controllers
                 if (asset.WarrantyEndDate != null)
                 {
                     asset.WarrantyStartDate = deploymentDate;
-                    _context.Update(asset);
                 }
-
-
-                await _context.SaveChangesAsync();
             }
+
+            // Asset, cylinder detail and initial movement are saved together: all rows or nothing
+            await _context.SaveChangesAsync();
             TempData["Success"] = "Equipment added successfully.";
 
             return RedirectToAction(nameof(Index));
@@ -521,9 +575,23 @@ namespace EMMS.Controllers
                 .Where(l => subCategoryIds.Contains(l.Id))
                 .ToDictionaryAsync(l => l.Id);
 
+            var cylinderCategoryIds = await GetCylinderCategoryIds(assets.Select(a => a.CategoryId));
+            var (sizeIds, contentIds) = cylinderCategoryIds.Any()
+                ? await GetCylinderLookupIds()
+                : (new HashSet<int>(), new HashSet<int>());
+
             var errors = new List<string>();
             for (int i = 0; i < assets.Count; i++)
             {
+                if (cylinderCategoryIds.Contains(assets[i].CategoryId))
+                {
+                    foreach (var error in CylinderRules.Validate(assets[i].CylinderDetail?.SizeId, assets[i].CylinderDetail?.ContentId,
+                                 sizeIds, contentIds, assets[i].SerialNumber, assets[i].AlreadyDeployed, assets[i].FacilityId))
+                        errors.Add($"Row {i + 1}: {error}");
+                    continue;
+                }
+
+                assets[i].CylinderDetail = null;
                 subCategories.TryGetValue(assets[i].SubCategoryId, out var subCategory);
                 // Same default as the quick registration form: required unless the item says RequiresSerial = false
                 bool serialRequired = subCategory?.GetFlag(LookupFlags.RequiresSerial, true) ?? true;
@@ -563,6 +631,7 @@ namespace EMMS.Controllers
                 if (hasSerial || qty < 2)
                 {
                     asset.AssetId = Guid.NewGuid();
+                    if (asset.CylinderDetail != null) asset.CylinderDetail.AssetId = asset.AssetId;
                     asset.CreatedBy = currentUserId;
                     asset.DateCreated = DateTime.Now;
                     asset.RowState = RowStatus.Active;
@@ -687,6 +756,7 @@ namespace EMMS.Controllers
             var assets = await _context.Assets
                 .AsNoTracking()
                 .Include(a => a.SubCategory)
+                .Include(a => a.CylinderDetail!.Size)
                 .Where(a => wanted.Contains(a.AssetTagNumber) && a.RowState == RowStatus.Active)
                 .ToListAsync();
 
@@ -695,6 +765,44 @@ namespace EMMS.Controllers
             var ordered = wanted.Where(byTag.ContainsKey).Select(t => byTag[t!]).ToList();
 
             return View("stickers", ordered);
+        }
+
+        // Serial list pre-check for Quick Registration: returns the serials that are already registered
+        [RequireLogin]
+        [HttpPost]
+        public async Task<IActionResult> CheckSerials([FromBody] List<string> serials)
+        {
+            var normalized = (serials ?? new List<string>())
+                .Select(SerialNumber.Normalize)
+                .Where(s => s != null)
+                .Select(s => s!)
+                .Take(1000)
+                .ToList();
+
+            return Json(await _repo.GetExistingSerialNumbers(normalized));
+        }
+
+        // Categories (of those given) whose FlagsJson has CylinderProfile = true
+        async Task<HashSet<int>> GetCylinderCategoryIds(IEnumerable<int> categoryIds)
+        {
+            var ids = categoryIds.Distinct().ToList();
+            var categories = await _context.LookupItems
+                .AsNoTracking()
+                .Where(l => ids.Contains(l.Id))
+                .ToListAsync();
+
+            return categories.Where(c => c.GetFlag(LookupFlags.CylinderProfile)).Select(c => c.Id).ToHashSet();
+        }
+
+        async Task<(HashSet<int> sizeIds, HashSet<int> contentIds)> GetCylinderLookupIds() =>
+            ((await _repo.GetCylinderSizes()).Select(x => x.Id).ToHashSet(),
+             (await _repo.GetCylinderContents()).Select(x => x.Id).ToHashSet());
+
+        // Hidden cylinder inputs on a non-cylinder form must not cause binding errors
+        void RemoveCylinderModelState()
+        {
+            foreach (var key in ModelState.Keys.Where(k => k.StartsWith("asset.CylinderDetail", StringComparison.OrdinalIgnoreCase)).ToList())
+                ModelState.Remove(key);
         }
 
         async Task<bool> IsDuplicate(string serialNum)

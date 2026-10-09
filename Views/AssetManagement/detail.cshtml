@@ -41,6 +41,15 @@
                     <dt class="col-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.SubCategory!.Name)</dd>
 
+                    @if (Model.Asset.CylinderDetail != null)
+                    {
+                        <dt class="col-6 border p-1 m-0">Size</dt>
+                        <dd class="col-6 border p-1 m-0">@Model.Asset.CylinderDetail.Size?.Name</dd>
+
+                        <dt class="col-6 border p-1 m-0">Content</dt>
+                        <dd class="col-6 border p-1 m-0">@Model.Asset.CylinderDetail.Content?.Name</dd>
+                    }
+
                     <dt class="col-6 border p-1 m-0 d-none">Item Name</dt>
                     <dd class="col-6 border p-1 m-0 d-none">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
 

@@ -199,6 +199,33 @@ function printSelectedStickers(tags) {
     form.remove();
 }
 
+// Barcode scanner support. Handheld scanners act as a keyboard: they type the code, then press Enter.
+// - A button with data-scan-target="<input id>" focuses and selects that input, so the next scan replaces it.
+// - On input[data-scan-input], Enter trims the value and moves to the next field instead of submitting the form.
+//   (Textareas are left alone so each scan lands on a new line.)
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest ? e.target.closest('[data-scan-target]') : null;
+    if (!btn) return;
+    const target = document.getElementById(btn.dataset.scanTarget);
+    if (!target || target.disabled) return;
+    target.focus();
+    if (typeof target.select === 'function') target.select();
+});
+
+document.addEventListener('keydown', function (e) {
+    const el = e.target;
+    if (e.key !== 'Enter' || !el.matches || !el.matches('input[data-scan-input]')) return;
+    e.preventDefault();
+    el.value = el.value.trim();
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const scope = el.form || el.closest('.modal') || document;
+    const focusable = Array.from(scope.querySelectorAll('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+        .filter(x => x.offsetParent !== null);
+    const next = focusable[focusable.indexOf(el) + 1];
+    if (next) next.focus();
+});
+
 function fnExcelReport() {
     var tab_text = "<table border='2px'><tr bgcolor='#87AFC6'>";
     var tab = document.getElementById('assetTable'); // id of table

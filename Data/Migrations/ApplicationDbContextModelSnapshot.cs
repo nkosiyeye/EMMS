@@ -276,6 +276,26 @@ namespace EMMS.Data.Migrations
                     b.ToTable("Assets");
                 });
 
+            modelBuilder.Entity("EMMS.Models.AssetCylinderDetail", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ContentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SizeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AssetId");
+
+                    b.HasIndex("ContentId");
+
+                    b.HasIndex("SizeId");
+
+                    b.ToTable("AssetCylinderDetails");
+                });
+
             modelBuilder.Entity("EMMS.Models.Entities.Facility", b =>
                 {
                     b.Property<int>("FacilityId")
@@ -298,6 +318,9 @@ namespace EMMS.Data.Migrations
 
                     b.Property<string>("FacilityName")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsCentralStore")
+                        .HasColumnType("bit");
 
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -1156,6 +1179,31 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Vendor");
                 });
 
+            modelBuilder.Entity("EMMS.Models.AssetCylinderDetail", b =>
+                {
+                    b.HasOne("EMMS.Models.Asset", null)
+                        .WithOne("CylinderDetail")
+                        .HasForeignKey("EMMS.Models.AssetCylinderDetail", "AssetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Content")
+                        .WithMany()
+                        .HasForeignKey("ContentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Size")
+                        .WithMany()
+                        .HasForeignKey("SizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Content");
+
+                    b.Navigation("Size");
+                });
+
             modelBuilder.Entity("EMMS.Models.Entities.LookupItem", b =>
                 {
                     b.HasOne("EMMS.Models.Entities.LookupList", "LookupList")
@@ -1461,6 +1509,11 @@ namespace EMMS.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("EMMS.Models.Asset", b =>
+                {
+                    b.Navigation("CylinderDetail");
                 });
 #pragma warning restore 612, 618
         }

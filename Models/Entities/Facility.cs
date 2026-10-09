@@ -8,6 +8,7 @@ namespace EMMS.Models.Entities
         public string? FacilityName { get; set; }
         public string? FacilityCode { get; set; }
         public bool? isOffSite { get; set; }
+        public bool IsCentralStore { get; set; } // Central Medical Stores (CMS): default initial location for cylinders
         public Guid? CreatedBy { get; set; }
         public DateTime? DateCreated { get; set; }
         public Guid? ModifiedBy { get; set; }

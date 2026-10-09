@@ -51,7 +51,7 @@
                 <div class="barcode">@Html.Raw(Code128.ToSvg(asset.AssetTagNumber))</div>
                 <div class="tag">@asset.AssetTagNumber</div>
                 <div class="details">
-                    @(asset.SerialNumber != asset.AssetTagNumber ? asset.SerialNumber + " · " : "")@(asset.SubCategory?.Name ?? asset.ItemName)
+                    @(asset.SerialNumber != asset.AssetTagNumber ? asset.SerialNumber + " · " : "")@(asset.SubCategory?.Name ?? asset.ItemName)@(asset.CylinderDetail?.Size != null ? " · " + asset.CylinderDetail.Size.Name : "")
                 </div>
             </div>
         }

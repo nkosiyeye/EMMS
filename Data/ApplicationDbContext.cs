@@ -12,6 +12,7 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.Entities.LookupItem> LookupItems { get; set; }
         public DbSet<EMMS.Models.Entities.LookupList> LookupLists { get; set; }
         public DbSet<EMMS.Models.Asset> Assets { get; set; }
+        public DbSet<EMMS.Models.AssetCylinderDetail> AssetCylinderDetails { get; set; }
         public DbSet<EMMS.Models.Entities.Facility> Facilities { get; set; }
         public DbSet<EMMS.Models.MoveAsset> AssetMovement { get; set; }
         public DbSet<EMMS.Models.WorkRequest> WorkRequest { get; set; }
@@ -46,6 +47,16 @@ namespace EMMS.Data
             modelBuilder.Entity<EMMS.Models.Asset>()
                 .HasIndex(a => a.AssetTagNumber)
                 .IsUnique();
+
+            // AssetCylinderDetail (1:1 with Assets); lookups are never cascade-deleted
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasOne(a => a.CylinderDetail)
+                .WithOne()
+                .HasForeignKey<EMMS.Models.AssetCylinderDetail>(d => d.AssetId);
+            modelBuilder.Entity<EMMS.Models.AssetCylinderDetail>()
+                .HasOne(d => d.Size).WithMany().HasForeignKey(d => d.SizeId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<EMMS.Models.AssetCylinderDetail>()
+                .HasOne(d => d.Content).WithMany().HasForeignKey(d => d.ContentId).OnDelete(DeleteBehavior.Restrict);
 
             // MoveAsset (AssetMovement)
             modelBuilder.Entity<EMMS.Models.MoveAsset>()

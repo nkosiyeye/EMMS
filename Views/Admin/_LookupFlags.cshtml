@@ -1,0 +1,32 @@
+@using EMMS.Constants
+@model EMMS.ViewModels.Admin.LookupViewModel
+@{
+    // Boolean flags stored in LookupItem.FlagsJson, per lookup list
+    var flags = Model.LookupList?.Name switch
+    {
+        LookupListNames.SubCategory => new[] { (LookupFlags.RequiresSerial, "Requires Serial Number", "If checked, assets of this type will require a serial number during registration.") },
+        LookupListNames.Category => new[] { (LookupFlags.CylinderProfile, "Cylinder Profile", "If checked, registration adds Size, Content and a required initial location (e.g. Cylinder).") },
+        LookupListNames.ServicePoint => new[] { (LookupFlags.RequiresPatient, "Requires Patient", "If checked, moving an asset to this service point captures the patient (e.g. Home Based Care).") },
+        _ => Array.Empty<(string, string, string)>()
+    };
+}
+
+@if (flags.Length > 0)
+{
+    <div class="mb-3">
+        <label class="form-label d-block">Configuration Flags</label>
+        <div class="border rounded p-3 bg-light">
+            @foreach (var (key, label, help) in flags)
+            {
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input flag-checkbox" id="flag_@key" data-flag="@key">
+                    <label class="form-check-label fw-bold" for="flag_@key">@label</label>
+                    <div class="form-text text-muted">@help</div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* Always posted so editing an item never clears flags it already has *@
+<input type="hidden" asp-for="_lookupItem!.FlagsJson" id="FlagsJson" />
