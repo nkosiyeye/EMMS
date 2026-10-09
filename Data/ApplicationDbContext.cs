@@ -38,6 +38,15 @@ namespace EMMS.Data
             modelBuilder.Entity<EMMS.Models.Asset>()
                 .HasIndex(a => a.SerialNumber);
 
+            // Asset tag: sequence-generated, unique, and looked up by barcode scan
+            modelBuilder.HasSequence<long>(EMMS.Data.Repository.AssetTagSequenceRepo.SequenceName);
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .Property(a => a.AssetTagNumber)
+                .HasMaxLength(50);
+            modelBuilder.Entity<EMMS.Models.Asset>()
+                .HasIndex(a => a.AssetTagNumber)
+                .IsUnique();
+
             // MoveAsset (AssetMovement)
             modelBuilder.Entity<EMMS.Models.MoveAsset>()
                 .HasIndex(m => m.AssetId);

@@ -142,6 +142,20 @@ namespace EMMS.Data.Repository
                 .ConfigureAwait(false);
         }
 
+        // Active assets whose serial is in the list (SQL collation is case-insensitive)
+        public async Task<List<string>> GetExistingSerialNumbers(IEnumerable<string> serialNums)
+        {
+            var list = serialNums.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (list.Count == 0) return new List<string>();
+
+            return await _context.Assets
+                .AsNoTracking()
+                .Where(a => a.RowState == RowStatus.Active && list.Contains(a.SerialNumber))
+                .Select(a => a.SerialNumber)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
         public async Task<IEnumerable<Asset>> GetAssetsDueService(int period = 4)
         {
             DateTime today = DateTime.Today;

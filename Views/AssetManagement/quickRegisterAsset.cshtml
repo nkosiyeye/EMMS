@@ -299,6 +299,28 @@
                 return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
             }
 
+            // --- Serial helpers (mirror Utility/SerialNumber.cs) ---
+            // Drops control characters a scanner may add, collapses whitespace, trims.
+            function normalizeSerial(value) {
+                if (!value) return null;
+                const s = String(value)
+                    .replace(/[\u0000-\u0008\u000E-\u001F\u007F-\u009F]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                return s || null;
+            }
+
+            function findDuplicateSerials(list) {
+                const seen = new Map();
+                const dups = new Set();
+                list.forEach(a => {
+                    const key = a.SerialNumber ? a.SerialNumber.toUpperCase() : null;
+                    if (!key) return;
+                    if (seen.has(key)) dups.add(seen.get(key)); else seen.set(key, a.SerialNumber);
+                });
+                return Array.from(dups);
+            }
+
             // --- Populate select helper ---
             function populateSelect(selectElement, items, placeholder = 'Select') {
                 if (!selectElement) return;
@@ -465,6 +487,11 @@
                     alert("Please add at least one asset to the list.");
                     return;
                 }
+                const duplicateSerials = findDuplicateSerials(assetList);
+                if (duplicateSerials.length) {
+                    alert('These serial numbers appear more than once in the list:\n' + duplicateSerials.join('\n'));
+                    return;
+                }
                 console.log(JSON.stringify(assetList));
 
                 fetch('/AssetManagement/SaveAssets', {
@@ -509,7 +536,7 @@
                     ItemName: getSelectText('modalSubCategory') || null,
                     DepartmentId: document.getElementById('modalDepartment').value || null,
                     ManufacturerId: document.getElementById('modalManufacturer').value || null,
-                    SerialNumber: document.getElementById('modalSerialNumber').value || null,
+                    SerialNumber: normalizeSerial(document.getElementById('modalSerialNumber').value),
                     Model: document.getElementById('modalModel').value || null,
                     IsPlacement: document.getElementById('modalPlacement').checked,
                     PlacementStartDate: document.getElementById('modalPlacementStart').value || null,
@@ -630,6 +657,13 @@
                     if (!asset.SerialNumber || asset.SerialNumber.trim() === '') {
                         errs.push({ id: 'v_modalSerialNumber', msg: 'Serial number is mandatory for this item type' });
                     }
+                }
+
+                // In-list duplicate serials (the server also checks the database)
+                if (asset.SerialNumber) {
+                    const key = asset.SerialNumber.toUpperCase();
+                    const clash = assetList.some((a, i) => i !== editIndex && a.SerialNumber && a.SerialNumber.toUpperCase() === key);
+                    if (clash) errs.push({ id: 'v_modalSerialNumber', msg: 'This serial number is already in the list' });
                 }                                                                           
 
                 return errs;

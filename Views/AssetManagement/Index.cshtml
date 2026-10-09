@@ -20,8 +20,11 @@
             <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed || isDataCollector ? "":"d-none")" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
                 <i class="fa fa-plus me-1"></i> Add Muliple Assets
             </a>
-            <button class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "":"d-none")" title="Print Stickers" onclick="printSelectedStickers()">
-                <i class="fa fa-print me-1"></i> Print Stickers
+            <button type="button" id="clearSelection" class="btn btn-link btn-sm d-none" title="Clear selection">
+                Clear selection
+            </button>
+            <button type="button" id="printSelected" class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "":"d-none")" title="Print Stickers" disabled>
+                <i class="fa fa-print me-1"></i> Print Stickers for Selected (<span class="selected-count">0</span>)
             </button>
         </div>
     </div>
@@ -31,7 +34,7 @@
             <table class="table table-striped table-bordered table-hover" id="assetTable">
                 <thead class="table-dark">
                     <tr>
-                        <th></th>
+                        <th><input type="checkbox" id="selectAllAssets" title="Select all on this page" /></th>
                         <th>Tag</th>
                         <th>Category</th>
                         <th>Item Name</th>
@@ -231,6 +234,10 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Multi-select actions: selection is kept by tag across server-side pages,
+            // so a facility without a scanner can tick assets and act on them in bulk.
+            const selectedAssetTags = new Set();
+
             //var isTabletOrSmaller = window.innerWidth <= 1024; // adjust breakpoint for tablet
 
             // $('#assetTable').DataTable({
@@ -250,6 +257,7 @@
             },
             pageLength: 10,
             responsive: isTabletOrSmaller,
+            drawCallback: syncSelection,
             columns: [
                 { data: "checkbox", orderable: false, searchable: false },
                 { data: "tag" },
@@ -265,6 +273,37 @@
                 { data: "action", orderable: false, searchable: false }
             ]
         });
+
+            function syncSelection() {
+                const boxes = $('#assetTable tbody .asset-checkbox');
+                boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
+                $('#selectAllAssets').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
+                $('.selected-count').text(selectedAssetTags.size);
+                $('#printSelected').prop('disabled', selectedAssetTags.size === 0);
+                $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
+            }
+
+            $('#assetTable').on('change', '.asset-checkbox', function () {
+                this.checked ? selectedAssetTags.add(this.value) : selectedAssetTags.delete(this.value);
+                syncSelection();
+            });
+
+            $('#selectAllAssets').on('change', function () {
+                const check = this.checked;
+                $('#assetTable tbody .asset-checkbox').each(function () {
+                    check ? selectedAssetTags.add(this.value) : selectedAssetTags.delete(this.value);
+                });
+                syncSelection();
+            });
+
+            $('#clearSelection').on('click', function () {
+                selectedAssetTags.clear();
+                syncSelection();
+            });
+
+            $('#printSelected').on('click', function () {
+                printSelectedStickers(Array.from(selectedAssetTags));
+            });
 
             // Optional: listen for resize and redraw
             // $(window).on('resize', function () {

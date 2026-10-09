@@ -22,6 +22,8 @@ namespace EMMS.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence("AssetTagSeq");
+
             modelBuilder.Entity("EMMS.Models.Admin.User", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -157,7 +159,8 @@ namespace EMMS.Data.Migrations
 
                     b.Property<string>("AssetTagNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
@@ -245,6 +248,9 @@ namespace EMMS.Data.Migrations
                     b.HasKey("AssetId");
 
                     b.HasIndex("AssetId")
+                        .IsUnique();
+
+                    b.HasIndex("AssetTagNumber")
                         .IsUnique();
 
                     b.HasIndex("CategoryId");

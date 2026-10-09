@@ -1,4 +1,5 @@
-﻿using EMMS.CustomAttributes;
+﻿using EMMS.Constants;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
@@ -25,13 +26,15 @@ namespace EMMS.Controllers
             "Id", "Name");
         private readonly AssetManagementRepo _repo;
         private readonly AssetMovementRepo _mrepo;
+        private readonly AssetTagService _tagService;
 
-        public AssetManagementController(ApplicationDbContext context, AssetManagementRepo repo, AssetService assetService)
+        public AssetManagementController(ApplicationDbContext context, AssetManagementRepo repo, AssetService assetService, AssetTagService tagService)
         {
             _context = context;
             _assetService = assetService;
             _repo = repo;
             _mrepo = new AssetMovementRepo(_context);
+            _tagService = tagService;
         }
 
         [HttpGet]
@@ -206,7 +209,7 @@ namespace EMMS.Controllers
 
                 return new
                 {
-                    checkbox = $"<input type='checkbox' class='asset-checkbox' value='{asset.Asset.AssetTagNumber}' />",
+                    checkbox = $"<input type='checkbox' class='asset-checkbox' value='{System.Net.WebUtility.HtmlEncode(asset.Asset.AssetTagNumber)}' />",
                     tag = asset.Asset.AssetTagNumber,
                     category = asset.Asset.Category?.Name,
                     itemName = asset.Asset.SubCategory?.Name,
@@ -400,9 +403,10 @@ namespace EMMS.Controllers
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
+            asset.SerialNumber = SerialNumber.Normalize(asset.SerialNumber)!;
 
             // Check for duplicate serial number
-            if (await IsDuplicate(asset.SerialNumber))
+            if (asset.SerialNumber != null && await IsDuplicate(asset.SerialNumber))
             {
                 ModelState.AddModelError("asset.SerialNumber", "An asset with this serial number already exists.");
             }
@@ -437,14 +441,13 @@ namespace EMMS.Controllers
 
             // Generate AssetId
             asset.AssetId = Guid.NewGuid();
-            var allAssetsCount = (await _repo.GetAssetsFromDb()).Count();
 
             // Determine facility code
             var facilityCode = isAdmin && Assetmodel.facilityId.HasValue
                 ? (await _context.Facilities.FirstOrDefaultAsync(f => f.FacilityId == Assetmodel.facilityId))?.FacilityCode
                 : CurrentUser.Facility.FacilityCode;
 
-            asset.AssetTagNumber = $"{facilityCode}AS-{(allAssetsCount + 1):D3}";
+            asset.AssetTagNumber = await _tagService.NextTagAsync(facilityCode);
             asset.CreatedBy = CurrentUser!.UserId;
             asset.DateCreated = DateTime.Now;
             asset.RowState = RowStatus.Active;
@@ -507,71 +510,71 @@ namespace EMMS.Controllers
             if (currentFacilityCode == null || currentUserId == null)
                 return Unauthorized("User context missing.");
 
-            int existingCount = (await _repo.GetAssetsFromDb()).Count();
-            int counter = existingCount + 1;
+            // Serial validation: the serial is typed or scanned, so normalise it and reject
+            // missing (RequiresSerial), in-list duplicate and already-registered serials before saving anything.
+            foreach (var asset in assets)
+                asset.SerialNumber = SerialNumber.Normalize(asset.SerialNumber)!;
+
+            var subCategoryIds = assets.Select(a => a.SubCategoryId).Distinct().ToList();
+            var subCategories = await _context.LookupItems
+                .AsNoTracking()
+                .Where(l => subCategoryIds.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id);
+
+            var errors = new List<string>();
+            for (int i = 0; i < assets.Count; i++)
+            {
+                subCategories.TryGetValue(assets[i].SubCategoryId, out var subCategory);
+                // Same default as the quick registration form: required unless the item says RequiresSerial = false
+                bool serialRequired = subCategory?.GetFlag(LookupFlags.RequiresSerial, true) ?? true;
+                if (serialRequired && assets[i].SerialNumber == null)
+                    errors.Add($"Row {i + 1}: serial number is required for {subCategory?.Name ?? "this item"}.");
+            }
+
+            foreach (var duplicate in SerialNumber.FindDuplicates(assets.Select(a => a.SerialNumber)))
+                errors.Add($"Serial number {duplicate} appears more than once in this list.");
+
+            var existingSerials = await _repo.GetExistingSerialNumbers(assets.Where(a => a.SerialNumber != null).Select(a => a.SerialNumber));
+            foreach (var existing in existingSerials.Distinct(StringComparer.OrdinalIgnoreCase))
+                errors.Add($"Serial number {existing} is already registered.");
+
+            if (errors.Any())
+                return BadRequest(string.Join("\n", errors));
+
+            var facilityIds = assets.Where(a => a.FacilityId != null).Select(a => a.FacilityId!.Value).Distinct().ToList();
+            var facilityCodes = await _context.Facilities
+                .AsNoTracking()
+                .Where(f => facilityIds.Contains(f.FacilityId))
+                .ToDictionaryAsync(f => f.FacilityId, f => f.FacilityCode);
 
             var toInsert = new List<Asset>();
+            var tagFacilityCodes = new List<string?>();
             var deployments = new List<MoveAsset>();
 
             foreach (var asset in assets)
             {
                 // Determine quantity (default to 1 if not present or invalid)
                 int qty = asset.Quantity;
+                bool hasSerial = asset.SerialNumber != null;
+                var facilityCode = asset.FacilityId != null && facilityCodes.TryGetValue(asset.FacilityId.Value, out var code) ? code : null;
 
-                // Check if serial is required (front end should set SerialNumber to empty if not required)
-                bool requiresSerial = !string.IsNullOrWhiteSpace(asset.SerialNumber) && asset.SerialNumber != asset.AssetTagNumber;
-
-                // If serial is required, always treat as single asset
-                if (requiresSerial || qty < 2)
+                // An asset with a serial is always a single asset; without one, replicate for quantity
+                var created = new List<Asset>();
+                if (hasSerial || qty < 2)
                 {
-                    if (await IsDuplicate(asset.SerialNumber))
-                        return BadRequest($"Duplicate serial number detected: {asset.SerialNumber}");
-
-                    var facility = asset.FacilityId != null ? await _context.Facilities.FirstOrDefaultAsync((f) => f.FacilityId == asset.FacilityId) : null;
-                    var facilityCode = facility != null ? facility.FacilityCode : null;
-
                     asset.AssetId = Guid.NewGuid();
-                    asset.AssetTagNumber = $"{(facilityCode ?? currentFacilityCode)}AS-{counter:D3}";
-                    if (string.IsNullOrEmpty(asset.SerialNumber)) asset.SerialNumber = asset.AssetTagNumber;
-                    counter++;
-
                     asset.CreatedBy = currentUserId;
                     asset.DateCreated = DateTime.Now;
                     asset.RowState = RowStatus.Active;
-
-                    toInsert.Add(asset);
-
-                    // Deployment logic (unchanged)
-                    if (asset.AlreadyDeployed == true && asset.FacilityId != null)
-                    {
-                        var deployment = new MoveAsset
-                        {
-                            MovementDate = asset.DateDeployed ?? DateTime.Now,
-                            AssetId = asset.AssetId,
-                            MovementType = MovementType.Facility,
-                            FromId = asset.FacilityId.Value,
-                            FacilityId = asset.FacilityId.Value,
-                            ServicePointId = asset.ServicePointId,
-                            Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
-                            FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
-                            IsApproved = true,
-                            ApprovedBy = currentUserId,
-                            ReceivedBy = currentUserId,
-                            DateReceived = asset.DateDeployed ?? DateTime.Now,
-                            DateCreated = DateTime.Now,
-                            CreatedBy = currentUserId
-                        };
-                        deployments.Add(deployment);
-                    }
+                    created.Add(asset);
                 }
                 else
                 {
-                    // For assets without serial, duplicate for quantity
                     for (int i = 0; i < qty; i++)
                     {
-                        var newAsset = new Asset
+                        created.Add(new Asset
                         {
-                            // Copy all properties except AssetId, AssetTagNumber, SerialNumber
+                            AssetId = Guid.NewGuid(),
                             CategoryId = asset.CategoryId,
                             SubCategoryId = asset.SubCategoryId,
                             ItemName = asset.ItemName,
@@ -591,49 +594,57 @@ namespace EMMS.Controllers
                             IsServiceable = asset.IsServiceable,
                             NextServiceDate = asset.NextServiceDate,
                             ServiceInterval = asset.ServiceInterval,
+                            WarrantyStartDate = asset.WarrantyStartDate,
+                            WarrantyEndDate = asset.WarrantyEndDate,
                             AlreadyDeployed = asset.AlreadyDeployed,
                             DateDeployed = asset.DateDeployed,
                             FacilityId = asset.FacilityId,
                             ServicePointId = asset.ServicePointId,
+                            IsIdle = asset.IsIdle,
                             CreatedBy = currentUserId,
                             DateCreated = DateTime.Now,
                             RowState = RowStatus.Active
-                        };
-
-                        var facility = asset.FacilityId != null ? await _context.Facilities.FirstOrDefaultAsync((f) => f.FacilityId == asset.FacilityId) : null;
-                        var facilityCode = facility != null ? facility.FacilityCode : null;
-
-                        newAsset.AssetId = Guid.NewGuid();
-                        newAsset.AssetTagNumber = $"{(facilityCode ?? currentFacilityCode)}AS-{counter:D3}";
-                        newAsset.SerialNumber = newAsset.AssetTagNumber; // No serial, use tag as serial
-                        counter++;
-
-                        toInsert.Add(newAsset);
-
-                        // Deployment logic (unchanged)
-                        if (asset.AlreadyDeployed == true && asset.FacilityId != null)
-                        {
-                            var deployment = new MoveAsset
-                            {
-                                MovementDate = asset.DateDeployed ?? DateTime.Now,
-                                AssetId = newAsset.AssetId,
-                                MovementType = MovementType.Facility,
-                                FromId = asset.FacilityId.Value,
-                                FacilityId = asset.FacilityId.Value,
-                                ServicePointId = asset.ServicePointId,
-                                Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
-                                FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
-                                IsApproved = true,
-                                ApprovedBy = currentUserId,
-                                ReceivedBy = currentUserId,
-                                DateReceived = asset.DateDeployed ?? DateTime.Now,
-                                DateCreated = DateTime.Now,
-                                CreatedBy = currentUserId
-                            };
-                            deployments.Add(deployment);
-                        }
+                        });
                     }
                 }
+
+                foreach (var newAsset in created)
+                {
+                    toInsert.Add(newAsset);
+                    tagFacilityCodes.Add(facilityCode ?? currentFacilityCode);
+
+                    // Deployment logic (unchanged)
+                    if (asset.AlreadyDeployed == true && asset.FacilityId != null)
+                    {
+                        var deployment = new MoveAsset
+                        {
+                            MovementDate = asset.DateDeployed ?? DateTime.Now,
+                            AssetId = newAsset.AssetId,
+                            MovementType = MovementType.Facility,
+                            FromId = asset.FacilityId.Value,
+                            FacilityId = asset.FacilityId.Value,
+                            ServicePointId = asset.ServicePointId,
+                            Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
+                            FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
+                            IsApproved = true,
+                            ApprovedBy = currentUserId,
+                            ReceivedBy = currentUserId,
+                            DateReceived = asset.DateDeployed ?? DateTime.Now,
+                            DateCreated = DateTime.Now,
+                            CreatedBy = currentUserId
+                        };
+                        deployments.Add(deployment);
+                    }
+                }
+            }
+
+            // One sequence round trip for the whole batch
+            var tags = await _tagService.NextTagsAsync(tagFacilityCodes);
+            for (int i = 0; i < toInsert.Count; i++)
+            {
+                toInsert[i].AssetTagNumber = tags[i];
+                // Items that do not require a serial keep today's behaviour: tag doubles as serial
+                if (toInsert[i].SerialNumber == null) toInsert[i].SerialNumber = tags[i];
             }
 
             foreach (var entity in toInsert)
@@ -660,6 +671,31 @@ namespace EMMS.Controllers
 
 
 
+
+        // Sticker sheet: Code 128 barcode of the asset tag, rendered server-side (works offline)
+        [RequireLogin]
+        [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
+        public async Task<IActionResult> PrintStickers(List<string> tags)
+        {
+            var wanted = (tags ?? new List<string>())
+                .Select(t => t?.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var assets = await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.SubCategory)
+                .Where(a => wanted.Contains(a.AssetTagNumber) && a.RowState == RowStatus.Active)
+                .ToListAsync();
+
+            // Keep the order the user selected them in
+            var byTag = assets.ToDictionary(a => a.AssetTagNumber, StringComparer.OrdinalIgnoreCase);
+            var ordered = wanted.Where(byTag.ContainsKey).Select(t => byTag[t!]).ToList();
+
+            return View("stickers", ordered);
+        }
 
         async Task<bool> IsDuplicate(string serialNum)
         {

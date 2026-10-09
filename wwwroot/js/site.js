@@ -171,85 +171,32 @@ function printAssetDetail() {
 
 
 
-function printSelectedStickers() {
-    const selectedAssets = Array.from(document.querySelectorAll('.asset-checkbox:checked'))
-        .map(checkbox => JSON.parse(checkbox.value));
+// Opens the server-rendered sticker sheet (Code 128 barcode of each asset tag) in a new tab.
+// tags: optional array of asset tags; defaults to the ticked .asset-checkbox values.
+function printSelectedStickers(tags) {
+    const selected = (tags || Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(cb => cb.value))
+        .map(t => (t || '').trim())
+        .filter(t => t !== '');
 
-    if (selectedAssets.length === 0) {
+    if (selected.length === 0) {
         alert("No assets selected for printing.");
         return;
     }
 
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Print Asset Stickers</title>
-                        <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
-                        <style>
-                           .sticker {
-                                    width: 2.63in; /* Standard sticker width */
-                                    height: 0.90in; /* Standard sticker height */
-                                    padding: 1px;
-                                    font-family: Arial, sans-serif;
-                                    font-size: 12px;
-                                    display: flex;
-                                    flex-direction: column;
-                                    justify-content: space-between;
-                                }
-
-                                .sticker-header {
-                                    text-align: center;
-                                    font-weight: bold;
-                                    font-size: 14px;
-                                }
-
-                                .sticker-details {
-                                    margin-top: 5px;
-                                }
-
-                                    .sticker-details p {
-                                        margin: 2px 0;
-                                    }
-
-                                .qr-code {
-                                    display: flex;
-                                    justify-content: center;
-                                    align-items: center;
-                                    margin-bottom: 15px;
-                                }
-
-                                    .qr-code img {
-                                        width: 50px;
-                                        height: 50px;
-                                    }
-                        </style>
-                    </head>
-                    <body>
-                        ${selectedAssets.map(asset => `
-                        <div class="sticker mt-4">
-                            <div class="sticker-header">
-                                EMMS Asset
-                            </div>
-                            <div class="row py-0">
-                                <div class="sticker-details col-md-6">
-                                        <p><strong>Asset ID:</strong> ${asset.assetTagNumber}</p>
-                                        <p><strong>Serial Number:</strong> ${asset.serialNumber}</p>
-                                        <p><strong>Model:</strong> ${asset.model}</p>
-                                </div>
-                                <div class="qr-code col-md-6">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=AS-001" alt="QR Code">
-                                </div>
-                            </div>
-                        </div>
-                        `).join('')}
-                    </body>
-                </html>
-            `);
-
-    printWindow.document.close();
-    //printWindow.print();
-   // printWindow.onafterprint = () => printWindow.close();
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/AssetManagement/PrintStickers';
+    form.target = '_blank';
+    selected.forEach(tag => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'tags';
+        input.value = tag;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
 }
 
 function fnExcelReport() {
