@@ -26,12 +26,21 @@
     <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">@TempData["CylinderError"]<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
 }
 
-<div class="row g-4 mb-4">
-    <!-- Request form (facility user) -->
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header"><strong>Request Cylinders</strong> <span class="text-muted">(facility user)</span></div>
-            <div class="card-body">
+<div class="d-flex justify-content-end mb-3">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestCylindersModal">
+        <i class="fa fa-plus me-1"></i> Request Cylinders
+    </button>
+</div>
+
+<!-- Request form (facility user) -->
+<div class="modal fade" id="requestCylindersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><strong>Request Cylinders</strong> <span class="text-muted">(facility user)</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
                 <form asp-action="SubmitRequest" method="post" id="requestForm" class="registrationForm">
                     <input type="hidden" asp-for="Form.RequestId" id="requestId" />
                     <div class="row mb-3">
@@ -81,52 +90,53 @@
             </div>
         </div>
     </div>
+</div>
 
+@if (Model.IsCmsUser)
+{
     <!-- Pending requests for CMS -->
-    <div class="col-xl-6">
-        <div class="card h-100">
-            <div class="card-header"><strong>Pending Requests</strong> <span class="text-muted">(Central Medical Stores)</span></div>
-            <div class="card-body">
-                @if (!Model.IsCmsUser)
-                {
-                    <p class="text-muted mb-0">Approved requests are ordered and dispatched by a CMS officer at the central store.</p>
-                }
-                else if (!Model.ApprovedRequests.Any())
-                {
-                    <p class="text-muted mb-0">No approved requests are waiting for an order.</p>
-                }
-                else
-                {
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover align-middle small">
-                            <thead class="table-light">
-                                <tr><th>Facility</th><th>Item / Size / Content</th><th>Qty</th><th>Approved</th><th></th></tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var r in Model.ApprovedRequests)
-                                {
-                                    <tr>
-                                        <td>@r.Facility?.FacilityName</td>
-                                        <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
-                                        <td>@r.Quantity</td>
-                                        <td>@r.DateApproved?.ToString("dd MMM")</td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-primary create-order"
-                                                    data-request-id="@r.RequestId" data-facility="@r.Facility?.FacilityName"
-                                                    data-item="@($"{r.Size?.Name} / {r.Content?.Name}")" data-qty="@r.Quantity">
-                                                Create Order &rarr;
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+    <div class="row g-4 mb-4">
+        <div class="col-xl-12">
+            <div class="card h-100">
+                <div class="card-header"><strong>Pending Requests</strong> <span class="text-muted">(Central Medical Stores)</span></div>
+                <div class="card-body">
+                    @if (!Model.ApprovedRequests.Any())
+                    {
+                        <p class="text-muted mb-0">No approved requests are waiting for an order.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle small">
+                                <thead class="table-light">
+                                    <tr><th>Facility</th><th>Item / Size / Content</th><th>Qty</th><th>Approved</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in Model.ApprovedRequests)
+                                    {
+                                        <tr>
+                                            <td>@r.Facility?.FacilityName</td>
+                                            <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
+                                            <td>@r.Quantity</td>
+                                            <td>@r.DateApproved?.ToString("dd MMM")</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-primary create-order"
+                                                        data-request-id="@r.RequestId" data-facility="@r.Facility?.FacilityName"
+                                                        data-item="@($"{r.Size?.Name} / {r.Content?.Name}")" data-qty="@r.Quantity">
+                                                    Create Order &rarr;
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @if (Model.IsCmsUser)
 {
@@ -334,7 +344,9 @@
                 document.getElementById('orderQuantity').focus();
             }));
 
-            // Revise a rejected / returned request in the form above
+            // Revise a rejected / returned request in the form modal
+            const requestCylindersModalEl = document.getElementById('requestCylindersModal');
+            const requestCylindersModal = requestCylindersModalEl ? bootstrap.Modal.getOrCreateInstance(requestCylindersModalEl) : null;
             const cancel = document.getElementById('cancelRevise');
             document.querySelectorAll('.revise-request').forEach(btn => btn.addEventListener('click', () => {
                 document.getElementById('requestId').value = btn.dataset.requestId;
@@ -346,7 +358,7 @@
                 document.getElementById('reqName').value = btn.dataset.name;
                 document.getElementById('requestSubmit').textContent = 'Resubmit Request';
                 cancel.classList.remove('d-none');
-                document.getElementById('requestForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (requestCylindersModal) requestCylindersModal.show();
             }));
             cancel.addEventListener('click', () => {
                 document.getElementById('requestForm').reset();

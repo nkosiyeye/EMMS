@@ -60,10 +60,10 @@
                     </div>
                     <div id="scanResult" class="mt-2 small" role="status" aria-live="polite"></div>
                     <h6 class="mt-3"><span id="queueCount">@Model.Items.Count</span> asset(s) queued</h6>
-                    <div class="form-text">
+                    @*<div class="form-text">
                         Rejected scans show a reason: not found, inactive, no location, already in transit, stolen/missing,
                         decommissioned, work request in progress, not at your facility, mixed source, already queued.
-                    </div>
+                    </div>*@
                     <div class="form-text mt-2">
                         No scanner? Type the tag above, or tick assets in <a asp-controller="AssetManagement" asp-action="Index">Manage Assets</a> and choose <em>Move Selected</em>.
                     </div>
@@ -240,7 +240,7 @@
                 </form>
                 <form asp-action="QueueClear" asp-controller="AssetMovement" method="post" id="queueClearForm"></form>
 
-                <div class="alert alert-light border small mt-3 mb-0 alert-dismissible fade show" role="alert">
+                <div class="alert alert-light border small mt-3 mb-0 alert-dismissible fade d-none" role="alert">
                     Submit revalidates every asset, then creates one movement per asset under one batch in a single transaction and clears the queue.
                     If anything fails, nothing is moved and the queue stays as it is.
                     @(order != null ? "A dispatch is pre-approved: the facility receives it directly." : "The batch then follows the normal approve and receive steps.")

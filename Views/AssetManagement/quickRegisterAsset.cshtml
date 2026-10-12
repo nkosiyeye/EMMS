@@ -273,19 +273,35 @@
                         <div class="col-md-12">
                             <div class="border rounded p-3">
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed">
+                                    @if (isAdmin)
+                                    {
+                                        <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed">
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed" checked disabled>
+                                    }
                                     <label class="form-check-label fw-bold">Already Deployed?</label>
                                     <div class="form-text text-success fw-bold d-none" id="modalLocationHint">Required for cylinders: where is this cylinder physically today? (defaults to Central Medical Stores)</div>
                                 </div>
-                                <div class="row mb-1 d-none" id="modalDeploymentFields">                                    
+                                <div class="row mb-1 @(isAdmin ? "d-none" : "")" id="modalDeploymentFields">
                                     <div class="col-sm-6 col-md-6 col-lg-4">
                                         <input type="date" id="modalDateDeployed" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
                                         <span class="text-danger" id="v_modalDateDeployed"></span>
                                     </div>
                                     <div class="col-sm-6 col-md-6 col-lg-4">
-                                        <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
-                                            <option selected disabled value="">Select Facility</option>
-                                        </select>
+                                        @if (isAdmin)
+                                        {
+                                            <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
+                                                <option selected disabled value="">Select Facility</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" disabled>
+                                                <option value="@currentUser!.Facility?.FacilityId" selected>@currentUser!.Facility?.FacilityName</option>
+                                            </select>
+                                        }
                                         <span class="text-danger" id="v_modalFacility"></span>
                                     </div>
                                     <div class="col-sm-6 col-md-6 col-lg-4">
@@ -326,6 +342,8 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const IS_ADMIN = @(isAdmin ? "true" : "false");
+            const CURRENT_USER_FACILITY_ID = '@(currentUser?.Facility?.FacilityId)';
             let assetList = []; // Array to hold the registered asset objects
             let dropdownData = {};
             let editIndex = null; // Track which asset is being edited, null if adding
@@ -428,7 +446,9 @@
                     populateSelect(document.getElementById('modalVendor'), data.vendors, 'Select Vendor');
                     populateSelect(document.getElementById('modalServiceProvider'), data.serviceProviders, 'Select Service Provider');
                     if (data.statuses) populateSelect(document.getElementById('modalStatus'), data.statuses, 'Select Status');
-                    populateSelect(document.getElementById('modalFacility'), data.facilities, 'Select Facility');
+                    if (IS_ADMIN) {
+                        populateSelect(document.getElementById('modalFacility'), data.facilities, 'Select Facility');
+                    }
                     populateSelect(document.getElementById('modalServicePoint'), data.servicePoints, 'Select Service Point');
                     populateSelect(document.getElementById('modalCylinderSize'), data.cylinderSizes, 'Select Size');
                     populateSelect(document.getElementById('modalCylinderContent'), data.cylinderContents, 'Select Content');
@@ -581,6 +601,13 @@
                 bulkSerials = null;
                 document.getElementById('modalSerialNumber').disabled = false;
                 document.getElementById('modalSerialBulkNote').classList.add('d-none');
+                if (!IS_ADMIN) {
+                    document.getElementById('modalAlreadyDeployed').checked = true;
+                    document.getElementById('modalDeploymentFields').classList.remove('d-none');
+                    const facility = document.getElementById('modalFacility');
+                    facility.value = CURRENT_USER_FACILITY_ID;
+                    $(facility).selectpicker('refresh');
+                }
             });
 
             // --- Add Asset to local list ---
@@ -979,10 +1006,10 @@
             document.getElementById('modalNextServiceDate').value = asset.NextServiceDate || '';
 
             // Already Deployed
-            document.getElementById('modalAlreadyDeployed').checked = !!asset.AlreadyDeployed;
-            document.getElementById('modalDeploymentFields').classList.toggle('d-none', !asset.AlreadyDeployed);
+            document.getElementById('modalAlreadyDeployed').checked = IS_ADMIN ? !!asset.AlreadyDeployed : true;
+            document.getElementById('modalDeploymentFields').classList.toggle('d-none', IS_ADMIN && !asset.AlreadyDeployed);
             document.getElementById('modalDateDeployed').value = asset.DateDeployed || '';
-            document.getElementById('modalFacility').value = asset.FacilityId || '';
+            document.getElementById('modalFacility').value = IS_ADMIN ? (asset.FacilityId || '') : CURRENT_USER_FACILITY_ID;
             $('#modalFacility').selectpicker('refresh');
             document.getElementById('modalServicePoint').value = asset.ServicePointId || '';
             $('#modalServicePoint').selectpicker('refresh');
