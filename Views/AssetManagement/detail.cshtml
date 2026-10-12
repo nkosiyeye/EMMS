@@ -9,7 +9,7 @@
 
     ViewData["Title"] = Model.Asset.AssetTagNumber;
     ViewData["asset"] = "active";
-    var currentLocation = Model.MovementHistory?.Where(m => m.DateRejected == null).FirstOrDefault();
+    var currentLocation = Model.CurrentLocation; // vw_AssetCurrentLocation: latest received movement
 }
 <script>
     const assetDetail = @Html.Raw(Json.Serialize(Model.Asset));
@@ -153,6 +153,12 @@
                         @(currentLocation?.Facility?.FacilityName
                                     ?? currentLocation?.ServicePoint?.Name
                                     ?? "-")
+                        @if (Model.PendingMovement != null)
+                        {
+                            <div class="small @(Model.PendingMovement.IsApproved ? "text-primary" : "text-warning")">
+                                @(Model.PendingMovement.IsApproved ? "In transit to" : "Awaiting approval to") @Model.PendingMovement.Facility?.FacilityName
+                            </div>
+                        }
                     </dd>
 
                     <dt class="col-6 border p-1 m-0">Functional Status</dt>

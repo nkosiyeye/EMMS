@@ -28,6 +28,7 @@ builder.Services.AddScoped<IAssetTagSequence, AssetTagSequenceRepo>();
 builder.Services.AddScoped<AssetTagService>();
 builder.Services.AddScoped<MovementService>();
 builder.Services.AddScoped<CylinderOrderService>();
+builder.Services.AddScoped<CylinderReportService>();
 builder.Services.AddScoped<MovementQueueService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

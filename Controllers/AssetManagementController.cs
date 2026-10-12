@@ -122,7 +122,7 @@ namespace EMMS.Controllers
                 </button>
                 <ul class='dropdown-menu'>";
 
-                    if (lastMove == null && (isAdmin || isBiomed))
+                    if (lastMove == null && asset.PendingMovement == null && (isAdmin || isBiomed))
                     {
                         actionHtml += $@"
                 <li>
@@ -191,11 +191,13 @@ namespace EMMS.Controllers
                 }
                 string statusHtml;
 
-                if (asset.LastMovement != null)
+                // Functional status: the newest report, which is the pending movement's when one exists
+                var statusSource = asset.PendingMovement ?? asset.LastMovement;
+                if (statusSource != null)
                 {
-                    if (asset.LastMovement.Reason != Enumerators.MovementReason.Decommission)
+                    if (statusSource.Reason != Enumerators.MovementReason.Decommission)
                     {
-                        statusHtml = Format.DisplayFunctionalStatus(asset.LastMovement.FunctionalStatus).ToString();
+                        statusHtml = Format.DisplayFunctionalStatus(statusSource.FunctionalStatus).ToString();
                     }
                     else
                     {
@@ -205,6 +207,17 @@ namespace EMMS.Controllers
                 else
                 {
                     statusHtml = "<span class='text-muted'>-</span>";
+                }
+
+                // Location stays the source until received; show where it is heading
+                if (asset.PendingMovement != null)
+                {
+                    var destination = System.Net.WebUtility.HtmlEncode(
+                        (asset.PendingMovement.Facility?.FacilityName ?? "?") +
+                        (asset.PendingMovement.ServicePoint != null ? " / " + asset.PendingMovement.ServicePoint.Name : ""));
+                    statusHtml += asset.PendingMovement.IsApproved
+                        ? $" <span class='badge bg-primary' title='Approved, not yet received'>In transit &rarr; {destination}</span>"
+                        : $" <span class='badge bg-warning text-dark' title='Movement awaiting approval'>Awaiting approval &rarr; {destination}</span>";
                 }
 
                 return new
@@ -272,7 +285,9 @@ namespace EMMS.Controllers
             {
                 Asset = asset,
                 ServiceHistory = serviceHistory,
-                MovementHistory = movementHistory
+                MovementHistory = movementHistory,
+                CurrentLocation = (await _repo.GetCurrentLocationMovements(new[] { id })).GetValueOrDefault(id),
+                PendingMovement = (await _repo.GetInTransitMovements(new[] { id })).GetValueOrDefault(id)
             };
 
             return View(vm);

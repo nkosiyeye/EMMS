@@ -278,6 +278,40 @@ namespace EMMS.Data.Migrations
                     b.ToTable("Assets");
                 });
 
+            modelBuilder.Entity("EMMS.Models.AssetCurrentLocation", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateReceived")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FacilityId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("FunctionalStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid>("MovementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("MovementType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Reason")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("ServicePointId")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_AssetCurrentLocation", (string)null);
+                });
+
             modelBuilder.Entity("EMMS.Models.AssetCylinderDetail", b =>
                 {
                     b.Property<Guid>("AssetId")
@@ -296,6 +330,37 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("SizeId");
 
                     b.ToTable("AssetCylinderDetails");
+                });
+
+            modelBuilder.Entity("EMMS.Models.AssetInTransit", b =>
+                {
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FacilityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FromId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("MovementDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MovementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ServicePointId")
+                        .HasColumnType("int");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_AssetInTransit", (string)null);
                 });
 
             modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
@@ -987,6 +1052,8 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("RejectedReasonId");
 
                     b.HasIndex("ServicePointId");
+
+                    b.HasIndex("AssetId", "DateCreated", "MovementDate");
 
                     b.ToTable("AssetMovement");
                 });

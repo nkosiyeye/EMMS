@@ -94,7 +94,7 @@ namespace EMMS.Service
         };
 
         // ------------------------------------------------------------------------------------------
-        // Facts. Current location = the facility of the asset's latest received movement.
+        // Facts. Current location = vw_AssetCurrentLocation (latest received movement); transit = vw_AssetInTransit.
         // ------------------------------------------------------------------------------------------
         public async Task<QueueScanFacts> GatherFactsAsync(Asset? asset, User user, int? queueSourceFacilityId, bool ignoreQueue = false)
         {
@@ -109,24 +109,18 @@ namespace EMMS.Service
 
             facts.RowState = asset.RowState;
 
-            var movements = await _context.AssetMovement
-                .AsNoTracking()
-                .Include(m => m.Facility)
-                .Where(m => m.AssetId == asset.AssetId && m.RowState == RowStatus.Active)
-                .OrderByDescending(m => m.DateCreated)
-                .ThenByDescending(m => m.MovementDate)
-                .ToListAsync();
+            // Location and transit come from the two views (the one definition used across EMMS)
+            var location = await _context.AssetCurrentLocations.AsNoTracking().FirstOrDefaultAsync(l => l.AssetId == asset.AssetId);
+            var facility = location == null ? null
+                : await _context.Facilities.AsNoTracking().FirstOrDefaultAsync(f => f.FacilityId == location.FacilityId);
 
-            var latest = movements.FirstOrDefault();
-            var lastReceived = movements.FirstOrDefault(m => m.DateReceived != null);
-
-            facts.HasLocation = lastReceived != null;
-            facts.AtCentralStore = lastReceived?.Facility?.IsCentralStore == true;
-            facts.CurrentFacilityId = lastReceived?.FacilityId;
-            facts.CurrentFacilityName = lastReceived?.Facility?.FacilityName;
-            facts.InTransit = latest != null && latest.DateReceived == null && latest.DateRejected == null;
-            facts.StolenMissing = lastReceived?.Reason == MovementReason.StolenorMissing;
-            facts.Decommissioned = lastReceived?.Reason == MovementReason.Decommission;
+            facts.HasLocation = location != null;
+            facts.AtCentralStore = facility?.IsCentralStore == true;
+            facts.CurrentFacilityId = location?.FacilityId;
+            facts.CurrentFacilityName = facility?.FacilityName;
+            facts.InTransit = await _context.AssetsInTransit.AnyAsync(t => t.AssetId == asset.AssetId);
+            facts.StolenMissing = location?.Reason == MovementReason.StolenorMissing;
+            facts.Decommissioned = location?.Reason == MovementReason.Decommission;
 
             var workRequest = await _context.WorkRequest
                 .AsNoTracking()

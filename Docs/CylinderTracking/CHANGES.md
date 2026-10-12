@@ -4,7 +4,7 @@ This file covers what changed in EMMS for oxygen cylinder tracking, barcode scan
 
 The work extends the existing Equipment Registration and Asset Movement flows; it isn't a separate module. Most of it applies to **every** asset: stickers, tags, scanning, the movement queue and batch receipt. Cylinders are an asset **Category** with a flag that adds a few fields.
 
-The work landed in four commits, one per phase. Each commit builds and passes its tests on its own.
+Phases 0–3 landed in four commits, one per phase. Each commit builds and passes its tests on its own. Phase 4 isn't committed yet.
 
 | Commit | Phase | Summary |
 |---|---|---|
@@ -12,6 +12,7 @@ The work landed in four commits, one per phase. Each commit builds and passes it
 | `ba77572` | 1 – Cylinder registration | Category flag `CylinderProfile`, Size/Content, initial location, serial list |
 | `d8be5d8` | 2 – Scan-to-move | Movement Queue, batch movements, batch approval and gate pass, patient capture |
 | `54f8bc2` | 3 – Request to dispatch | Cylinder requests and orders, pre-approved dispatch, scan-to-receive |
+| *not committed yet* | 4 – Insight | One current-location view and one in-transit view, cylinder dashboard and Excel export |
 
 ---
 
@@ -31,6 +32,7 @@ dotnet ef database update
 | `DeactivateLegacyOxygenCylinder` | 1 | Deactivates the old "Oxygen Cylinder" subcategory under Medical Equipment, if no asset uses it |
 | `MovementQueue` | 2 | Creates tables `MovementQueueItems` and `HomeBasedCarePatients`; adds `AssetMovement.BatchId` and `AssetMovement.PatientId` |
 | `CylinderOrders` | 3 | Creates tables `CylinderRequests`, `CylinderOrders`, `CylinderOrderItems` and sequence `CylinderOrderSeq` |
+| `AssetLocationViews` | 4 | Creates views `vw_AssetCurrentLocation` and `vw_AssetInTransit`, plus a supporting index on `AssetMovement (AssetId, DateCreated, MovementDate)` |
 
 **If `AssetTagSequence` stops with error 50001**, the database already has duplicate asset tags. A unique index can't be created over them, and the migration won't silently re-tag assets that may already carry a printed label.
 
@@ -177,6 +179,48 @@ The **Cylinder Requests** page is a new sidebar item, hidden from data collector
 - Dispatch is created only from an order. It's hidden on the manual move forms and rejected by the server.
 - Return is accepted only when the destination is the central store.
 
+## Phase 4 – One location definition, cylinder dashboard
+
+**One definition of "current location"** (finding D2). Before this phase, location was worked out in seven places, in different ways:
+- the asset grid used two different rules inside one query;
+- three repository methods each had their own;
+- the detail page had another;
+- the movement queue had a seventh.
+
+Some counted pending moves and some ordered by the user-entered movement date. Two SQL views now define it once:
+
+| View | Definition |
+|---|---|
+| `vw_AssetCurrentLocation` | The asset's latest **received** movement (newest by `DateCreated`, then `MovementDate`) |
+| `vw_AssetInTransit` | Assets whose latest movement is neither received nor rejected (awaiting approval, or on the way) |
+
+They are mapped as read-only entities, `AssetCurrentLocation` and `AssetInTransit` (`Models/AssetLocationViews.cs`).
+
+These now read from the views:
+- the asset grid (`AssetService.GetPaginatedAssets`);
+- `AssetManagementRepo.GetAssetMovement`, `GetAssetsWithMovementDb` and `GetAssetLocation`, which feed the Home dashboard, Reports and Job Management;
+- the asset detail page;
+- the Movement Queue checks.
+
+What changed for users:
+- **Moves that were rejected no longer count.** On the development data one asset (`S003AS-099`) was listed at Mbabane, because its last move there had been rejected. It now shows at Nhlangano, where it actually is.
+- **Pending moves no longer change the location.** An asset stays at its source until it's received. The grid and detail page show **In transit → facility / service point** or **Awaiting approval → …**.
+- **Functional status still shows the newest report.** When a move is pending, the grid shows the functional status recorded on that move, as it did before.
+- `GetLastMovement` is unchanged: it still returns the latest non-rejected movement. Move Asset and the stolen/missing report use it to detect pending moves.
+
+**Cylinder Dashboard** (new sidebar item; `CylinderController.Dashboard`, `Service/CylinderReportService.cs`).
+
+Scope: administrators and CMS officers see every facility. Everyone else sees their own facility, plus cylinders on their way to it.
+
+- **Stat tiles** split every cylinder exactly once: at CMS, at facilities, with patients, in transit, and not available (stolen, decommissioned, or never deployed).
+- **Stock by facility and size/content**, as a stacked bar chart plus a table.
+  - In-transit cylinders appear only as *Incoming* at their destination, never at their source.
+  - The chart colours the three size/content combinations with the most stock across the whole network. Every other combination is grouped as **Other**, so every viewer sees the same colour for the same combination.
+  - The colours were checked against all pairings with a colour-vision validator: deuteranopia ΔE ≥ 9.2, normal vision ≥ 19.9. Some fall below 3:1 contrast on white, so the table below gives the exact figures.
+- **With patients N+ days:** cylinders at a Home Based Care service point for longer than a threshold (default 30 days). Patient numbers are shown only to administrators and to the patient's own facility, not in the CMS network view.
+- **Requests, orders and deliveries** for a date range (default the last 90 days). Per facility: requests, pending approval, rejected, requested, ordered, dispatched, received, and outstanding (ordered but not yet received).
+- **Export** writes the same three tables to Excel, with the same patient-number rule.
+
 ---
 
 ## Data model added
@@ -191,6 +235,7 @@ The **Cylinder Requests** page is a new sidebar item, hidden from data collector
 | `Facilities.IsCentralStore` | Marks the central store (CMS) |
 | `AssetMovement.BatchId` / `PatientId` | Batch grouping and patient link |
 | Sequences `AssetTagSeq`, `CylinderOrderSeq` | Asset tag numbers and order numbers |
+| Views `vw_AssetCurrentLocation`, `vw_AssetInTransit` | The one definition of current location and in transit |
 
 New foreign keys use `Restrict`, so deleting a lookup, user or facility never cascades into these tables.
 
@@ -200,13 +245,14 @@ New foreign keys use `Restrict`, so deleting a lookup, user or facility never ca
 dotnet test EMMS.Tests
 ```
 
-`EMMS.Tests` (xUnit) is new; the repository had no automated tests before this. It has 81 tests:
+`EMMS.Tests` (xUnit) is new; the repository had no automated tests before this. It has 89 tests:
 - Code 128 encoding vectors;
 - tag generation, including concurrent batches;
 - serial clean-up and duplicate detection;
 - the cylinder rules;
 - **the order of the queue scan checks** (each check is tested against an asset that also fails every later check);
-- dispatch checks, order status derivation and the Dispatch/Return reason rules.
+- dispatch checks, order status derivation and the Dispatch/Return reason rules;
+- the dashboard maths: every cylinder counted once, in-transit cylinders shown only at their destination, folding into "Other", the overdue threshold, choosing the chart's colour series, facility scoping, and request totals.
 
 Each phase was also checked against a **restored copy** of the development database, using real HTTP requests through the app:
 - every scan code;
@@ -214,14 +260,19 @@ Each phase was also checked against a **restored copy** of the development datab
 - the request → order → dispatch → receive flow, including a short delivery;
 - a before/after HTML comparison of the existing screens. Only additions appear, and no existing markup was removed.
 
+For Phase 4, the same restored copy was used to:
+- compare the asset grid before and after for a Mbabane user, a Nhlangano user and an admin;
+- load the dashboard as admin, CMS officer, facility staff and facility manager, and check the Excel export;
+- render the dashboard in headless Chrome and inspect it by eye.
+
 The browser-side behaviour hasn't been tried by a person yet: beeps, the camera, live counters, ticking on Scan to Receive, and the popups.
 
 ## Not done yet
 
-- **Phase 4:**
-  - one shared "current location" view and one "in transit" view;
-  - cylinder stock dashboards by facility and by size/content;
-  - requested vs dispatched vs received reports.
+- **Remaining roadmap Phase 4 items:**
+  - an audit trail for asset and movement changes (U3);
+  - stocktake by scanning;
+  - EF-only migrations, DTOs, and no whole-table loads (E1, D7, D8). `GetAssetIndexViewModel` still loads every asset.
 - **Hiding cylinders from repair and service pickers** (U5), and stronger protection of patient data (U6).
 - **Movement status and cancel instead of delete** (finding D3): an explicit status on movements, with cancel replacing the current hard delete (`deleteMovement`).
 - **Login and role checks on older actions** (finding S1). Several existing POST actions, such as `SaveAssets`, `ApproveMovement` and `ReceiveAsset`, still have no login or role attribute, and `ReceiveAsset` trusts `ReceivedBy` from the form.
@@ -238,4 +289,6 @@ The browser-side behaviour hasn't been tried by a person yet: beeps, the camera,
 | Movement Queue / batches / receive | `Service/MovementQueueService.cs`, `Controllers/AssetMovementController.cs`, `Views/AssetMovement/Queue.cshtml`, `Batch.cshtml`, `BatchGatePass.cshtml`, `recieveAsset.cshtml` |
 | Requests / orders | `Service/CylinderOrderService.cs`, `Controllers/CylinderController.cs`, `Views/Cylinder/Index.cshtml` |
 | Lookup flags admin | `Views/Admin/_LookupFlags.cshtml` |
+| Location views | `Models/AssetLocationViews.cs`, migration `AssetLocationViews`, `AssetManagementRepo.GetCurrentLocationMovements` / `GetInTransitMovements` |
+| Cylinder dashboard | `Service/CylinderReportService.cs`, `ViewModels/CylinderDashboardViewModel.cs`, `Views/Cylinder/Dashboard.cshtml` |
 | Notifications | `Service/NotificationService.cs` (batch, cylinder request and receipt-discrepancy messages) |

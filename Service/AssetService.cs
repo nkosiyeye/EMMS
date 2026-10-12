@@ -127,12 +127,8 @@ namespace EMMS.Service
 
                 var userFacilityId = currentUser.FacilityId;
 
-                // Filter assets whose *latest* movement is in the user's facility
-                query = query.Where(a => _context.AssetMovement
-                    .Where(m => m.AssetId == a.AssetId)
-                    .OrderByDescending(m => m.DateCreated)
-                    .Select(m => m.FacilityId)
-                    .FirstOrDefault() == userFacilityId);
+                // Assets whose current location (vw_AssetCurrentLocation) is the user's facility
+                query = query.Where(a => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.FacilityId == userFacilityId));
             }
 
             int totalCount = query.Count();
@@ -153,39 +149,36 @@ namespace EMMS.Service
                 .Take(length)
                 .ToList();
 
-            // Now load last movements — restrict to user's facility when not admin
+            // Current location and any pending movement for this page, from the two location views
             var assetIds = assets.Select(a => a.AssetId).ToList();
 
-            // 1. Start with the base query and filtering
-            var lastMovementsQuery = _context.AssetMovement
-                .Where(m => assetIds.Contains(m.AssetId));
-
-            // 2. Apply security/facility filtering
-            if (!isAdmin)
-            {
-                var userFacilityId = currentUser.FacilityId;
-                lastMovementsQuery = lastMovementsQuery.Where(m => m.FacilityId == userFacilityId);
-            }
-
-            // 3. Apply sorting and includes LAST
-            var lastMovements = lastMovementsQuery
+            var locationMovementIds = _context.AssetCurrentLocations
+                .Where(l => assetIds.Contains(l.AssetId))
+                .Select(l => l.MovementId);
+            var lastMovementDict = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => locationMovementIds.Contains(m.MovementId))
                 .Include(m => m.Facility)
                 .Include(m => m.ServicePoint)
-                .OrderByDescending(m => m.MovementDate) // Sorting happens here
-                .ToList();
+                .ToDictionary(m => m.AssetId);
 
-            var lastMovementDict = lastMovements
-                .GroupBy(m => m.AssetId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.FirstOrDefault());
+            var pendingMovementIds = _context.AssetsInTransit
+                .Where(t => assetIds.Contains(t.AssetId))
+                .Select(t => t.MovementId);
+            var pendingDict = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => pendingMovementIds.Contains(m.MovementId))
+                .Include(m => m.Facility)
+                .Include(m => m.ServicePoint)
+                .ToDictionary(m => m.AssetId);
 
             var items = assets.Select(asset => new AssetViewModel
             {
                 Asset = asset,
                 LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move)
                     ? move
-                    : null
+                    : null,
+                PendingMovement = pendingDict.TryGetValue(asset.AssetId, out var pending) ? pending : null
             }).OrderByDescending(m => m.Asset.DateCreated).ToList();
 
             return new PaginatedResult<AssetViewModel>

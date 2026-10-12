@@ -18,6 +18,10 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.CylinderRequest> CylinderRequests { get; set; }
         public DbSet<EMMS.Models.CylinderOrder> CylinderOrders { get; set; }
         public DbSet<EMMS.Models.CylinderOrderItem> CylinderOrderItems { get; set; }
+
+        // Read-only views: the one definition of "current location" and "in transit"
+        public DbSet<EMMS.Models.AssetCurrentLocation> AssetCurrentLocations { get; set; }
+        public DbSet<EMMS.Models.AssetInTransit> AssetsInTransit { get; set; }
         public DbSet<EMMS.Models.Entities.Facility> Facilities { get; set; }
         public DbSet<EMMS.Models.MoveAsset> AssetMovement { get; set; }
         public DbSet<EMMS.Models.WorkRequest> WorkRequest { get; set; }
@@ -71,6 +75,12 @@ namespace EMMS.Data
 
             modelBuilder.Entity<EMMS.Models.MoveAsset>()
                 .HasIndex(m => m.BatchId);
+            // Supports the latest-movement-per-asset lookups behind the location views
+            modelBuilder.Entity<EMMS.Models.MoveAsset>()
+                .HasIndex(m => new { m.AssetId, m.DateCreated, m.MovementDate });
+
+            modelBuilder.Entity<EMMS.Models.AssetCurrentLocation>().HasNoKey().ToView("vw_AssetCurrentLocation");
+            modelBuilder.Entity<EMMS.Models.AssetInTransit>().HasNoKey().ToView("vw_AssetInTransit");
             modelBuilder.Entity<EMMS.Models.MoveAsset>()
                 .HasOne(m => m.Patient).WithMany().HasForeignKey(m => m.PatientId).OnDelete(DeleteBehavior.Restrict);
 

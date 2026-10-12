@@ -1,4 +1,4 @@
-using EMMS.CustomAttributes;
+﻿using EMMS.CustomAttributes;
 using EMMS.Service;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +9,31 @@ namespace EMMS.Controllers
     public class CylinderController : BaseController
     {
         private readonly CylinderOrderService _orderService;
+        private readonly CylinderReportService _reportService;
 
-        public CylinderController(CylinderOrderService orderService)
+        public CylinderController(CylinderOrderService orderService, CylinderReportService reportService)
         {
             _orderService = orderService;
+            _reportService = reportService;
+        }
+
+        // Stock by facility and size/content, cylinders with patients too long, requested vs dispatched vs received.
+        // Admins and CMS officers see every facility; everyone else sees their own facility.
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> Dashboard(DateTime? from, DateTime? to, int overdueDays = 30)
+        {
+            return View(await _reportService.LoadDashboardAsync(CurrentUser!, from, to, overdueDays));
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> DashboardExport(DateTime? from, DateTime? to, int overdueDays = 30)
+        {
+            var vm = await _reportService.LoadDashboardAsync(CurrentUser!, from, to, overdueDays);
+            return File(CylinderReportService.ToExcel(vm),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"CylinderDashboard_{DateTime.Today:yyyyMMdd}.xlsx");
         }
 
         [HttpGet]
