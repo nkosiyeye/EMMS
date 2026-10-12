@@ -23,13 +23,18 @@ namespace EMMS.Controllers
         private readonly AssetService _assetService;
         private readonly AssetManagementRepo _assetManagementRepo;
         private readonly WorkRequestService _workRequests;
-        public JobManagementController(ApplicationDbContext context, AssetService assetService, AssetManagementRepo assetMovementRepo, WorkRequestService workRequests)
+        private readonly JobManagementRepo _repo;
+        public JobManagementController(ApplicationDbContext context, AssetService assetService, AssetManagementRepo assetMovementRepo, WorkRequestService workRequests, JobManagementRepo repo)
         {
             _context = context;
             _assetService = assetService;
             _assetManagementRepo = assetMovementRepo;
             _workRequests = workRequests;
+            _repo = repo;
         }
+
+        // Admins see every facility; everyone else their own.
+        private int? FacilityScope => isAdmin ? null : CurrentUser!.FacilityId;
 
         private IActionResult AccessDenied()
         {
@@ -51,18 +56,11 @@ namespace EMMS.Controllers
 
         private async Task<JobViewModel> JobData()
         {
-            var _repo = new JobManagementRepo(_context);
-            var all = await _repo.GetJobfromDbs();
-            var filteredJobs = all.Where(w => w.AssignedTo == CurrentUser!.UserId);
-            var allInfWork = await _repo.GetInfrustructureWorkRequests();
-            var filteredInfWork = allInfWork.Where(w => w.FacilityId == CurrentUser!.FacilityId);
-            var allWork = await _repo.GetWorkRequests();
-            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser!.FacilityId);
             return new JobViewModel
             {
-                Jobs = !isAdmin ? filteredJobs : all,
-                WorkRequests = !isAdmin ? filteredWork : allWork,
-                InfrastructureWorkRequests = !isAdmin ? filteredInfWork : allInfWork,
+                Jobs = await _repo.GetActiveJobsAsync(isAdmin ? null : CurrentUser!.UserId),
+                WorkRequests = await _repo.GetUnassignedWorkRequestsAsync(FacilityScope),
+                InfrastructureWorkRequests = await _repo.GetUnassignedInfrastructureRequestsAsync(FacilityScope),
                 Job = new Job(),
                 FaultReports = await _repo.GetFaultReports(),
                 WorkStatuses = await _workRequests.GetStatusesAsync(),
@@ -78,15 +76,12 @@ namespace EMMS.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var _repo = new JobManagementRepo(_context);
-            var allWork = await _repo.GetWorkRequests();
-            var allInfWork = await _repo.GetInfrustructureWorkRequests();
             var data = new WorkRequestViewModel
             {
                 WorkRequest = new WorkRequest(),
                 AssetIndex = await _assetService.GetAssetIndexViewModel(CurrentUser!),
-                WorkRequests = !isAdmin ? allWork.Where(w => w.FacilityId == CurrentUser!.FacilityId) : allWork,
-                InfrastructureWorkRequests = !isAdmin ? allInfWork.Where(w => w.FacilityId == CurrentUser!.FacilityId) : allInfWork,
+                WorkRequests = await _repo.GetWorkRequestsAsync(FacilityScope),
+                InfrastructureWorkRequests = await _repo.GetInfrastructureRequestsAsync(FacilityScope),
                 Outcomes = await _workRequests.GetOutcomesAsync(),
                 WorkStatuses = await _workRequests.GetStatusesAsync(),
                 CancelReasons = await _workRequests.GetCancelReasonsAsync(),
@@ -134,7 +129,6 @@ namespace EMMS.Controllers
         [HttpGet]
         public async Task<IActionResult> infrustructureWorkRequest()
         {
-            var _repo = new JobManagementRepo(_context);
             var workAssetViewModel = new WorkRequestViewModel()
             {
                 InfrustructureWorkRequest = new InfrustructureWorkRequest(),
@@ -165,10 +159,7 @@ namespace EMMS.Controllers
         [HttpGet]
         public async Task<IActionResult> editWorkRequest(Guid id)
         {
-            var workRequest = await _context.WorkRequest
-                .Include(w => w.Asset).ThenInclude(a => a!.SubCategory)
-                .Include(w => w.Facility)
-                .FirstOrDefaultAsync(w => w.WorkRequestId == id);
+            var workRequest = await _repo.GetWorkRequestForEditAsync(id);
 
             if (workRequest == null)
                 return NotFound();
@@ -248,7 +239,10 @@ namespace EMMS.Controllers
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
         public async Task<IActionResult> manageJobs()
         {
-            ViewData["Biomed"] = new SelectList(_context.User.Where(f => f.RowState == RowStatus.Active && f.UserRole.UserType == Enumerators.UserType.Biomed), "UserId", "FirstName");
+            ViewData["Biomed"] = new SelectList(await _context.User.AsNoTracking()
+                .Where(f => f.RowState == RowStatus.Active && f.UserRole!.UserType == UserType.Biomed)
+                .OrderBy(f => f.FirstName)
+                .ToListAsync(), "UserId", "FirstName");
             return View(await JobData());
         }
 
@@ -271,14 +265,7 @@ namespace EMMS.Controllers
 
         private async Task<JobViewModel?> LoadJobCard(Guid id)
         {
-            var job = await _context.Job
-                .Include(w => w.Asset)
-                .Include(w => w.InfraWorkRequest).ThenInclude(w => w!.TypeOfRequest)
-                .Include(w => w.User)
-                .Include(w => w.Status)
-                .Include(w => w.FaultReport)
-                .Include(w => w.ExternalProvider)
-                .FirstOrDefaultAsync(j => j.JobId == id);
+            var job = await _repo.GetJobAsync(id);
 
             if (job == null)
                 return null;
@@ -287,29 +274,18 @@ namespace EMMS.Controllers
             {
                 Job = job,
                 WorkStatuses = await _workRequests.GetStatusesAsync(),
-                WorkDoneList = await _context.WorkDone
-                    .Where(w => w.JobId == job.JobId && w.RowState == RowStatus.Active)
-                    .OrderByDescending(w => w.DateCompleted)
-                    .ToListAsync(),
+                WorkDoneList = await _repo.GetWorkDoneForJobAsync(job.JobId),
                 WorkDone = new WorkDone()
             };
 
             // Load work request differently depending on type
             if (job.WorkRequestId != null) // Asset Job
             {
-                jobView.WorkRequest = await _context.WorkRequest
-                    .Include(w => w.Asset).ThenInclude(a => a!.SubCategory)
-                    .Include(w => w.RequestedByUser)
-                    .Include(w => w.Outcome)
-                    .FirstOrDefaultAsync(w => w.WorkRequestId == job.WorkRequestId);
+                jobView.WorkRequest = await _repo.GetWorkRequestDetailAsync(job.WorkRequestId.Value);
             }
             else if (job.InfrastructureWorkRequestId != null) // Infrastructure Job
             {
-                jobView.InfraWorkRequest = await _context.InfrustructureWorkRequest
-                    .Include(w => w.TypeOfRequest)
-                    .Include(w => w.RequestedByUser)
-                    .Include(w => w.Outcome)
-                    .FirstOrDefaultAsync(w => w.WorkRequestId == job.InfrastructureWorkRequestId);
+                jobView.InfraWorkRequest = await _repo.GetInfrastructureRequestDetailAsync(job.InfrastructureWorkRequestId.Value);
             }
 
             return jobView;

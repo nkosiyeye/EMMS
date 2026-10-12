@@ -837,8 +837,6 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("CancelReasonId");
 
-                    b.HasIndex("FacilityId");
-
                     b.HasIndex("JobId");
 
                     b.HasIndex("OutcomeId");
@@ -847,10 +845,9 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("TypeOfRequestId");
 
-                    b.HasIndex("WorkRequestId")
-                        .IsUnique();
-
                     b.HasIndex("WorkStatusId");
+
+                    b.HasIndex("FacilityId", "RequestDate");
 
                     b.ToTable("InfrustructureWorkRequest");
                 });
@@ -938,9 +935,6 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("InfrastructureWorkRequestId")
                         .IsUnique()
                         .HasFilter("[InfrastructureWorkRequestId] IS NOT NULL");
-
-                    b.HasIndex("JobId")
-                        .IsUnique();
 
                     b.HasIndex("JobNumber")
                         .IsUnique()
@@ -1148,6 +1142,8 @@ namespace EMMS.Data.Migrations
 
                     b.HasKey("WorkDoneId");
 
+                    b.HasIndex("JobId");
+
                     b.ToTable("WorkDone");
                 });
 
@@ -1213,18 +1209,15 @@ namespace EMMS.Data.Migrations
 
                     b.HasIndex("CancelReasonId");
 
-                    b.HasIndex("FacilityId");
-
                     b.HasIndex("JobId");
 
                     b.HasIndex("OutcomeId");
 
                     b.HasIndex("RequestedBy");
 
-                    b.HasIndex("WorkRequestId")
-                        .IsUnique();
-
                     b.HasIndex("WorkStatusId");
+
+                    b.HasIndex("FacilityId", "RequestDate");
 
                     b.ToTable("WorkRequest");
                 });
@@ -1867,6 +1860,14 @@ namespace EMMS.Data.Migrations
                     b.Navigation("SourceFacility");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("EMMS.Models.WorkDone", b =>
+                {
+                    b.HasOne("EMMS.Models.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkRequest", b =>

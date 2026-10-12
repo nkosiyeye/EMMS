@@ -126,17 +126,22 @@ namespace EMMS.Data
                 e.HasOne(i => i.Movement).WithMany().HasForeignKey(i => i.MovementId).OnDelete(DeleteBehavior.Restrict);
             });
 
-            // WorkRequest
-            modelBuilder.Entity<EMMS.Models.WorkRequest>()
-                .HasIndex(w => w.WorkRequestId)
-                .IsUnique();
+            // WorkRequest: listed per facility, newest first
             modelBuilder.Entity<EMMS.Models.WorkRequest>()
                 .HasIndex(w => w.AssetId);
+            modelBuilder.Entity<EMMS.Models.WorkRequest>()
+                .HasIndex(w => new { w.FacilityId, w.RequestDate });
 
             // InfrustructureWorkRequest
             modelBuilder.Entity<EMMS.Models.InfrustructureWorkRequest>()
-                .HasIndex(i => i.WorkRequestId)
-                .IsUnique();
+                .HasIndex(i => new { i.FacilityId, i.RequestDate });
+
+            // WorkDone belongs to a job
+            modelBuilder.Entity<EMMS.Models.WorkDone>()
+                .HasOne<EMMS.Models.Job>()
+                .WithMany()
+                .HasForeignKey(w => w.JobId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Job: numbers come from a sequence; at most one job per asset work request
             modelBuilder.HasSequence<long>(EMMS.Service.WorkRequestService.JobNumberSequence);
@@ -151,9 +156,6 @@ namespace EMMS.Data
                 .HasIndex(j => j.WorkRequestId)
                 .IsUnique()
                 .HasFilter("[WorkRequestId] IS NOT NULL");
-            modelBuilder.Entity<EMMS.Models.Job>()
-                .HasIndex(j => j.JobId)
-                .IsUnique();
             modelBuilder.Entity<EMMS.Models.Job>()
                 .HasIndex(j => j.AssetId);
             modelBuilder.Entity<EMMS.Models.Job>()
