@@ -1,4 +1,5 @@
 ﻿@model EMMS.ViewModels.JobViewModel;
+@using EMMS.Constants
 @{
     ViewData["Title"] = "Job";
     ViewData["JobManagement"] = "active"; 
@@ -7,7 +8,9 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser;
-    bool isReadOnly = Model.Job!.Status?.Name?.ToLower().Contains("closed") == true || Model.Job.EndDate != null || currentUser.UserId != Model.Job.AssignedTo;
+    // Only the assignee changes a running job; Completed, Closed and Cancelled jobs are read-only.
+    bool canWork = Model.Job!.Status?.Name == WorkStatusNames.InProgress && Model.Job.EndDate == null && currentUser.UserId == Model.Job.AssignedTo;
+    bool isReadOnly = !canWork;
 }
 
 <!-- Work Request Section -->
@@ -110,7 +113,7 @@
                         else
                         {
                             <select asp-for="Job.StatusId" class="form-select selectpicker col-md-4" data-live-search="true"
-                                    asp-items="@(new SelectList(Model.WorkStatuses.Where(w => w.Name.Contains("In") || w.Name.Contains("Completed")), "Id", "Name"))">
+                                    asp-items="@(new SelectList(Model.WorkStatuses!.Where(w => w.Name == WorkStatusNames.InProgress || w.Name == WorkStatusNames.Completed), "Id", "Name"))">
                             </select>
                         }
                     </div>
@@ -165,7 +168,7 @@
                               readonly="@isReadOnly"></textarea>
                 </div>
 
-                @if (isBiomed && currentUser.UserId == Model.Job.AssignedTo && Model.Job?.EndDate == null)
+                @if (canWork)
                 {
                     <div class="text-end mb-3 float-start">
                         <button type="submit" class="btn btn-primary">Update Job Card</button>
@@ -184,7 +187,7 @@
 
                 }
                 <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
-                @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
+                @if (canWork)
                 {
                     <button class="btn btn-sm btn-primary"
                             title="Work Done"
@@ -226,7 +229,7 @@
                                     </td>
                                     <td>@work.Hours</td>
                                     <td>
-                                        @if (Model.Job?.Status?.Name != "Completed" && Model.Job?.EndDate == null && currentUser.UserId == Model.Job?.AssignedTo)
+                                        @if (canWork)
                                         {
                                             <a href="javascript:void(0);"
                                                class="btn btn-sm btn-primary edit-workdone"
@@ -257,8 +260,8 @@
             </div>
         </div>
         <div class="text-start mt-4">
-            <a asp-action="Index" asp-controller="JobManagement" class="btn btn-outline-secondary">
-                <i class="fa fa-arrow-left me-1"></i> Back to Job List
+            <a asp-action="@(isAdmin || isBiomed ? "manageJobs" : "Index")" asp-controller="JobManagement" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-1"></i> @(isAdmin || isBiomed ? "Back to Jobs" : "Back to Work Requests")
             </a>
         </div>
 

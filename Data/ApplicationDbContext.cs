@@ -138,7 +138,19 @@ namespace EMMS.Data
                 .HasIndex(i => i.WorkRequestId)
                 .IsUnique();
 
-            // Job
+            // Job: numbers come from a sequence; at most one job per asset work request
+            modelBuilder.HasSequence<long>(EMMS.Service.WorkRequestService.JobNumberSequence);
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .Property(j => j.JobNumber)
+                .HasMaxLength(50);
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .HasIndex(j => j.JobNumber)
+                .IsUnique()
+                .HasFilter("[JobNumber] IS NOT NULL");
+            modelBuilder.Entity<EMMS.Models.Job>()
+                .HasIndex(j => j.WorkRequestId)
+                .IsUnique()
+                .HasFilter("[WorkRequestId] IS NOT NULL");
             modelBuilder.Entity<EMMS.Models.Job>()
                 .HasIndex(j => j.JobId)
                 .IsUnique();

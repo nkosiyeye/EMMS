@@ -1,4 +1,5 @@
-﻿using EMMS.Data.Migrations;
+﻿using EMMS.Constants;
+using EMMS.Data.Migrations;
 using EMMS.Models;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -60,10 +61,11 @@ namespace EMMS.Data.Repository
         {
             var query = _context.Job.AsQueryable();
 
+            // Cancelled jobs also carry an end date, so count by status.
             if (completed)
-                query = query.Where(j => j.EndDate != null);
+                query = query.Where(j => j.Status!.Name == WorkStatusNames.Completed || j.Status!.Name == WorkStatusNames.Closed);
             else
-                query = query.Where(j => j.EndDate == null);
+                query = query.Where(j => j.Status!.Name == WorkStatusNames.InProgress);
 
             if (!isAdmin)
                 query = query.Where(j => j.FacilityId == facilityId);

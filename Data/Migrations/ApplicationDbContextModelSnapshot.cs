@@ -26,6 +26,8 @@ namespace EMMS.Data.Migrations
 
             modelBuilder.HasSequence("CylinderOrderSeq");
 
+            modelBuilder.HasSequence("JobNumberSeq");
+
             modelBuilder.Entity("EMMS.Models.Admin.User", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -900,7 +902,8 @@ namespace EMMS.Data.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("JobNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid?>("ModifiedBy")
                         .HasColumnType("uniqueidentifier");
@@ -939,9 +942,15 @@ namespace EMMS.Data.Migrations
                     b.HasIndex("JobId")
                         .IsUnique();
 
+                    b.HasIndex("JobNumber")
+                        .IsUnique()
+                        .HasFilter("[JobNumber] IS NOT NULL");
+
                     b.HasIndex("StatusId");
 
-                    b.HasIndex("WorkRequestId");
+                    b.HasIndex("WorkRequestId")
+                        .IsUnique()
+                        .HasFilter("[WorkRequestId] IS NOT NULL");
 
                     b.ToTable("Job");
                 });
@@ -1173,6 +1182,9 @@ namespace EMMS.Data.Migrations
 
                     b.Property<int>("FacilityId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsServiceRequest")
+                        .HasColumnType("bit");
 
                     b.Property<Guid?>("JobId")
                         .HasColumnType("uniqueidentifier");

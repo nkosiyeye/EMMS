@@ -20,5 +20,6 @@ namespace EMMS.ViewModels
         public IEnumerable<LookupItem>? TypeOfRequests { get; set; }
 
         public IEnumerable<LookupItem>? Outcomes { get; set; }
+        public IEnumerable<LookupItem>? CancelReasons { get; set; }
     }
 }

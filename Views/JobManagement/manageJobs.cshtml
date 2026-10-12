@@ -1,11 +1,14 @@
 ﻿@model EMMS.ViewModels.JobViewModel;
+@using EMMS.Constants
 @{
     ViewData["Title"] = "Manage Jobs";
     ViewData["manageJob"] = "active";
     ViewData["JobManagement"] = "active";
     Model.Job.StartDate = DateTime.Today;
-    var infraCount = Model.InfrastructureWorkRequests.Where(w => w.WorkStatus?.Name == "Open").Count();
-    var workCount = Model.WorkRequests.Where(w => w.WorkStatus?.Name == "Open").Count();
+    var openWork = Model.WorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();
+    var openInfraWork = Model.InfrastructureWorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();
+    var infraCount = openInfraWork.Count;
+    var workCount = openWork.Count;
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
 }
 
@@ -70,7 +73,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var request in Model.WorkRequests.Where(w => w.WorkStatus?.Name == "Open"))
+                            @foreach (var request in openWork)
                             {
                                 <tr>
                                     <td>@request.Asset?.AssetTagNumber</td>
@@ -134,7 +137,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var request in Model.InfrastructureWorkRequests.Where(w => w.WorkStatus?.Name == "Open"))
+                            @foreach (var request in openInfraWork)
                             {
                                 <tr>
                                     <td>@request.TypeOfRequest?.Name</td>
@@ -189,7 +192,7 @@
         <!-- Job History Table -->
         <div class="card mt-3">
             <div class="card-header">
-                <strong>Job History</strong>
+                <strong>Active Jobs</strong>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -208,7 +211,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var job in Model.Jobs.Where(j => j.Status?.Name != "Closed"))
+                            @foreach (var job in Model.Jobs!.Where(j => j.Status?.Name != WorkStatusNames.Closed && j.Status?.Name != WorkStatusNames.Cancelled))
                             {
                                 <tr>
                                     <td>@(job.Asset?.AssetTagNumber == null ? job.InfraWorkRequest?.TypeOfRequest?.Name ?? "Infrastructure" : "Asset")</td>
@@ -218,9 +221,18 @@
                                     <td>@job.FaultReport?.Name</td>
                                     <td>@job.User?.FirstName</td>
                                     <td>
-                                        @(job.IsExternalProvider
-                                            ? job.ExternalProvider?.Name ?? "<span class='text-muted'>External</span>"
-                                            : "No")
+                                        @if (!job.IsExternalProvider)
+                                        {
+                                            <span>No</span>
+                                        }
+                                        else if (job.ExternalProvider != null)
+                                        {
+                                            <span>@job.ExternalProvider.Name</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">External</span>
+                                        }
                                     </td>
                                     <td>@job.Status?.Name</td>
                                     <td>
@@ -346,46 +358,43 @@
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Close Work Request</h1>
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Cancel Work Request</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form asp-action="cancelRequest" asp-controller="JobManagement" method="post">
+                    <input type="hidden" name="returnTo" value="manageJobs" />
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-4">
                             <label asp-for="WorkRequest.CloseDate" class="form-label required-field">Date Canceled</label>
-                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="movementDate" required>
+                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="cancelDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                         </div>
                         <div class="col-md-4">
-                            <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
-                            <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
-                                @foreach (var status in Model.WorkStatuses.Where(m => m.Name.ToLower().Contains("ca")))
-                                {
-                                    <option value="@status.Id" selected>@status.Name</option>
-                                }
-                            </select>
+                            <label class="form-label">Work Status</label>
+                            <input class="form-control" type="text" value="@WorkStatusNames.Cancelled" disabled />
                         </div>
 
                         <!-- Outcome -->
                         <div class="col-md-4">
                             <input asp-for="WorkRequest.WorkRequestId" id="cancelrequestId" type="hidden" />
-                            <label asp-for="WorkRequest.OutcomeId" for="title" class="form-label required-field"></label>
-                            <select asp-for="WorkRequest.OutcomeId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.Outcomes.Where(o => o.Name.ToLower().Contains("un")), "Id", "Name"))">
-                            </select> 
+                            <label asp-for="WorkRequest.OutcomeId" class="form-label"></label>
+                            <select asp-for="WorkRequest.OutcomeId" id="cancelOutcome" class="form-select"
+                                    asp-items="@(new SelectList(Model.Outcomes!.Where(o => o.Name != WorkOutcomeNames.Pending), "Id", "Name"))">
+                                <option value="">None</option>
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-12 mb-2">
-                        <label asp-for="WorkRequest.CancelReasonId" for="title" class="form-label required-field"></label>
-                        <select asp-for="WorkRequest.CancelReasonId" id="movementType" class="form-select selectpicker col-md-6"
-                                data-live-search="true" asp-items="@(new SelectList(Model.CancelReasons, "Id", "Name"))">
+                        <label asp-for="WorkRequest.CancelReasonId" class="form-label required-field"></label>
+                        <select asp-for="WorkRequest.CancelReasonId" id="cancelReason" class="form-select" required
+                                asp-items="@(new SelectList(Model.CancelReasons, "Id", "Name"))">
+                            <option value="" selected disabled>Select a reason</option>
                         </select>
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary">Close</button>
+                    <button type="submit" class="btn btn-danger">Cancel Request</button>
                 </form>
             </div>
             <div class="modal-footer">
@@ -398,7 +407,7 @@
 @section Scripts {
     <script>
             $(document).ready(function () {
-            $('#workRequestTable').DataTable({
+            $('#assetWorkRequestTable, #infraWorkRequestTable').DataTable({
                     pageLength: 10
                 });
             });
