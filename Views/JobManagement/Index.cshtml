@@ -56,9 +56,9 @@
                             @foreach (var request in Model.WorkRequests)
                             {
                                 <tr>
-                                    <td>@request.Asset.AssetTagNumber</td>
-                                    <td>@request.Asset.SubCategory.Name</td>
-                                    <td>@request.RequestedByUser.FirstName</td>
+                                    <td>@request.Asset?.AssetTagNumber</td>
+                                    <td>@request.Asset?.SubCategory?.Name</td>
+                                    <td>@request.RequestedByUser?.FirstName</td>
                                     <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
@@ -75,9 +75,9 @@
                                         }
                                     </td>
                                     <td>
-                                        @if (request.JobId != null)
+                                        @if (request.Job != null)
                                         {
-                                            @(request.Job!.IsExternalProvider
+                                            @(request.Job.IsExternalProvider
                                                 ? request.Job.ExternalProvider?.Name ?? "External"
                                                 : "No")
                                         }
@@ -105,7 +105,7 @@
                                                title="Edit Request">
                                                 <i class="fa fa-edit"></i>
                                             </a>
-                                            @if (request.JobId != null)
+                                            @if (request.Job != null)
                                             {
                                                 <a class="btn btn-sm btn-info" title="View Job"
                                                    asp-controller="JobManagement"
@@ -152,8 +152,8 @@
                             @foreach (var request in Model.InfrastructureWorkRequests)
                             {
                                 <tr>
-                                    <td>@request.TypeOfRequest.Name</td>
-                                    <td>@request.RequestedByUser.FirstName</td>
+                                    <td>@request.TypeOfRequest?.Name</td>
+                                    <td>@request.RequestedByUser?.FirstName</td>
                                     <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
@@ -188,7 +188,7 @@
                                                title="Edit Request">
                                                 <i class="fa fa-edit"></i>
                                     </a> *@
-                                    @if (request.JobId != null)
+                                    @if (request.Job != null)
                                     {
                                         <a class="btn btn-sm btn-info" title="View Job"
                                            asp-controller="JobManagement"
@@ -302,7 +302,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form asp-action="closeRequest" asp-controller="JobManagement">
+                <form asp-action="closeRequest" asp-controller="JobManagement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-4">

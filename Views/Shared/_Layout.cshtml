@@ -236,6 +236,11 @@
         </style>
     }
 
+    <!-- Posts a service request for the asset a .js-service-request link points at (see site.js) -->
+    <form id="serviceRequestForm" method="post" asp-controller="JobManagement" asp-action="AutomateServiceRequest" class="d-none">
+        <input type="hidden" name="id" />
+    </form>
+
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

@@ -137,7 +137,7 @@
                             @foreach (var request in Model.InfrastructureWorkRequests.Where(w => w.WorkStatus?.Name == "Open"))
                             {
                                 <tr>
-                                    <td>@request.TypeOfRequest.Name</td>
+                                    <td>@request.TypeOfRequest?.Name</td>
                                     <td>@request.RequestDate.ToString("dd/MM/yyyy")</td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
@@ -162,7 +162,7 @@
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#jobModal"
                                                     data-request-id="@request.WorkRequestId"
-                                                    data-request-type="@request.TypeOfRequest.Name">
+                                                    data-request-type="@request.TypeOfRequest?.Name">
                                                 Create Job
                                             </button>
                                             @if (isAdmin)
@@ -208,10 +208,10 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var job in Model.Jobs.Where(j => j.Status.Name != "Closed"))
+                            @foreach (var job in Model.Jobs.Where(j => j.Status?.Name != "Closed"))
                             {
                                 <tr>
-                                    <td>@(job.Asset?.AssetTagNumber == null ? job.InfraWorkRequest.TypeOfRequest.Name : "Asset")</td>
+                                    <td>@(job.Asset?.AssetTagNumber == null ? job.InfraWorkRequest?.TypeOfRequest?.Name ?? "Infrastructure" : "Asset")</td>
                                     <td>@(job.Asset?.AssetTagNumber ?? "N/A")</td>
                                     <td>@job.JobNumber</td>
                                     <td>@job.StartDate.ToString("dd/MM/yyyy")</td>
@@ -279,13 +279,7 @@
                         <div class="col-md-4">
                             <label asp-for="Job.StatusId" class="form-label"></label>
                             <input class="form-control" type="text"
-                                   value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "In Progress").Name" disabled />
-                            <select asp-for="Job.StatusId" class="form-select d-none">
-                                @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "In Progress"))
-                                {
-                                    <option value="@status.Id" selected>@status.Name</option>
-                                }
-                            </select>
+                                   value="@(Model.WorkStatuses?.FirstOrDefault(w => w.Name == "In Progress")?.Name ?? "In Progress")" disabled />
                         </div>
                     </div>
 
@@ -295,7 +289,7 @@
                             <label asp-for="Job.FaultReportId" class="form-label required-field"></label>
                             <select asp-for="Job.FaultReportId" class="form-select selectpicker col-md-6"
                                     data-live-search="true" asp-items="@(new SelectList(Model.FaultReports, "Id", "Name"))">
-                                <option selected disabled>Select Fault Report</option>
+                                <option value="" selected disabled>Select Fault Report</option>
                             </select>
                         </div>
 
@@ -330,7 +324,7 @@
                                 <label asp-for="Job.ExternalProviderId" class="form-label required-field"></label>
                                 <select asp-for="Job.ExternalProviderId" class="form-select selectpicker"
                                         data-live-search="true" asp-items="@(new SelectList(Model.ServiceProviders, "Id", "Name"))">
-                                    <option selected disabled>Select Service Provider</option>
+                                    <option value="" selected disabled>Select Service Provider</option>
                                 </select>
                             </div>
                         </div>
@@ -356,7 +350,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form asp-action="cancelRequest" asp-controller="JobManagement">
+                <form asp-action="cancelRequest" asp-controller="JobManagement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-4">

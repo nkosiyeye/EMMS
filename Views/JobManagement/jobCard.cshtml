@@ -5,6 +5,7 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser;
+    bool isReadOnly = Model.Job!.Status?.Name?.ToLower().Contains("closed") == true || Model.Job.EndDate != null || currentUser.UserId != Model.Job.AssignedTo;
     Model.WorkDone.DateCompleted = DateTime.Today;
 }
 
@@ -22,14 +23,14 @@
                     <dl class="row">
                         <dt class="col-sm-6 border p-1 m-0">Asset ID</dt>
                         <dd class="col-sm-6 border p-1 m-0">
-                            <a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@Model.WorkRequest.AssetId">
-                                @Model.WorkRequest.Asset.AssetTagNumber
+                            <a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@Model.WorkRequest?.AssetId">
+                                @Model.WorkRequest?.Asset?.AssetTagNumber
                             </a>
                         </dd>
                         <dt class="col-sm-6 border p-1 m-0">Item Name</dt>
-                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.Asset.SubCategory.Name</dd>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.Asset?.SubCategory?.Name</dd>
                         <dt class="col-sm-6 border p-1 m-0">Date</dt>
-                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest.RequestDate.ToShortDateString()</dd>
+                        <dd class="col-sm-6 border p-1 m-0">@Model.WorkRequest?.RequestDate.ToShortDateString()</dd>
                     </dl>
                 </div>
                 <div class="col-md-6">
@@ -52,7 +53,7 @@
                     <dl class="row">
                         <dt class="col-sm-6 border p-1 m-0">Request Type</dt>
                         <dd class="col-sm-6 border p-1 m-0">
-                            @Model.InfraWorkRequest.TypeOfRequest.Name
+                            @Model.InfraWorkRequest.TypeOfRequest?.Name
                         </dd>
                         <dt class="col-sm-6 border p-1 m-0">Date</dt>
                         <dd class="col-sm-6 border p-1 m-0">@Model.InfraWorkRequest.RequestDate.ToShortDateString()</dd>
@@ -100,9 +101,9 @@
                     </div>
                     <div class="col-sm-12 col-md-4 col-lg-4 col-xl-4">
                         <label class="form-label">Status</label>
-                        @if (Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)
+                        @if (isReadOnly)
                         {
-                            <input class="form-control" type="text" value="@Model.Job.Status.Name" disabled />
+                            <input class="form-control" type="text" value="@Model.Job.Status?.Name" disabled />
                         }
                         else
                         {
@@ -117,19 +118,19 @@
                     <div class="col-md-6">
                         <label class="form-label">Assigned To</label>
                         <input asp-for="Job.AssignedTo" type="hidden" />
-                        <input type="text" class="form-control" value="@Model.Job.User.FirstName" readonly />
+                        <input type="text" class="form-control" value="@Model.Job.User?.FirstName" readonly />
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Fault Report</label>
                         <input asp-for="Job.FaultReportId" type="hidden" />
-                        <input type="text" class="form-control" value="@Model.Job.FaultReport.Name" readonly />
+                        <input type="text" class="form-control" value="@Model.Job.FaultReport?.Name" readonly />
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Comments</label>
                     <textarea asp-for="Job.Remarks" class="form-control" rows="3"
-                    readonly="@(Model.Job!.Status!.Name.ToLower().Contains("closed") || Model.Job?.EndDate != null || currentUser.UserId != Model.Job?.AssignedTo)">
+                    readonly="@isReadOnly">
                     </textarea>
                 </div>
 
@@ -208,10 +209,13 @@
                                                 <i class="fa fa-edit"></i>
                                             </a>
 
-                                            <a asp-controller="JobManagement" asp-action="deleteWorkDone" asp-route-id="@work.WorkDoneId"
-                                            class="btn btn-sm btn-danger" title="Delete Work">
-                                                <i class="fa fa-trash"></i>
-                                            </a>
+                                            <form asp-controller="JobManagement" asp-action="deleteWorkDone" asp-route-id="@work.WorkDoneId" method="post" class="d-inline"
+                                                  onsubmit="return confirm('Delete this work done entry?');">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-danger" title="Delete Work">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </form>
                                         }
                                     </td>
                                 </tr>

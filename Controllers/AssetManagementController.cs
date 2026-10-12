@@ -155,7 +155,7 @@ namespace EMMS.Controllers
                 </li>
 
                 <li>
-                    <a class='dropdown-item' href='/JobManagement/AutomateServiceRequest/{asset.Asset.AssetId}'>
+                    <a class='dropdown-item js-service-request' href='#' data-asset-id='{asset.Asset.AssetId}'>
                         <i class='fa fa-toolbox me-1'></i> Service Request
                     </a>
                 </li>";

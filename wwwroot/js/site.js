@@ -390,3 +390,15 @@ function exportToExcel() {
 
 
 
+
+// Service request links are rendered in several asset tables (some built in JS),
+// so one delegated handler posts them through the hidden form in _Layout.
+document.addEventListener('click', function (event) {
+    const link = event.target.closest('.js-service-request');
+    if (!link) return;
+    event.preventDefault();
+    const form = document.getElementById('serviceRequestForm');
+    if (!form) return;
+    form.querySelector('input[name="id"]').value = link.dataset.assetId;
+    form.submit();
+});

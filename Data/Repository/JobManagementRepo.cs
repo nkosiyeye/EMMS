@@ -99,6 +99,7 @@ namespace EMMS.Data.Repository
         public async Task<IEnumerable<WorkDone>> GetWorkDone()
         {
             return await _context.WorkDone
+                .Where(w => w.RowState == RowStatus.Active)
                 .OrderByDescending(w => w.DateCompleted)
                 .ToListAsync();
         }

@@ -136,7 +136,7 @@
                                                 </li>
 
                                                 <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="AutomateServiceRequest" asp-route-id="@asset.Asset.AssetId">
+                                                    <a class="dropdown-item js-service-request" href="#" data-asset-id="@asset.Asset.AssetId">
                                                         <i class="fa fa-toolbox me-1"></i> Service Request
                                                     </a>
                                                 </li>
