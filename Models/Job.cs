@@ -15,13 +15,16 @@ namespace EMMS.Models
         [Display(Name = "Job Card Number")]
         public string? JobNumber { get; set; }
 
-        [Required]
         [Display(Name = "Work Request ID")]
-        public Guid WorkRequestId { get; set; }
+        public Guid? WorkRequestId { get; set; }
         [ForeignKey(nameof(WorkRequestId))]
         public virtual WorkRequest? WorkRequest { get; set; }
 
-        [Required]
+        [Display(Name = "Work Request ID")]
+        public Guid? InfrastructureWorkRequestId { get; set; }
+        [ForeignKey(nameof(InfrastructureWorkRequestId))]
+        public virtual InfrustructureWorkRequest? InfraWorkRequest { get; set; }
+
         [Display(Name = "Asset ID")]
         public Guid? AssetId { get; set; }
         [ForeignKey(nameof(AssetId))]

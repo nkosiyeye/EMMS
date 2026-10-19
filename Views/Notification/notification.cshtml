@@ -6,9 +6,9 @@
     ViewData["Notification"] = "active";
 }
 <div class="notification-body">
-	<ul class="notification-list" id="notificationList">
-		@foreach (var item in Model)
-		{
+    <ul class="notification-list" id="notificationList">
+        @foreach (var item in Model)
+        {
             <li class="notification-item">
                 <div class="notification-icon">
                     @if (item.Type == "work")
@@ -23,6 +23,14 @@
                     {
                         <i class="fas fa-box text-info"></i>
                     }
+                    else if (item.Type == "forgotPassword")
+                    {
+                        <i class="fas fa-lock text-info"></i>
+                    }
+                    else if (item.Type == "userRegistration")
+                    {
+                        <i class="fas fa-user text-info"></i>
+                    }
                     else
                     {
                         <i class="fas fa-bell text-secondary"></i>
@@ -36,21 +44,35 @@
                     @if (item.Type == "work")
                     {
                         <a class="notification-action mark-read" title="View Work Request"
-                           href="@Url.Action("Index", "JobManagement")">
+                        href="@Url.Action("Index", "JobManagement")">
                             <i class="fas fa-eye"></i>
                         </a>
                     }
                     else if (item.Type == "job")
                     {
                         <a class="notification-action mark-read" title="View Job"
-                           href="@Url.Action("Index", "JobManagement")">
+                        href="@Url.Action("Index", "JobManagement")">
                             <i class="fas fa-eye"></i>
                         </a>
                     }
                     else if (item.Type == "asset")
                     {
                         <a class="notification-action mark-read" title="View Asset"
-                           href="@Url.Action("Index", "AssetManagement")">
+                        href="@Url.Action("Index", "AssetManagement")">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    }
+                    else if (item.Type?.Trim().ToLower() == "forgotpassword")
+                    {
+                        <a class="notification-action mark-read" title="View Asset"
+                           href="@Url.Action("Edit", "UserManagement", new{id = item.CreatedBy})">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    }
+                    else if (item.Type?.Trim().ToLower() == "userRegistration")
+                    {
+                        <a class="notification-action mark-read" title="View Asset"
+                           href="@Url.Action("Edit", "UserManagement", new{id = item.CreatedBy})">
                             <i class="fas fa-eye"></i>
                         </a>
                     }

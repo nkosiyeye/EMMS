@@ -1,0 +1,82 @@
+@using EMMS.Utility
+@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.BatchViewModel
+@{
+    ViewData["Title"] = "Movement Batch";
+    ViewData["moveAsset"] = "active";
+    ViewData["JobMovement"] = "active";
+    var first = Model.Movements.First();
+    var pending = Model.Movements.Count(m => !m.IsApproved && m.DateRejected == null);
+    var approved = Model.Movements.Count(m => m.IsApproved && m.DateRejected == null);
+    var received = Model.Movements.Count(m => m.DateReceived != null);
+}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Movement Batch</strong> <span class="text-muted small font-monospace">@Model.BatchId.ToString()[..8]</span></span>
+        <div class="d-flex gap-2">
+            @if (Model.CanApprove && pending > 0)
+            {
+                <form asp-action="ApproveBatch" asp-route-id="@Model.BatchId" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-check-circle me-1"></i> Approve Batch (@pending)</button>
+                </form>
+            }
+            @if (approved > 0)
+            {
+                <a class="btn btn-secondary btn-sm" target="_blank" asp-action="BatchGatePass" asp-route-id="@Model.BatchId"><i class="fa fa-print me-1"></i> Gate Pass</a>
+            }
+            <a class="btn btn-outline-primary btn-sm" asp-action="Queue"><i class="fa fa-barcode me-1"></i> Movement Queue</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3 small">
+            <div class="col-md-3"><strong>From:</strong> @first.From?.FacilityName</div>
+            <div class="col-md-3"><strong>To:</strong> @first.Facility?.FacilityName@(first.ServicePoint != null ? " / " + first.ServicePoint.Name : "")</div>
+            <div class="col-md-3"><strong>Reason:</strong> @(first.Reason == MovementReason.Other ? first.OtherReason : first.Reason.ToString())</div>
+            <div class="col-md-3"><strong>Date:</strong> @first.MovementDate.ToString("dd MMM yyyy")</div>
+        </div>
+        <div class="mb-3 small">
+            <span class="badge bg-secondary">@Model.Movements.Count asset(s)</span>
+            <span class="badge bg-warning text-dark">@pending awaiting approval</span>
+            <span class="badge bg-primary">@(approved - received) in transit</span>
+            <span class="badge bg-success">@received received</span>
+        </div>
+        @if (first.Patient != null && Model.CanSeePatient)
+        {
+            <div class="alert alert-light border small">
+                <strong>Patient:</strong> @first.Patient.Name @first.Patient.Surname · No. @first.Patient.Number · @first.Patient.Address
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Asset Tag</th>
+                        <th>Serial</th>
+                        <th>Item / Size</th>
+                        <th>Functional Status</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model.Movements)
+                    {
+                        <tr>
+                            <td>@m.Asset?.AssetTagNumber</td>
+                            <td>@(m.Asset?.SerialNumber != m.Asset?.AssetTagNumber ? m.Asset?.SerialNumber : "")</td>
+                            <td>@m.Asset?.SubCategory?.Name@(m.Asset?.CylinderDetail?.Size != null ? " · " + m.Asset.CylinderDetail.Size.Name : "")</td>
+                            <td>@Format.DisplayFunctionalStatus(m.FunctionalStatus)</td>
+                            <td>
+                                @if (m.DateRejected != null) { <span class="badge bg-danger">Rejected</span> }
+                                else if (m.DateReceived != null) { <span class="badge bg-success">Received</span> }
+                                else if (m.IsApproved) { <span class="badge bg-primary">In transit</span> }
+                                else { <span class="badge bg-warning text-dark">Awaiting approval</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

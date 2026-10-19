@@ -12,6 +12,10 @@
     <Content Remove="wwwroot\lib\bootstrap-select\**" />
     <EmbeddedResource Remove="wwwroot\lib\bootstrap-select\**" />
     <None Remove="wwwroot\lib\bootstrap-select\**" />
+    <Compile Remove="EMMS.Tests\**" />
+    <Content Remove="EMMS.Tests\**" />
+    <EmbeddedResource Remove="EMMS.Tests\**" />
+    <None Remove="EMMS.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Data\SQL Queries\" />
     <Folder Include="Views\Admin\Dashboard\" />
     <Folder Include="Views\Admin\Lookups\" />
     <Folder Include="Views\Admin\UserManagement\" />

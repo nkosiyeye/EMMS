@@ -1,8 +1,9 @@
 ﻿@using EMMS.ViewModels
 @using EMMS.Models.Admin
+@using EMMS.Constants
 @model WorkRequestViewModel
 @{
-    ViewData["Title"] = "Move Assets";
+    ViewData["Title"] = "Work Requests";
     ViewData["workRequest"] = "active";
     ViewData["JobManagement"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
@@ -10,120 +11,253 @@
     var currentUser = ViewBag._currentUser as User;
 }
 
-<div class="card mb-12">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <strong>Work Requests</strong>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestModal">
-                <i class="fa fa-plus me-1"></i> Request
-            </button>
-        </div>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Asset Tag</th>
-                        <th>Item Name</th>
-                        <th>Requested By</th>
-                        <th>Request Date</th>
-                        <th>Fault Description</th>
-                        <th>External</th>
-                        <th>Status</th>
-                        <th>Outcome</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var request in Model.WorkRequests)
-                    {
-                        <tr>
-                            <td>@request.Asset.AssetTagNumber</td>
-                            <td>@request.Asset.SubCategory.Name</td>
-                            <td>@request.RequestedByUser.FirstName</td>
-                            <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
-                            <td>
-                                @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
-                                {
-                                    <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
-                                    <a href="javascript:void(0);" class="read-more text-info" data-bs-toggle="modal" data-bs-target="#descriptionModal" data-description="@request.Description">
-                                        Read More
-                                    </a>
-                                }
-                                else
-                                {
-                                    <span>@request.Description</span>
-                                }
-                            </td>
-                            <td>
-                                @if (request.JobId != null)
-                                {
-                                    @(request.Job!.IsExternalProvider
+
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" id="workRequestTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="asset-tab" data-bs-toggle="tab"
+                        data-bs-target="#asset-requests" type="button" role="tab"
+                        aria-controls="asset-requests" aria-selected="true">
+                    <i class="fa fa-cogs me-1"></i> Asset Work Requests
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="infra-tab" data-bs-toggle="tab"
+                        data-bs-target="#infra-requests" type="button" role="tab"
+                        aria-controls="infra-requests" aria-selected="false">
+                    <i class="fa fa-building me-1"></i> Infrastructure Work Requests
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content mt-1" id="workRequestTabsContent">
+            <!-- Asset Work Requests -->
+            <div class="tab-pane fade show active" id="asset-requests" role="tabpanel" aria-labelledby="asset-tab">
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestModal">
+                    <i class="fa fa-plus me-1"></i> Asset Job Request
+                </button>
+                <div class="table-responsive">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Asset Tag</th>
+                                <th>Item Name</th>
+                                <th>Requested By</th>
+                                <th>Request Date</th>
+                                <th>Fault Description</th>
+                                <th>External</th>
+                                <th>Status</th>
+                                <th>Outcome</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.WorkRequests)
+                            {
+                                var status = request.WorkStatus?.Name;
+                                var isMine = isAdmin || currentUser?.UserId == request.RequestedBy;
+                                var canEdit = status == WorkStatusNames.Open && request.JobId == null;
+                                var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
+                                var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
+                                <tr>
+                                    <td>@request.Asset?.AssetTagNumber</td>
+                                    <td>@request.Asset?.SubCategory?.Name</td>
+                                    <td>@request.RequestedByUser?.FirstName</td>
+                                    <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
+                                        {
+                                            <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="read-more text-info"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#descriptionModal"
+                                               data-description="@request.Description">Read More</a>
+                                        }
+                                        else
+                                        {
+                                            <span>@request.Description</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (request.Job != null)
+                                        {
+                                            @(request.Job.IsExternalProvider
                                                 ? request.Job.ExternalProvider?.Name ?? "External"
                                                 : "No")
-                                }
-                                else
-                                {
-                                    <span class="text-muted">N/A</span>
-                                }
-                            </td>
-                            <td>@request.WorkStatus?.Name</td>
-                            <td>
-                                @if (request.JobId == null && request.Outcome != null)
-                                {
-                                    <span>Cancelled</span>
-                                }
-                                else
-                                {
-                                    @(request.Outcome?.Name ?? "Pending")                                    
-                                }
-
-                                </td>
-                                <td>
-                                    <div class="btn-group">
-                                        @* Edit Button - Only for "Open" status *@
-									<a asp-controller="JobManagement" asp-action="editWorkRequest" asp-route-id="@request.WorkRequestId"
-                                            class="btn btn-sm btn-primary @(request.WorkStatus?.Name != "Open" ? "d-none" : "")" title="Edit Request">
-                                            <i class="fa fa-edit"></i>
-                                        </a>
-
-                                        @* View Job Card *@
-                                        @if (request.JobId != null)
-                                        {
-                                            <a class="btn btn-sm btn-info" title="View Job"
-                                               asp-controller="JobManagement"
-                                               asp-action="@(request.Job.IsExternalProvider ? "externalJobCard" : "jobCard")"
-                                               asp-route-id="@request.JobId">
-                                                <i class="fa fa-eye"></i>
-                                            </a>
                                         }
-
-                                        @* Close Button - If no outcome and current user is requester or admin *@
-                                        <button class="btn btn-sm btn-danger @(request.Outcome != null || (currentUser?.UserId != request.RequestedBy && !isAdmin) ? "d-none" : "")"
-                                                title="Close Request"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#closeModal"
-                                                data-request-id="@request.WorkRequestId">
-                                            <i class="fa fa-times-circle"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td>@request.WorkStatus?.Name</td>
+                                    <td>
+                                        @if (status == WorkStatusNames.Cancelled)
+                                        {
+                                            <span>Cancelled@(request.CancelReason != null ? ": " + request.CancelReason.Name : "")</span>
+                                        }
+                                        else
+                                        {
+                                            @(request.Outcome?.Name ?? "Pending")
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a asp-controller="JobManagement" asp-action="editWorkRequest"
+                                               asp-route-id="@request.WorkRequestId"
+                                               class="btn btn-sm btn-primary @(!canEdit ? "d-none" : "")"
+                                               title="Edit Request">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                            @if (request.Job != null)
+                                            {
+                                                <a class="btn btn-sm btn-info" title="View Job"
+                                                   asp-controller="JobManagement"
+                                                   asp-action="@(request.Job.IsExternalProvider ? "externalJobCard" : "jobCard")"
+                                                   asp-route-id="@request.JobId">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                            }
+                                            @if (canClose)
+                                            {
+                                                <button class="btn btn-sm btn-success"
+                                                        title="Close Request"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#closeModal"
+                                                        data-request-id="@request.WorkRequestId">
+                                                    <i class="fa fa-check-circle"></i>
+                                                </button>
+                                            }
+                                            @if (canWithdraw)
+                                            {
+                                                <button class="btn btn-sm btn-danger"
+                                                        title="Withdraw Request"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#withdrawModal"
+                                                        data-request-id="@request.WorkRequestId">
+                                                    <i class="fa fa-times-circle"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- Infrastructure Work Requests -->
+            <div class="tab-pane fade" id="infra-requests" role="tabpanel" aria-labelledby="infra-tab">
+                <a asp-action="infrustructureWorkRequest" asp-controller="JobManagement" class="btn btn-primary btn-sm">
+                    <i class="fa fa-plus me-1"></i> Infrastructure Job Request
+                </a>
+                <div class="table-responsive">
+                    <table class="table fixed-table table-striped table-bordered table-hover" id="infraWorkRequestTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Request Type</th>
+                                <th>Requested By</th>
+                                <th>Request Date</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Outcome</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in Model.InfrastructureWorkRequests)
+                            {
+                                var status = request.WorkStatus?.Name;
+                                var isMine = isAdmin || currentUser?.UserId == request.RequestedBy;
+                                var canEdit = status == WorkStatusNames.Open && request.JobId == null;
+                                var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
+                                var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
+                                <tr>
+                                    <td>@request.TypeOfRequest?.Name</td>
+                                    <td>@request.RequestedByUser?.FirstName</td>
+                                    <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(request.Description) && request.Description.Length > 20)
+                                        {
+                                            <span title="@request.Description">@request.Description.Substring(0, 20)...</span>
+                                            <a href="javascript:void(0);" class="read-more text-info"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#descriptionModal"
+                                               data-description="@request.Description">Read More</a>
+                                        }
+                                        else
+                                        {
+                                            <span>@request.Description</span>
+                                        }
+                                    </td>
+                                    <td>@request.WorkStatus?.Name</td>
+                                    <td>
+                                        @if (status == WorkStatusNames.Cancelled)
+                                        {
+                                            <span>Cancelled@(request.CancelReason != null ? ": " + request.CancelReason.Name : "")</span>
+                                        }
+                                        else
+                                        {
+                                            @(request.Outcome?.Name ?? "Pending")
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                          @*   <a asp-controller="JobManagement" asp-action="editInfrastructureRequest"
+                                               asp-route-id="@request.WorkRequestId"
+                                               class="btn btn-sm btn-primary @(!canEdit ? "d-none" : "")"
+                                               title="Edit Request">
+                                                <i class="fa fa-edit"></i>
+                                    </a> *@
+                                    @if (request.Job != null)
+                                    {
+                                        <a class="btn btn-sm btn-info" title="View Job"
+                                           asp-controller="JobManagement"
+                                           asp-action="@(request.Job.IsExternalProvider ? "externalJobCard" : "jobCard")"
+                                           asp-route-id="@request.JobId">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                    }
+                                            @if (canClose)
+                                            {
+                                                <button class="btn btn-sm btn-success"
+                                                        title="Close Request"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#closeModal"
+                                                        data-request-id="@request.WorkRequestId">
+                                                    <i class="fa fa-check-circle"></i>
+                                                </button>
+                                            }
+                                            @if (canWithdraw)
+                                            {
+                                                <button class="btn btn-sm btn-danger"
+                                                        title="Withdraw Request"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#withdrawModal"
+                                                        data-request-id="@request.WorkRequestId">
+                                                    <i class="fa fa-times-circle"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
    
-
-</div>
 <!-- Modal -->
 <div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Asset Movement</h1>
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Select Asset</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="modalAssetBody">
@@ -205,30 +339,24 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form asp-action="closeRequest" asp-controller="JobManagement">
+                <form asp-action="closeRequest" asp-controller="JobManagement" method="post">
                     <div class="row mb-3">
                         <!-- Date -->
                         <div class="col-md-4">
                             <label asp-for="WorkRequest.CloseDate" class="form-label required-field">Date Closed</label>
-                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="movementDate" required>
+                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="closeDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                         </div>
                         <div class="col-md-4">
-                        <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
-                        <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6"
-                                data-live-search="true" @*asp-items="@(new SelectList(Model.WorkStatuses, "Id", "Name"))" *@>
-                            @foreach (var status in Model.WorkStatuses.Where(w => w.Name.ToLower().Contains("clos")))
-                            {
-                                <option value="@status.Id" selected>@status.Name</option>
-                            }
-                        </select>
+                            <label class="form-label">Work Status</label>
+                            <input class="form-control" type="text" value="@WorkStatusNames.Closed" disabled />
                         </div>
 
                         <!-- Outcome -->
                         <div class="col-md-4">
                             <input asp-for="WorkRequest.WorkRequestId" id="requestId" type="hidden" />
                             <label asp-for="WorkRequest.OutcomeId" for="title" class="form-label required-field"></label>
-                            <select asp-for="WorkRequest.OutcomeId" id="movementType" class="form-select selectpicker col-md-6"
-                                    data-live-search="true" asp-items="@(new SelectList(Model.Outcomes, "Id", "Name"))">
+                            <select asp-for="WorkRequest.OutcomeId" id="closeOutcome" class="form-select selectpicker col-md-6" required
+                                    data-live-search="true" asp-items="@(new SelectList(Model.Outcomes!.Where(o => o.Name != WorkOutcomeNames.Pending), "Id", "Name"))">
                             </select>
                         </div>
                     </div>
@@ -244,19 +372,59 @@
     </div>
 </div>
 
+<!-- Withdraw Modal (requester, before a job exists) -->
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="withdrawModalLabel">Withdraw Work Request</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="cancelRequest" asp-controller="JobManagement" method="post">
+                    <input asp-for="WorkRequest.WorkRequestId" id="withdrawRequestId" type="hidden" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="WorkRequest.CloseDate" class="form-label required-field">Date Withdrawn</label>
+                            <input asp-for="WorkRequest.CloseDate" type="date" class="form-control" id="withdrawDate"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="WorkRequest.CancelReasonId" class="form-label required-field"></label>
+                            <select asp-for="WorkRequest.CancelReasonId" id="withdrawReason" class="form-select" required
+                                    asp-items="@(new SelectList(Model.CancelReasons ?? Enumerable.Empty<EMMS.Models.Entities.LookupItem>(), "Id", "Name"))">
+                                <option value="" selected disabled>Select a reason</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Withdraw</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
             $(document).ready(function () {
             $('#workRequestTable').DataTable({
-                    pageLength: 10
+                    pageLength: 10,
+                order: []
                 });
+
+        $('#modalAssetTable').DataTable({
+                pageLength: 10,
+                order: []
             });
 
-         $(document).ready(function () {
-        $('#modalAssetTable').DataTable({
-                pageLength: 10
+        $('#infraWorkRequestTable').DataTable({
+                pageLength: 10,
+                order: []
             });
-        });
+            });
          document.addEventListener("DOMContentLoaded", function () {
 
                 const jobModal = document.getElementById("closeModal");
@@ -269,6 +437,10 @@
                     const requestId = button.getAttribute("data-request-id");
 
                     requestIdInput.value = requestId;
+                });
+
+                document.getElementById("withdrawModal").addEventListener("show.bs.modal", function (event) {
+                    document.getElementById("withdrawRequestId").value = event.relatedTarget.getAttribute("data-request-id");
                 });
             });
     </script>

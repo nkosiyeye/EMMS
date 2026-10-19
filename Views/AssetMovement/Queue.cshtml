@@ -1,0 +1,427 @@
+﻿@using static EMMS.Models.Enumerators
+@model EMMS.ViewModels.MovementQueueViewModel
+@{
+    ViewData["Title"] = "Movement Queue";
+    ViewData["movementQueue"] = "active";
+    ViewData["JobMovement"] = "active";
+    var req = Model.Request;
+    // Stolen/missing has its own report; Dispatch only comes from a cylinder order
+    var reasons = Enum.GetValues<MovementReason>().Where(r => r != MovementReason.StolenorMissing && r != MovementReason.Dispatch);
+    var dispatch = Model.Dispatch;
+    var order = dispatch?.Order;
+}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        @if (order != null)
+        {
+            <span><strong>Dispatch Order <span class="font-monospace">@order.OrderNumber</span></strong>
+                <span class="text-muted">to @order.Request?.Facility?.FacilityName</span>
+                <span class="badge bg-primary ms-2 fs-6"><span id="dispatchCount">@(dispatch!.Dispatched + Model.Items.Count)</span> / @order.Quantity</span>
+            </span>
+        }
+        else
+        {
+            <span><strong>Movement Queue</strong> <span class="text-muted"></span></span>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-controller="AssetMovement" asp-action="Index">
+            <i class="fa fa-list me-1"></i> Movement History
+        </a>
+    </div>
+    <div class="card-body">
+        @if (TempData["QueueInfo"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @TempData["QueueInfo"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["QueueErrors"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">@TempData["QueueErrors"]<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
+        }
+
+        @if (order != null && Model.Items.Any())
+        {
+            <div class="alert alert-warning small">Your queue already held @Model.Items.Count asset(s) before this dispatch. Each must match order @order.OrderNumber, or remove it.</div>
+        }
+
+        <div class="row g-4">
+            <!-- Scan panel -->
+            <div class="col-lg-4">
+                <div class="border rounded p-3 h-100">
+                    <h5 class="mb-1">Scan</h5>
+                    <div class="form-text mb-2">Scan or type the asset tag, then press Enter.</div>
+                    <div class="input-group">
+                        <input type="text" id="queueScan" class="form-control form-control-lg font-monospace border-success" autocomplete="off" spellcheck="false" placeholder="e.g. S003AS-120" autofocus />
+                        <button type="button" class="btn btn-outline-secondary d-none" id="cameraScan" title="Scan with the device camera">
+                            <i class="fa fa-camera"></i>
+                        </button>
+                    </div>
+                    <div id="scanResult" class="mt-2 small" role="status" aria-live="polite"></div>
+                    <h6 class="mt-3"><span id="queueCount">@Model.Items.Count</span> asset(s) queued</h6>
+                    @*<div class="form-text">
+                        Rejected scans show a reason: not found, inactive, no location, already in transit, stolen/missing,
+                        decommissioned, work request in progress, not at your facility, mixed source, already queued.
+                    </div>*@
+                    <div class="form-text mt-2">
+                        No scanner? Type the tag above, or tick assets in <a asp-controller="AssetManagement" asp-action="Index">Manage Assets</a> and choose <em>Move Selected</em>.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Queue + destination -->
+            <div class="col-lg-8">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle" id="queueTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tag</th>
+                                <th>Serial</th>
+                                <th>Item / Size</th>
+                                <th>Source</th>
+                                <th>Added</th>
+                                <th>Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queueBody">
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr data-id="@item.QueueItemId">
+                                    <td>@item.Tag</td>
+                                    <td>@item.Serial</td>
+                                    <td>@item.ItemName@(item.Size != null ? " · " + item.Size : "")</td>
+                                    <td>@item.Source</td>
+                                    <td>@item.AddedAt.ToString("HH:mm")</td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger queue-remove" title="Remove from queue"><i class="fa fa-times-circle"></i></button></td>
+                                </tr>
+                            }
+                            <tr id="queueEmpty" class="@(Model.Items.Any() ? "d-none" : "")">
+                                <td colspan="6" class="text-center text-muted fst-italic">The queue is empty. Scan or type a tag to add an asset.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <form asp-action="QueueSubmit" asp-controller="AssetMovement" asp-route-orderId="@order?.OrderId" method="post" id="queueSubmitForm" class="registrationForm">
+                    @if (order != null)
+                    {
+                        <h5 class="mb-3 mt-2 form-subheading">Dispatch (from the order)</h5>
+                        <div class="row mb-3 small">
+                            <div class="col-md-6"><strong>To:</strong> @order.Request?.Facility?.FacilityName</div>
+                            <div class="col-md-6"><strong>Item:</strong> @order.Request?.Description?.Name · @order.Request?.Size?.Name / @order.Request?.Content?.Name</div>
+                            <div class="col-md-6"><strong>Reason:</strong> Dispatch</div>
+                            <div class="col-md-6"><strong>Still needed:</strong> @(order.Quantity - dispatch!.Dispatched) of @order.Quantity</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
+                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker">
+                                    @foreach (var status in Enum.GetValues<FunctionalStatus>())
+                                    {
+                                        <option value="@((int)status)">@status</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Request.MovementDate" class="form-label required-field"></label>
+                                <input asp-for="Request.MovementDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Request.Remarks" class="form-label"></label>
+                            <input asp-for="Request.Remarks" class="form-control" />
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a class="btn btn-outline-secondary btn-sm" asp-controller="Cylinder" asp-action="Index">Back to orders</a>
+                            <button type="submit" class="btn btn-primary" id="submitBatch" @(Model.Items.Any() ? "" : "disabled")>Dispatch (<span class="queue-count">@Model.Items.Count</span>)</button>
+                        </div>
+                    }
+                    else
+                    {
+                    <h5 class="mb-3 mt-2 form-subheading">Destination (chosen once for the batch)</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Request.MovementType" class="form-label required-field"></label>
+                            <select asp-for="Request.MovementType" id="movementType" class="form-select selectpicker">
+                                @foreach (var type in Enum.GetValues<MovementType>())
+                                {
+                                    <option value="@((int)type)">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Request.FacilityId" class="form-label required-field"></label>
+                            <select asp-for="Request.FacilityId" id="facility" class="form-select selectpicker" data-live-search="true" data-selected="@req.FacilityId">
+                                <option selected disabled value="">Select Facility</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3 d-none" id="servicePointRow">
+                        <div class="col-md-6">
+                            <label asp-for="Request.ServicePointId" class="form-label required-field"></label>
+                            <select asp-for="Request.ServicePointId" id="servicePoint" class="form-select selectpicker" data-live-search="true" data-selected="@req.ServicePointId">
+                                <option selected disabled value="">Select Service Point</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Request.Reason" class="form-label required-field">Movement Reason</label>
+                            <select asp-for="Request.Reason" id="movementReason" class="form-select selectpicker" data-live-search="true">
+                                <option selected disabled value="">Select Movement Reason</option>
+                                @foreach (var reason in reasons)
+                                {
+                                    <option value="@((int)reason)">@reason</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
+                            <select asp-for="Request.FunctionalStatus" id="functionalStatus" class="form-select selectpicker">
+                                <option selected disabled value="">Select Functional Status</option>
+                                @foreach (var status in Enum.GetValues<FunctionalStatus>())
+                                {
+                                    <option value="@((int)status)">@status</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Request.MovementDate" class="form-label required-field"></label>
+                            <input asp-for="Request.MovementDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6 d-none" id="otherReasonField">
+                            <label asp-for="Request.OtherReason" class="form-label required-field"></label>
+                            <input asp-for="Request.OtherReason" class="form-control" />
+                        </div>
+                        <div class="col-md-6 d-none" id="warrantyField">
+                            <label asp-for="Request.WarrantyEndDate" class="form-label"></label>
+                            <input asp-for="Request.WarrantyEndDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+
+                    <!-- Service point flag RequiresPatient (e.g. Home Based Care) -->
+                    <div class="border rounded p-3 mb-3 d-none" id="patientFields">
+                        <h6 class="mb-3">Patient <span class="text-muted small">(required for this service point)</span></h6>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label asp-for="Request.Patient.Number" class="form-label required-field"></label>
+                                <input asp-for="Request.Patient.Number" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Request.Patient.Address" class="form-label required-field"></label>
+                                <input asp-for="Request.Patient.Address" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label asp-for="Request.Patient.Name" class="form-label required-field"></label>
+                                <input asp-for="Request.Patient.Name" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Request.Patient.Surname" class="form-label required-field"></label>
+                                <input asp-for="Request.Patient.Surname" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Request.Remarks" class="form-label"></label>
+                        <input asp-for="Request.Remarks" class="form-control" />
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-outline-danger btn-sm" form="queueClearForm" onclick="return confirm('Remove every asset from the queue?');">Clear queue</button>
+                        <button type="submit" class="btn btn-primary" id="submitBatch" @(Model.Items.Any() ? "" : "disabled")>Submit Batch (<span class="queue-count">@Model.Items.Count</span>)</button>
+                    </div>
+                    }
+                </form>
+                <form asp-action="QueueClear" asp-controller="AssetMovement" method="post" id="queueClearForm"></form>
+
+                <div class="alert alert-light border small mt-3 mb-0 alert-dismissible fade d-none" role="alert">
+                    Submit revalidates every asset, then creates one movement per asset under one batch in a single transaction and clears the queue.
+                    If anything fails, nothing is moved and the queue stays as it is.
+                    @(order != null ? "A dispatch is pre-approved: the facility receives it directly." : "The batch then follows the normal approve and receive steps.")
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Enum values rendered from the server (no magic numbers)
+        const MOVEMENT_TYPE = { Facility: '@((int)MovementType.Facility)', ServicePoint: '@((int)MovementType.ServicePoint)', OffSite: '@((int)MovementType.OffSite)' };
+        const REASON = { Installation: '@((int)MovementReason.Installation)', Other: '@((int)MovementReason.Other)' };
+        const ORDER_ID = '@(order?.OrderId)';
+        const ALREADY_DISPATCHED = @(dispatch?.Dispatched ?? 0);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const scanInput = document.getElementById('queueScan');
+            const scanResult = document.getElementById('scanResult');
+            const body = document.getElementById('queueBody');
+            let busy = false;
+
+            function setCount(n) {
+                document.getElementById('queueCount').textContent = n;
+                document.querySelectorAll('.queue-count').forEach(el => el.textContent = n);
+                document.getElementById('submitBatch').disabled = n === 0;
+                document.getElementById('queueEmpty').classList.toggle('d-none', n > 0);
+                const counter = document.getElementById('dispatchCount');
+                if (counter) counter.textContent = ALREADY_DISPATCHED + n;
+            }
+
+            function addRow(item) {
+                const tr = document.createElement('tr');
+                tr.dataset.id = item.queueItemId;
+                const cells = [item.tag, item.serial || '', (item.itemName || '') + (item.size ? ' · ' + item.size : ''), item.source || '',
+                    new Date(item.addedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })];
+                cells.forEach(text => { const td = document.createElement('td'); td.textContent = text; tr.appendChild(td); });
+                const td = document.createElement('td');
+                td.innerHTML = '<button type="button" class="btn btn-sm btn-outline-danger queue-remove" title="Remove from queue"><i class="fa fa-times-circle"></i></button>';
+                tr.appendChild(td);
+                tr.classList.add('table-success');
+                body.insertBefore(tr, document.getElementById('queueEmpty'));
+                setTimeout(() => tr.classList.remove('table-success'), 1500);
+            }
+
+            function showResult(ok, message) {
+                scanResult.className = 'mt-2 small fw-semibold ' + (ok ? 'text-success' : 'text-danger');
+                scanResult.innerHTML = '';
+                const icon = document.createElement('i');
+                icon.className = 'fa ' + (ok ? 'fa-check-circle' : 'fa-exclamation-triangle') + ' me-1';
+                scanResult.appendChild(icon);
+                scanResult.appendChild(document.createTextNode(message));
+            }
+
+            async function scan(tag) {
+                tag = (tag || '').trim();
+                if (!tag || busy) return;
+                busy = true;
+                try {
+                    const response = await fetch('/AssetMovement/QueueScan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams(ORDER_ID ? { tag, orderId: ORDER_ID } : { tag })
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const result = await response.json();
+                    const ok = result.code === 'Added';
+                    showResult(ok, result.message);
+                    emmsBeep(ok);
+                    if (ok && result.item) addRow(result.item);
+                    setCount(result.queueCount);
+                } catch (e) {
+                    showResult(false, 'Scan failed: ' + e.message);
+                    emmsBeep(false);
+                } finally {
+                    busy = false;
+                    scanInput.value = '';
+                    scanInput.focus();
+                }
+            }
+
+            scanInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') { e.preventDefault(); scan(this.value); }
+            });
+
+            if (emmsCameraScanSupported()) {
+                const cameraBtn = document.getElementById('cameraScan');
+                cameraBtn.classList.remove('d-none');
+                cameraBtn.addEventListener('click', () => emmsOpenCameraScanner(scan));
+            }
+
+            body.addEventListener('click', async function (e) {
+                const btn = e.target.closest('.queue-remove');
+                if (!btn) return;
+                const tr = btn.closest('tr');
+                const response = await fetch('/AssetMovement/QueueRemove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ id: tr.dataset.id })
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    tr.remove();
+                    setCount(result.queueCount);
+                }
+                scanInput.focus();
+            });
+
+            // --- Destination fields (not shown when dispatching an order) ---
+            const typeSelect = document.getElementById('movementType');
+            if (!typeSelect) return;
+            const facilitySelect = document.getElementById('facility');
+            const servicePointSelect = document.getElementById('servicePoint');
+
+            function loadFacilities() {
+                const offSite = typeSelect.value === MOVEMENT_TYPE.OffSite;
+                const selected = facilitySelect.value && /^\d+$/.test(facilitySelect.value) ? facilitySelect.value : facilitySelect.dataset.selected;
+                fetch(`/AssetMovement/GetFacilites?isOffSite=${offSite}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        facilitySelect.innerHTML = '<option selected disabled value="">Select Facility</option>';
+                        data.forEach(f => {
+                            const option = document.createElement('option');
+                            option.value = f.facilityId;
+                            option.textContent = f.facilityName;
+                            facilitySelect.appendChild(option);
+                        });
+                        if (selected) facilitySelect.value = selected;
+                        $(facilitySelect).selectpicker('refresh');
+                        loadServicePoints();
+                    });
+            }
+
+            function loadServicePoints() {
+                const facilityId = facilitySelect.value;
+                if (typeSelect.value !== MOVEMENT_TYPE.ServicePoint || !/^\d+$/.test(facilityId)) { togglePatient(); return; }
+                const selected = servicePointSelect.value && /^\d+$/.test(servicePointSelect.value) ? servicePointSelect.value : servicePointSelect.dataset.selected;
+                fetch(`/AssetMovement/GetServicePoints?facilityId=${facilityId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        servicePointSelect.innerHTML = '<option selected disabled value="">Select Service Point</option>';
+                        data.forEach(sp => {
+                            let flags = {};
+                            try { flags = sp.flagsJson ? JSON.parse(sp.flagsJson) : {}; } catch (e) { }
+                            const option = document.createElement('option');
+                            option.value = sp.id;
+                            option.textContent = sp.name;
+                            option.dataset.requiresPatient = flags.RequiresPatient === true;
+                            servicePointSelect.appendChild(option);
+                        });
+                        if (selected) servicePointSelect.value = selected;
+                        $(servicePointSelect).selectpicker('refresh');
+                        togglePatient();
+                    });
+            }
+
+            function togglePatient() {
+                const option = servicePointSelect.selectedOptions[0];
+                const show = typeSelect.value === MOVEMENT_TYPE.ServicePoint && option && option.dataset.requiresPatient === 'true';
+                document.getElementById('patientFields').classList.toggle('d-none', !show);
+            }
+
+            function toggleType() {
+                document.getElementById('servicePointRow').classList.toggle('d-none', typeSelect.value !== MOVEMENT_TYPE.ServicePoint);
+                loadFacilities();
+            }
+
+            function toggleReason() {
+                const reason = document.getElementById('movementReason').value;
+                document.getElementById('otherReasonField').classList.toggle('d-none', reason !== REASON.Other);
+                document.getElementById('warrantyField').classList.toggle('d-none', reason !== REASON.Installation);
+            }
+
+            typeSelect.addEventListener('change', toggleType);
+            facilitySelect.addEventListener('change', loadServicePoints);
+            servicePointSelect.addEventListener('change', togglePatient);
+            document.getElementById('movementReason').addEventListener('change', toggleReason);
+            toggleType();
+            toggleReason();
+        });
+    </script>
+}

@@ -3,71 +3,190 @@ using EMMS.Data;
 using EMMS.Models.Admin;
 using EMMS.Models;
 using EMMS.ViewModels;
+using Microsoft.EntityFrameworkCore;
+using EMMS.Data.Migrations;
+using Microsoft.Extensions.Caching.Memory;
+using EMMS.Models.Pagination;
 
 namespace EMMS.Service
 {
-    public class AssetService
+    public class AssetService : IAssetService
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetManagementRepo _repo;
+        private readonly IMemoryCache _cache;
 
-        public AssetService(ApplicationDbContext context)
+        public AssetService(ApplicationDbContext context, IMemoryCache cache,AssetManagementRepo repo)
         {
             _context = context;
+            _repo = repo;
         }
-
-        public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser)
+        public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser,bool isDashboard=false)
         {
-            var _repo = new AssetManagementRepo(_context);
-            var assets = _repo.GetAssetsFromDb().Result.OrderByDescending(a => a.DateCreated);
-            var lastMovements = await _repo.GetAssetMovement();
+            // Get all active assets
+            var assets = await _repo.GetAssetsFromDb().ConfigureAwait(false);
+            var orderedAssets = assets?.OrderByDescending(a => a.DateCreated).ToList() ?? new List<Asset>();
 
-            var lastMovementDict = lastMovements
-                .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m);
+            // Get latest movements
+            var lastMovements = await _repo.GetAssetMovement().ConfigureAwait(false);
 
-            var assetViewModels = assets.Select(asset => new AssetViewModel
+            var lastMovementDict = lastMovements?
+                .Where(m => m != null && m.AssetId != Guid.Empty)
+                .GroupBy(m => m.AssetId)
+                .ToDictionary(g => g.Key, g => g.First())
+                ?? new Dictionary<Guid, MoveAsset>();
+
+            // Create view models safely
+            var assetViewModels = orderedAssets.Select(asset => new AssetViewModel
             {
-                Asset = asset,
-                LastMovement = lastMovementDict.ContainsKey(asset.AssetId) ? lastMovementDict[asset.AssetId] : null
+                Asset = asset ?? new Asset(),
+                LastMovement = (asset != null && lastMovementDict.TryGetValue(asset.AssetId, out var move)) ? move : null
             }).ToList();
 
-            var indexView = new AssetIndexViewModel
+            // Apply facility restriction
+            if (currentUser?.UserRole?.UserType != Enumerators.UserType.Administrator)
             {
-                assetViewModels = currentUser!.UserRole!.UserType != Enumerators.UserType.Administrator ? assetViewModels
-                    .Where(l => 
-                        (l.LastMovement != null && l.LastMovement.FacilityId == currentUser.FacilityId)
-                        || l.Asset.CreatedBy == currentUser.UserId
-                    ).ToList() : assetViewModels,
-                moveAsset = new MoveAsset()
-            };
+                var userFacilityId = currentUser?.FacilityId;
+                var userId = currentUser?.UserId;
 
-            return indexView;
+                assetViewModels = assetViewModels
+                    .Where(vm =>
+                        (vm.LastMovement != null && vm.LastMovement.FacilityId == userFacilityId) ||
+                        vm.Asset.CreatedBy == userId)
+                    .ToList();
+            }
+            
+            if(currentUser?.UserRole.UserType == Enumerators.UserType.DataCollector)
+            {
+                var userFacilityId = currentUser?.FacilityId;
+                var userId = currentUser?.UserId;
+
+                assetViewModels = isDashboard ? assetViewModels : assetViewModels
+                    .Where(vm => vm.Asset.CreatedBy == userId)
+                    .ToList();
+
+            }
+
+                return new AssetIndexViewModel
+                {
+                    assetViewModels = assetViewModels,
+                    moveAsset = new MoveAsset()
+                };
         }
+
 
         public async Task<AssetIndexViewModel?> GetAssetDueServiceViewModel()
         {
-            var _repo = new AssetManagementRepo(_context);
-            var assets = await _repo.GetAssetsDueService();
-            var lastMovements = await _repo.GetAssetMovement();
+            // Fetch assets due for service asynchronously
+            var assets = await _repo.GetAssetsDueService()
+                .ConfigureAwait(false);
 
-            var lastMovementDict = lastMovements
+            var lastMovements = await _repo.GetAssetMovement()
+                .ConfigureAwait(false);
+
+            var lastMovementDict = lastMovements?
                 .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m);
+                .ToDictionary(m => m.AssetId, m => m)
+                ?? new Dictionary<Guid, MoveAsset>();
 
             var assetViewModels = assets.Select(asset => new AssetViewModel
             {
                 Asset = asset,
-                LastMovement = lastMovementDict.ContainsKey(asset.AssetId) ? lastMovementDict[asset.AssetId] : null
+                LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move) ? move : null
             }).ToList();
 
-            var indexView = new AssetIndexViewModel
+            return new AssetIndexViewModel
             {
                 assetViewModels = assetViewModels,
                 moveAsset = new MoveAsset()
             };
+        }
+        public PaginatedResult<AssetViewModel> GetPaginatedAssets(int start, int length, string search, User currentUser)
+        {
+            var query = _context.Assets
+                .Include(a => a.Category)
+                .Include(a => a.SubCategory)
+                .Include(a => a.Vendor)
+                .Include(a => a.ServiceProvider)
+                .AsQueryable();
 
-            return indexView;
+            bool isAdmin = currentUser?.UserRole?.UserType == Enumerators.UserType.Administrator;
+
+            // If NOT admin → only show assets currently located in the user's facility
+            if (!isAdmin)
+            {
+                if (currentUser?.FacilityId == null)
+                {
+                    return new PaginatedResult<AssetViewModel>
+                    {
+                        TotalCount = 0,
+                        FilteredCount = 0,
+                        Items = new List<AssetViewModel>()
+                    };
+                }
+
+                var userFacilityId = currentUser.FacilityId;
+
+                // Assets whose current location (vw_AssetCurrentLocation) is the user's facility
+                query = query.Where(a => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.FacilityId == userFacilityId));
+            }
+
+            int totalCount = query.Count();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(a =>
+                    a.AssetTagNumber.Contains(search) ||
+                    a.SubCategory.Name.Contains(search) ||
+                    a.Category.Name.Contains(search));
+            }
+
+            int filteredCount = query.Count();
+
+            var assets = query
+                .OrderByDescending(a => a.DateCreated)
+                .Skip(start)
+                .Take(length)
+                .ToList();
+
+            // Current location and any pending movement for this page, from the two location views
+            var assetIds = assets.Select(a => a.AssetId).ToList();
+
+            var locationMovementIds = _context.AssetCurrentLocations
+                .Where(l => assetIds.Contains(l.AssetId))
+                .Select(l => l.MovementId);
+            var lastMovementDict = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => locationMovementIds.Contains(m.MovementId))
+                .Include(m => m.Facility)
+                .Include(m => m.ServicePoint)
+                .ToDictionary(m => m.AssetId);
+
+            var pendingMovementIds = _context.AssetsInTransit
+                .Where(t => assetIds.Contains(t.AssetId))
+                .Select(t => t.MovementId);
+            var pendingDict = _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => pendingMovementIds.Contains(m.MovementId))
+                .Include(m => m.Facility)
+                .Include(m => m.ServicePoint)
+                .ToDictionary(m => m.AssetId);
+
+            var items = assets.Select(asset => new AssetViewModel
+            {
+                Asset = asset,
+                LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move)
+                    ? move
+                    : null,
+                PendingMovement = pendingDict.TryGetValue(asset.AssetId, out var pending) ? pending : null
+            }).OrderByDescending(m => m.Asset.DateCreated).ToList();
+
+            return new PaginatedResult<AssetViewModel>
+            {
+                TotalCount = totalCount,
+                FilteredCount = filteredCount,
+                Items = items
+            };
         }
     }
-
 }

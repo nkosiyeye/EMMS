@@ -1,0 +1,338 @@
+﻿@using System.Text.Json
+@model EMMS.ViewModels.CylinderDashboardViewModel
+@{
+    ViewData["Title"] = "Cylinder Dashboard";
+    ViewData["cylinderDashboard"] = "active";
+    var stock = Model.Stock;
+    var k = stock.Kpis;
+
+    // Chart: top facilities by stock, the rest folded into one bar (the table below lists every facility)
+    const int maxBars = 15;
+    var chartRows = stock.Rows.Where(r => r.Total > 0).Take(maxBars).ToList();
+    var rest = stock.Rows.Where(r => r.Total > 0).Skip(maxBars).ToList();
+    var chart = new
+    {
+        labels = chartRows.Select(r => r.Facility + (r.IsCentralStore ? " (CMS)" : "")).Concat(rest.Any() ? new[] { $"Other facilities ({rest.Count})" } : Array.Empty<string>()).ToList(),
+        // Top three combinations network-wide in palette slots 0..2; everything else is one neutral "Other" series
+        series = Model.ChartSeries.Select(c => new
+        {
+            label = c.Label,
+            slot = (int?)c.Slot,
+            data = chartRows.Select(r => r.Counts.GetValueOrDefault(c.Key)).Concat(rest.Any() ? new[] { rest.Sum(r => r.Counts.GetValueOrDefault(c.Key)) } : Array.Empty<int>()).ToList()
+        })
+        .Concat(new[] { new
+        {
+            label = "Other",
+            slot = (int?)null,
+            data = chartRows.Select(r => r.Total - Model.ChartSeries.Sum(c => r.Counts.GetValueOrDefault(c.Key)))
+                .Concat(rest.Any() ? new[] { rest.Sum(r => r.Total - Model.ChartSeries.Sum(c => r.Counts.GetValueOrDefault(c.Key))) } : Array.Empty<int>()).ToList()
+        } })
+        .Where(x => x.data.Any(v => v > 0))
+        .ToList()
+    };
+    string swatchVar(string key)
+    {
+        var slot = Model.ChartSeries.FirstOrDefault(c => c.Key == key)?.Slot;
+        return slot != null ? $"--series-{slot}" : "--series-other";
+    }
+    var chartJson = JsonSerializer.Serialize(chart);
+    int colTotal(string key) => stock.Rows.Sum(r => r.Counts.GetValueOrDefault(key));
+}
+
+<style>
+    /* Chart series: palette slots 0-2 (validated all-pairs on white: CVD ΔE >= 9.2, normal-vision >= 24.0) plus a
+       recessive light neutral for "Other" (separation vs all three: CVD >= 9.2, normal-vision >= 19.9).
+       Aqua and the neutral are under 3:1 on white, so the table below doubles as the chart's table view. */
+    .viz-root {
+        --surface-1: #ffffff;
+        --text-primary: #0b0b0b;
+        --text-secondary: #52514e;
+        --grid: #e9ecef;
+        --series-0: #2a78d6; --series-1: #eb6834; --series-2: #1baf7a;
+        --series-other: #c3c2bc;
+    }
+    .viz-root .swatch { display: inline-block; width: .75rem; height: .75rem; border-radius: 2px; vertical-align: -1px; margin-right: .3rem; }
+    .viz-root .kpi-value { font-size: 1.9rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .viz-root .kpi-label { color: var(--text-secondary); font-size: .85rem; }
+</style>
+
+<div class="viz-root">
+    <div class="card mb-4">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>
+                <strong>Cylinder Dashboard</strong>
+                <span class="text-muted">@(Model.IsNetworkView ? "(all facilities)" : $"({Model.FacilityName})")</span>
+            </span>
+            <form method="get" asp-action="Dashboard" class="d-flex flex-wrap align-items-end gap-2" id="dashboardFilters">
+                <div>
+                    <label class="form-label small mb-0" for="from">Requests from</label>
+                    <input type="date" class="form-control form-control-sm" id="from" name="from" value="@Model.From.ToString("yyyy-MM-dd")" />
+                </div>
+                <div>
+                    <label class="form-label small mb-0" for="to">to</label>
+                    <input type="date" class="form-control form-control-sm" id="to" name="to" value="@Model.To.ToString("yyyy-MM-dd")" />
+                </div>
+                <div>
+                    <label class="form-label small mb-0" for="overdueDays">With patients over (days)</label>
+                    <input type="number" min="1" class="form-control form-control-sm" id="overdueDays" name="overdueDays" value="@Model.OverdueDays" style="width: 7rem" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <a class="btn btn-outline-secondary btn-sm" asp-action="DashboardExport" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-overdueDays="@Model.OverdueDays">
+                    <i class="fa fa-file-excel me-1"></i> Export
+                </a>
+            </form>
+        </div>
+        <div class="card-body">
+            <!-- KPI row -->
+            <div class="row g-3 mb-2">
+                @{
+                    var tiles = new List<(string label, int value, string hint)>
+                    {
+                        ("Cylinders", k.Total, "registered and active"),
+                        ("At CMS", k.AtCentralStore, "central store"),
+                        ("At facilities", k.AtFacilities, "stores and wards"),
+                        ("With patients", k.WithPatients, "home based care"),
+                        ("In transit", k.InTransit, "awaiting approval or on the way"),
+                        ("Not available", k.NotAvailable, "stolen, decommissioned or never deployed"),
+                    };
+                }
+                @foreach (var t in tiles)
+                {
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="border rounded p-3 h-100">
+                            <div class="kpi-label">@t.label</div>
+                            <div class="kpi-value">@t.value</div>
+                            <div class="kpi-label small">@t.hint</div>
+                        </div>
+                    </div>
+                }
+            </div>
+            @if (k.Overdue > 0)
+            {
+                @* Not an .alert: the app styles .alert as a floating toast *@
+                <div class="border border-warning rounded bg-warning-subtle text-dark small p-2 mt-2" role="status">
+                    <i class="fa fa-exclamation-triangle me-1"></i>
+                    <strong>@k.Overdue</strong> cylinder(s) have been with a patient for @Model.OverdueDays days or more. See the list below.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Stock by facility and size/content -->
+    <div class="card mb-4">
+        <div class="card-header"><strong>Stock by facility and size / content</strong> <span class="text-muted small">(current location; in-transit cylinders are shown as incoming at their destination)</span></div>
+        <div class="card-body">
+            @if (!stock.Rows.Any(r => r.Total > 0))
+            {
+                <p class="text-muted mb-0">No cylinders are located at @(Model.IsNetworkView ? "any facility" : "this facility") yet.</p>
+            }
+            else
+            {
+                <div style="position: relative; height: @(Math.Max(160, chart.labels.Count * 30 + 90))px;">
+                    <canvas id="stockChart" role="img" aria-label="Stacked bar chart of cylinders at each facility by size and content. The same numbers are in the table below."></canvas>
+                </div>
+            }
+
+            <div class="table-responsive mt-3">
+                <table class="table table-bordered table-hover align-middle small mb-0" id="stockTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Facility</th>
+                            @foreach (var c in stock.Columns)
+                            {
+                                <th class="text-end text-nowrap"><span class="swatch" style="background: var(@swatchVar(c.Key))" title="@(swatchVar(c.Key) == "--series-other" ? "Shown as Other in the chart" : c.Label)"></span>@c.Label</th>
+                            }
+                            <th class="text-end">Total</th>
+                            <th class="text-end text-nowrap">Incoming</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in stock.Rows)
+                        {
+                            <tr>
+                                <td>@r.Facility @if (r.IsCentralStore) { <span class="badge bg-secondary">CMS</span> }</td>
+                                @foreach (var c in stock.Columns)
+                                {
+                                    var n = r.Counts.GetValueOrDefault(c.Key);
+                                    <td class="text-end @(n == 0 ? "text-muted" : "")">@n</td>
+                                }
+                                <td class="text-end fw-bold">@r.Total</td>
+                                <td class="text-end">@(r.Incoming > 0 ? r.Incoming.ToString() : "-")</td>
+                            </tr>
+                        }
+                        @if (!stock.Rows.Any())
+                        {
+                            <tr><td colspan="@(stock.Columns.Count + 3)" class="text-center text-muted fst-italic">No stock.</td></tr>
+                        }
+                    </tbody>
+                    @if (stock.Rows.Count > 1)
+                    {
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td>Total</td>
+                                @foreach (var c in stock.Columns) { <td class="text-end">@colTotal(c.Key)</td> }
+                                <td class="text-end">@stock.Rows.Sum(r => r.Total)</td>
+                                <td class="text-end">@stock.Rows.Sum(r => r.Incoming)</td>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Requested vs ordered vs dispatched vs received -->
+        <div class="col-12">
+            <div class="card h-100">
+                <div class="card-header"><strong>Requests, orders and deliveries</strong> <span class="text-muted small">(requests raised @Model.From.ToString("dd MMM yyyy") – @Model.To.ToString("dd MMM yyyy"))</span></div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle small mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Facility</th>
+                                    <th class="text-end">Requests</th>
+                                    <th class="text-end" title="Waiting for the pharmacist">Pending</th>
+                                    <th class="text-end">Requested</th>
+                                    <th class="text-end">Ordered</th>
+                                    <th class="text-end">Dispatched</th>
+                                    <th class="text-end">Received</th>
+                                    <th class="text-end" title="Ordered but not yet received">Outstanding</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in Model.Requests)
+                                {
+                                    <tr>
+                                        <td>@r.Facility</td>
+                                        <td class="text-end">@r.Requests @if (r.Rejected > 0) { <span class="text-muted">(@r.Rejected rejected)</span> }</td>
+                                        <td class="text-end">@r.PendingApproval</td>
+                                        <td class="text-end">@r.Requested</td>
+                                        <td class="text-end">@r.Ordered</td>
+                                        <td class="text-end">@r.Dispatched</td>
+                                        <td class="text-end">@r.Received</td>
+                                        <td class="text-end @(r.Outstanding > 0 ? "fw-bold" : "")">@r.Outstanding</td>
+                                    </tr>
+                                }
+                                @if (!Model.Requests.Any())
+                                {
+                                    <tr><td colspan="8" class="text-center text-muted fst-italic">No cylinder requests in this period.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">Requested counts approved requests; dispatched and received exclude cylinders the facility rejected.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- With patients too long -->
+        <div class="col-12">
+            <div class="card h-100">
+                <div class="card-header"><strong>With patients @Model.OverdueDays+ days</strong></div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Size / Content</th>
+                                    <th>Facility</th>
+                                    @if (Model.CanSeePatient) { <th>Patient No.</th> }
+                                    <th class="text-end">Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in stock.Overdue)
+                                {
+                                    <tr>
+                                        <td class="font-monospace">@o.Tag<div class="text-muted">@o.Serial</div></td>
+                                        <td>@o.Item</td>
+                                        <td>@o.Facility<div class="text-muted">@o.ServicePoint</div></td>
+                                        @if (Model.CanSeePatient) { <td>@o.PatientNumber</td> }
+                                        <td class="text-end fw-bold">@o.Days</td>
+                                    </tr>
+                                }
+                                @if (!stock.Overdue.Any())
+                                {
+                                    <tr><td colspan="5" class="text-center text-muted fst-italic">None.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = document.getElementById('stockChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+
+            const chart = @Html.Raw(chartJson);
+            const root = getComputedStyle(document.querySelector('.viz-root'));
+            const token = name => root.getPropertyValue(name).trim();
+            const surface = token('--surface-1');
+            const textSecondary = token('--text-secondary');
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: chart.labels,
+                    // Color follows the size/content combination (fixed slot), never its rank on this page
+                    datasets: chart.series.map(s => ({
+                        label: s.label,
+                        data: s.data,
+                        backgroundColor: token(s.slot !== null ? `--series-${s.slot}` : '--series-other'),
+                        borderColor: surface,          // 2px surface gap between stacked segments
+                        borderWidth: 2,
+                        borderSkipped: false,
+                        maxBarThickness: 22
+                    }))
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'nearest', intersect: true },
+                    plugins: {
+                        legend: {
+                            display: chart.series.length > 1,
+                            position: 'top',
+                            align: 'start',
+                            labels: { color: textSecondary, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: item => ` ${item.dataset.label}: ${item.parsed.x}`,
+                                footer: items => {
+                                    const i = items[0].dataIndex;
+                                    const total = chart.series.reduce((sum, s) => sum + (s.data[i] || 0), 0);
+                                    return `Total at facility: ${total}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: textSecondary },
+                            grid: { color: token('--grid') },
+                            border: { display: false }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: { color: textSecondary },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

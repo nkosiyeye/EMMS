@@ -1,6 +1,7 @@
-using EMMS.Controllers;
+﻿using EMMS.Controllers;
 using EMMS.Data;
 using EMMS.Data.Repository;
+using EMMS.Models;
 using EMMS.Service;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,27 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddTransient<SessionController>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AssetManagementRepo>();
 builder.Services.AddScoped<JobManagementRepo>();
 builder.Services.AddScoped<AssetService>();
+builder.Services.AddScoped<IAssetTagSequence, AssetTagSequenceRepo>();
+builder.Services.AddScoped<AssetTagService>();
+builder.Services.AddScoped<MovementService>();
+builder.Services.AddScoped<CylinderOrderService>();
+builder.Services.AddScoped<WorkRequestService>();
+builder.Services.AddScoped<CylinderReportService>();
+builder.Services.AddScoped<MovementQueueService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();

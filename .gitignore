@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /appsettings.json
 /appsettings.Development.json
+.idea/.idea.EMMS/.idea/vcs.xml
+.idea/.idea.EMMS/.idea/indexLayout.xml
+.idea/.idea.EMMS/.idea/.gitignore

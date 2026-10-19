@@ -32,5 +32,9 @@ namespace EMMS.ViewModels
         public IEnumerable<LookupItem>? UnitOfMeasures { get; set; }
         public IEnumerable<LookupItem>? LifespanPeriods { get; set; }
 
+        // Category flag CylinderProfile
+        public IEnumerable<LookupItem>? CylinderSizes { get; set; }
+        public IEnumerable<LookupItem>? CylinderContents { get; set; }
+
     }
 }

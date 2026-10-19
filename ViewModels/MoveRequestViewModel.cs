@@ -5,11 +5,14 @@ namespace EMMS.ViewModels
 {
     public class MoveRequestViewModel
     {
-        public string? AssetTag { get; set; }
+        public Asset? Asset { get; set; }
         public MoveAsset? MoveAsset { get; set; }
         public Facility? CurrentFacility { get; set; }
 
         public DateTime? WarrantyEndDate { get; set; }
+
+        // Captured when the service point has the RequiresPatient flag (e.g. Home Based Care)
+        public HomeBasedCarePatient? Patient { get; set; }
 
         public IEnumerable<Enumerators.MovementType>? MovementTypes { get; set; } = Enum.GetValues<Enumerators.MovementType>();
         public IEnumerable<Facility>? Facilities { get; set; }

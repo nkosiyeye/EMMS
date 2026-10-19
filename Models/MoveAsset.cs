@@ -103,6 +103,15 @@ namespace EMMS.Models
         [Display(Name = "Remarks")]
         public string? Remarks { get; set; }
 
+        // Shared by every movement submitted together from the Movement Queue
+        [Display(Name = "Batch")]
+        public Guid? BatchId { get; set; }
+
+        // Only when the service point has the RequiresPatient flag (e.g. Home Based Care)
+        public Guid? PatientId { get; set; }
+        [ForeignKey(nameof(PatientId))]
+        public virtual HomeBasedCarePatient? Patient { get; set; }
+
         public Guid? CreatedBy { get; set; }
         public DateTime? DateCreated { get; set; }
         public Guid? ModifiedBy { get; set; }

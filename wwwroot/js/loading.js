@@ -87,7 +87,7 @@
         const loadingMessageEl = document.getElementById('loadingMessage');
 
         // Show loading function
-        window.showLoading = function (customMessage = null, timeout = 10000) {
+        window.showLoading = function (customMessage = null, timeout = 10000000) {
             if (customMessage) {
                 loadingMessageEl.textContent = customMessage;
             } else {
@@ -105,9 +105,9 @@
             loadingOverlay.classList.add('show', 'loading-fade-in');
 
             // Auto-hide after timeout (failsafe)
-            loadingTimeout = setTimeout(() => {
-                hideLoading();
-            }, timeout);
+            //loadingTimeout = setTimeout(() => {
+              //  hideLoading();
+            //}, timeout);
         };
 
         // Hide loading function
@@ -152,12 +152,16 @@
                 // Don't show loading for current page
                 if (this.classList.contains('active')) return;
 
+                // ✅ Skip read-more links (modal triggers)
+                if (this.classList.contains('read-more')) return;
+
                 // Skip collapse or dropdown toggles
                 const toggle = this.getAttribute('data-bs-toggle');
-                if (toggle === 'collapse' || toggle === 'dropdown') return;
+                if (toggle === 'collapse' || toggle === 'dropdown' || toggle === 'modal') return;
 
-                // Optional: Skip links with only '#' href
-                if (this.getAttribute('href') === '#') return;
+                // Optional: Skip links with only '#' or 'javascript:void(0)'
+                const href = this.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:void')) return;
 
                 // Show loading with navigation-specific message
                 const linkText = this.textContent.trim();
@@ -165,6 +169,8 @@
             });
         });
     }
+
+
 
 
     // Attach listeners to forms

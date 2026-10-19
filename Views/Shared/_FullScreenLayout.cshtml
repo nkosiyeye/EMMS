@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@inject Microsoft.Extensions.Options.IOptions<EMMS.Models.AppSettings> AppSettings
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -13,6 +14,32 @@
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
 </head>
 <body>
+    @if (AppSettings.Value.IsTrainingMode)
+    {
+        <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #dc2626;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        padding: 8px 0;
+        z-index: 11000;
+        font-family: 'Montserrat', sans-serif;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            ">
+            TRAINING Data here is for testing only
+        </div>
+
+        <style>
+            /* Push the rest of the layout down slightly to prevent overlap */
+            body {
+                padding-top: 40px;
+            }
+        </style>
+    }
     <div class="container-fluid h-full w-full" style="height: 100vh;">
         <div class="row flex-nowrap" style="height: 100vh;">
             <main class="col px-0 py-0 mb-5">

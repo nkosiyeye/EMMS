@@ -27,6 +27,10 @@ namespace EMMS.Models
         public string? Description { get; set; }
 
 
+        // Raised by "Service Request"; closing it successfully reschedules the asset's next service.
+        [Display(Name = "Service Request")]
+        public bool IsServiceRequest { get; set; }
+
         [Display(Name = "Work Status")]
         public int WorkStatusId { get; set; }
         [ForeignKey(nameof(WorkStatusId))]

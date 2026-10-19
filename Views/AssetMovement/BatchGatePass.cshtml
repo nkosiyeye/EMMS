@@ -1,0 +1,74 @@
+@model List<EMMS.Models.MoveAsset>
+@{
+    Layout = null;
+    var first = Model.First();
+    var approver = first.ApprovedUser;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batch Gate Pass</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .gate-pass { max-width: 800px; margin: 0 auto; border: 1px solid #333; padding: 24px; }
+        .gate-pass h2 { text-align: center; }
+        .signature-box { border-top: 2px solid #2c3e50; margin-top: 30px; padding-top: 10px; text-align: center; }
+        .stamp-box { border: 2px dashed #6c757d; height: 100px; border-radius: 8px; }
+        @@media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body>
+    <div class="no-print text-end p-2"><button class="btn btn-primary btn-sm" onclick="window.print()">Print</button></div>
+    <div class="gate-pass">
+        <div class="text-center mb-3">
+            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms" style="width: 60px; height: 60px;">
+        </div>
+        <h2>EMMS Gate Pass</h2>
+        <p class="text-center text-muted small mb-3">Batch @first.BatchId.ToString()![..8] · @Model.Count asset(s)</p>
+        <table class="table table-sm mb-3">
+            <tr><th style="width:30%">Movement Date:</th><td>@first.MovementDate.ToString("yyyy-MM-dd")</td></tr>
+            <tr><th>From:</th><td>@first.From?.FacilityName</td></tr>
+            <tr><th>To:</th><td>@first.Facility?.FacilityName@(first.ServicePoint != null ? " / " + first.ServicePoint.Name : "")</td></tr>
+        </table>
+        <table class="table table-bordered table-sm small">
+            <thead><tr><th>#</th><th>Asset Tag</th><th>Serial</th><th>Item</th><th>Functional Status</th></tr></thead>
+            <tbody>
+                @for (int i = 0; i < Model.Count; i++)
+                {
+                    var m = Model[i];
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>@m.Asset?.AssetTagNumber</td>
+                        <td>@(m.Asset?.SerialNumber != m.Asset?.AssetTagNumber ? m.Asset?.SerialNumber : "")</td>
+                        <td>@m.Asset?.SubCategory?.Name@(m.Asset?.CylinderDetail?.Size != null ? " · " + m.Asset.CylinderDetail.Size.Name : "")</td>
+                        <td>@m.FunctionalStatus</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="row mt-2">
+            <div class="col-6">
+                <div class="text-center p-3 border rounded">
+                    <h6 class="text-primary mb-3">AUTHORIZED BY</h6>
+                    <strong>@approver?.FirstName @approver?.LastName</strong>
+                    <div class="text-muted">@approver?.Designations?.Name</div>
+                    <small class="text-muted">@approver?.UserRole?.Name</small>
+                    <div class="signature-box"><small class="text-muted fst-italic">Authorized Signature & Date</small></div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="text-center p-3 border rounded">
+                    <h6 class="text-primary mb-3">OFFICIAL VALIDATION</h6>
+                    <div class="stamp-box"></div>
+                    <small class="text-muted mt-2 d-block">Official Stamp</small>
+                </div>
+            </div>
+        </div>
+        <ul class="small mt-3 mb-0">
+            <li>Valid for this batch only; the assets listed must travel together with this document.</li>
+            <li>Any alteration or tampering voids this authorization. Present to security on request.</li>
+        </ul>
+    </div>
+</body>
+</html>

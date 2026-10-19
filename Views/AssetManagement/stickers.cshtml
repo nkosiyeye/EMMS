@@ -1,0 +1,65 @@
+﻿@using EMMS.Utility
+@model List<EMMS.Models.Asset>
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Print Asset Stickers</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        /* 2.63in x 1in stickers, 3 across (Avery 5160 / L7160 style sheet) */
+        @@page { size: letter; margin: 0.5in 0.19in; }
+        body { font-family: Arial, sans-serif; background: #f8f9fa; }
+        .sheet { display: grid; grid-template-columns: repeat(3, 2.63in); column-gap: 0.12in; row-gap: 0; justify-content: center; }
+        .sticker {
+            width: 2.63in; height: 1in; padding: 0.04in 0.1in; box-sizing: border-box;
+            background: #fff; border: 1px dashed #ced4da; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            break-inside: avoid; page-break-inside: avoid;
+        }
+        .sticker-header { font-size: 7pt; font-weight: bold; line-height: 1; }
+        .barcode { width: 100%; height: 0.42in; }
+        .barcode svg { width: 100%; height: 100%; display: block; }
+        .tag { font-family: "Courier New", monospace; font-weight: bold; font-size: 9pt; line-height: 1; letter-spacing: 0.5px; }
+        .details { font-size: 6.5pt; color: #333; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        @@media print {
+            body { background: #fff; }
+            .no-print { display: none !important; }
+            .sticker { border: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print d-flex justify-content-between align-items-center p-3 mb-3 bg-white border-bottom">
+        <span><strong>@Model.Count</strong> sticker(s)</span>
+        <button class="btn btn-primary btn-sm" onclick="window.print()">Print</button>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-warning m-3">No matching assets were found for the selected tags.</div>
+    }
+
+    <div class="sheet">
+        @foreach (var asset in Model)
+        {
+            <div class="sticker">
+                <div class="sticker-header">EMMS Asset</div>
+                <div class="barcode">@Html.Raw(Code128.ToSvg(asset.AssetTagNumber))</div>
+                <div class="tag">@asset.AssetTagNumber</div>
+                <div class="details">
+                    @(asset.SerialNumber != asset.AssetTagNumber ? asset.SerialNumber + " · " : "")@(asset.SubCategory?.Name ?? asset.ItemName)@(asset.CylinderDetail?.Size != null ? " · " + asset.CylinderDetail.Size.Name : "")
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.Count > 0)
+    {
+        <script>window.addEventListener('load', function () { window.print(); });</script>
+    }
+</body>
+</html>
