@@ -129,6 +129,9 @@ namespace EMMS.Models
         public DateTime? DateModified { get; set; }
         public RowStatus RowState { get; set; }
 
+        // Only for categories with the CylinderProfile flag
+        public virtual AssetCylinderDetail? CylinderDetail { get; set; }
+
         //For Multi Deployment
         [NotMapped]
         public bool AlreadyDeployed { get; set; }   // modal: Is checkbox checked?

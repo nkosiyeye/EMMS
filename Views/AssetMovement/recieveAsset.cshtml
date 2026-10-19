@@ -11,6 +11,52 @@
 }
 
 
+<!-- Scan to Receive: tick off a whole batch (scanner, camera or checkboxes) -->
+<div class="card mb-4" id="scanReceiveCard">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Scan to Receive</strong> <span id="srBatchLabel" class="text-muted"></span></span>
+        <select id="srBatch" class="form-select form-select-sm w-auto">
+            <option value="">Loading incoming batches...</option>
+        </select>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-0" id="srEmpty">No batches are on their way to your facility.</p>
+        <div class="row g-4 d-none" id="srBody">
+            <div class="col-lg-4">
+                <div id="srFrom" class="mb-1"></div>
+                <h5 class="text-danger mb-3" id="srCounter"></h5>
+                <div class="input-group mb-2">
+                    <input type="text" id="srScan" class="form-control form-control-lg font-monospace border-success" placeholder="Scan each asset as it arrives" autocomplete="off" spellcheck="false" />
+                    <button type="button" class="btn btn-outline-secondary d-none" id="srCamera" title="Scan with the device camera"><i class="fa fa-camera"></i></button>
+                </div>
+                <div id="srResult" class="small mb-3" role="status" aria-live="polite"></div>
+                <div class="mb-2">
+                    <label class="form-label small mb-1" for="srCondition">Condition (optional)</label>
+                    <select id="srCondition" class="form-select form-select-sm" asp-items="@(new SelectList(Model.Conditions ?? Enumerable.Empty<EMMS.Models.Entities.LookupItem>(), "Id", "Name"))">
+                        <option value="">-</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small mb-1" for="srRemarks">Remarks (optional)</label>
+                    <input id="srRemarks" class="form-control form-control-sm" />
+                </div>
+                <button type="button" class="btn btn-primary" id="srConfirm" disabled>Confirm Receive (<span id="srConfirmCount">0</span>)</button>
+            </div>
+            <div class="col-lg-8">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-2">
+                        <thead class="table-light"><tr><th style="width:2rem"></th><th>Tag</th><th>Serial</th><th>Item</th><th>Status</th></tr></thead>
+                        <tbody id="srItems"></tbody>
+                    </table>
+                </div>
+                <div class="alert alert-danger small d-none" id="srNote">
+                    Unscanned assets are flagged for follow-up instead of blocking the receipt: they stay in transit (receive or reject them later) and the sender is notified.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Pending Asset Receipts Card -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -269,6 +315,120 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+
+            // ── Scan to Receive ──────────────────────────────────────────────
+            (function () {
+                const batchSelect = document.getElementById('srBatch');
+                const scanInput = document.getElementById('srScan');
+                const tbody = document.getElementById('srItems');
+                let items = [];   // { movementId, tag, serial, itemName, received, ticked }
+                let batches = [];
+
+                function esc(text) { const d = document.createElement('div'); d.textContent = text ?? ''; return d.innerHTML; }
+
+                function pending() { return items.filter(i => !i.received); }
+
+                function render() {
+                    const open = pending();
+                    const ticked = open.filter(i => i.ticked).length;
+                    tbody.innerHTML = items.map(i => `
+                        <tr class="${i.received ? 'table-light text-muted' : (i.ticked ? '' : 'table-danger')}" data-id="${i.movementId}">
+                            <td><input type="checkbox" class="form-check-input sr-tick" ${i.received ? 'checked disabled' : (i.ticked ? 'checked' : '')} aria-label="Received ${esc(i.tag)}"></td>
+                            <td>${esc(i.tag)}</td>
+                            <td>${esc(i.serial)}</td>
+                            <td>${esc(i.itemName)}</td>
+                            <td>${i.received ? '<span class="text-muted">already received</span>' : (i.ticked ? '<span class="text-success"><i class="fa fa-check-circle"></i> received</span>' : '<span class="text-danger"><i class="fa fa-exclamation-triangle"></i> not yet scanned</span>')}</td>
+                        </tr>`).join('');
+                    const counter = document.getElementById('srCounter');
+                    counter.textContent = `Scanned ${ticked} / ${open.length}`;
+                    counter.className = 'mb-3 ' + (ticked === open.length ? 'text-success' : 'text-danger');
+                    document.getElementById('srConfirmCount').textContent = `${ticked} of ${open.length}`;
+                    document.getElementById('srConfirm').disabled = ticked === 0;
+                    document.getElementById('srNote').classList.toggle('d-none', ticked === 0 || ticked === open.length);
+                }
+
+                function showResult(ok, message) {
+                    const el = document.getElementById('srResult');
+                    el.className = 'small mb-3 fw-semibold ' + (ok ? 'text-success' : 'text-danger');
+                    el.textContent = message;
+                    emmsBeep(ok);
+                }
+
+                function scan(raw) {
+                    const tag = (raw || '').trim().toUpperCase();
+                    if (!tag) return;
+                    const item = items.find(i => (i.tag || '').toUpperCase() === tag);
+                    if (!item) showResult(false, `${tag} is not in this batch.`);
+                    else if (item.received) showResult(false, `${item.tag} was already received.`);
+                    else if (item.ticked) showResult(false, `${item.tag} is already scanned.`);
+                    else { item.ticked = true; showResult(true, `Received ${item.tag} - ${item.itemName || ''}`); }
+                    render();
+                    scanInput.value = '';
+                    scanInput.focus();
+                }
+
+                function loadBatch(batchId) {
+                    const batch = batches.find(b => b.batchId === batchId);
+                    document.getElementById('srBody').classList.toggle('d-none', !batch);
+                    document.getElementById('srBatchLabel').textContent = batch ? `- Batch ${batch.label}` : '';
+                    if (!batch) return;
+                    document.getElementById('srFrom').textContent = `From ${batch.from} · expecting ${batch.pending} asset(s)`;
+                    fetch(`/AssetMovement/BatchReceiveItems/${batchId}`).then(r => r.json()).then(data => {
+                        items = data.map(i => ({ ...i, ticked: false }));
+                        render();
+                        scanInput.focus();
+                    });
+                }
+
+                fetch('/AssetMovement/IncomingBatches').then(r => r.json()).then(data => {
+                    batches = data;
+                    document.getElementById('srEmpty').classList.toggle('d-none', data.length > 0);
+                    batchSelect.innerHTML = data.length
+                        ? data.map(b => `<option value="${b.batchId}">${esc(b.label)} - ${esc(b.from)} (${b.pending})</option>`).join('')
+                        : '<option value="">No incoming batches</option>';
+                    batchSelect.disabled = data.length === 0;
+                    if (data.length) loadBatch(data[0].batchId);
+                });
+
+                batchSelect.addEventListener('change', () => loadBatch(batchSelect.value));
+                scanInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); scan(scanInput.value); } });
+                tbody.addEventListener('change', e => {
+                    if (!e.target.classList.contains('sr-tick')) return;
+                    const item = items.find(i => i.movementId === e.target.closest('tr').dataset.id);
+                    if (item) { item.ticked = e.target.checked; render(); }
+                });
+                if (emmsCameraScanSupported()) {
+                    const cam = document.getElementById('srCamera');
+                    cam.classList.remove('d-none');
+                    cam.addEventListener('click', () => emmsOpenCameraScanner(scan));
+                }
+
+                document.getElementById('srConfirm').addEventListener('click', async function () {
+                    const open = pending();
+                    const ticked = open.filter(i => i.ticked);
+                    const missing = open.length - ticked.length;
+                    if (missing > 0 && !confirm(`${missing} asset(s) were not scanned. They will stay in transit and be flagged for follow-up. Continue?`)) return;
+                    this.disabled = true;
+                    const response = await fetch('/AssetMovement/ReceiveBatch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            batchId: batchSelect.value,
+                            movementIds: ticked.map(i => i.movementId),
+                            conditionId: document.getElementById('srCondition').value || null,
+                            remarks: document.getElementById('srRemarks').value || null
+                        })
+                    });
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        alert((result.errors || ['The receipt could not be saved.']).join('\n'));
+                        this.disabled = false;
+                        return;
+                    }
+                    alert(`${result.received} asset(s) received` + (result.flagged ? `; ${result.flagged} flagged for follow-up.` : '.'));
+                    window.location.reload();
+                });
+            })();
 
             // ── Pending Receipts Table ───────────────────────────────────────
             $('#pendingReception').DataTable({

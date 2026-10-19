@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Office2010.Excel;
+using EMMS.Constants;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
@@ -105,13 +106,24 @@ namespace EMMS.Controllers.Admin
             return View(viewModel);
         }
         [HttpPost]
-        //[RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> EditLookupItem(LookupViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
                 return RedirectToAction(nameof(EditLookupItem), new { id = model._lookupItem.Id });
+            }
+
+            // The work request workflow is keyed on these names (see WorkStatusNames / WorkOutcomeNames).
+            var stored = await _context.LookupItems.AsNoTracking().Include(l => l.LookupList)
+                .FirstOrDefaultAsync(l => l.Id == model._lookupItem.Id);
+            if (stored == null)
+                return NotFound();
+            if (IsWorkflowLookup(stored) && (model._lookupItem.Name != stored.Name || model._lookupItem.RowState != RowStatus.Active))
+            {
+                TempData["Error"] = $"'{stored.Name}' is used by the work request workflow and cannot be renamed or deactivated.";
+                return RedirectToAction(nameof(Index), new { id = stored.LookupListId });
             }
             var rowState = model._lookupItem.RowState;
 
@@ -121,6 +133,10 @@ namespace EMMS.Controllers.Admin
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index), new { id = model._lookupItem.LookupListId });
         }
+        private static bool IsWorkflowLookup(LookupItem item) =>
+            (item.LookupList?.Name == LookupListNames.WorkRequestStatus && WorkStatusNames.All.Contains(item.Name)) ||
+            (item.LookupList?.Name == LookupListNames.WorkRequestOutcome && WorkOutcomeNames.All.Contains(item.Name));
+
         [AuthorizeRole(nameof(UserType.Administrator))]
         public async Task<IActionResult> UserRoles()
         {

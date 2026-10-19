@@ -9,7 +9,7 @@
 
     ViewData["Title"] = Model.Asset.AssetTagNumber;
     ViewData["asset"] = "active";
-    var currentLocation = Model.MovementHistory?.Where(m => m.DateRejected == null).FirstOrDefault();
+    var currentLocation = Model.CurrentLocation; // vw_AssetCurrentLocation: latest received movement
 }
 <script>
     const assetDetail = @Html.Raw(Json.Serialize(Model.Asset));
@@ -40,6 +40,15 @@
 
                     <dt class="col-6 border p-1 m-0">Item Name</dt>
                     <dd class="col-6 border p-1 m-0">@Html.DisplayFor(model => model.Asset.SubCategory!.Name)</dd>
+
+                    @if (Model.Asset.CylinderDetail != null)
+                    {
+                        <dt class="col-6 border p-1 m-0">Size</dt>
+                        <dd class="col-6 border p-1 m-0">@Model.Asset.CylinderDetail.Size?.Name</dd>
+
+                        <dt class="col-6 border p-1 m-0">Content</dt>
+                        <dd class="col-6 border p-1 m-0">@Model.Asset.CylinderDetail.Content?.Name</dd>
+                    }
 
                     <dt class="col-6 border p-1 m-0 d-none">Item Name</dt>
                     <dd class="col-6 border p-1 m-0 d-none">@Html.DisplayFor(model => model.Asset.ItemName)</dd>
@@ -144,6 +153,12 @@
                         @(currentLocation?.Facility?.FacilityName
                                     ?? currentLocation?.ServicePoint?.Name
                                     ?? "-")
+                        @if (Model.PendingMovement != null)
+                        {
+                            <div class="small @(Model.PendingMovement.IsApproved ? "text-primary" : "text-warning")">
+                                @(Model.PendingMovement.IsApproved ? "In transit to" : "Awaiting approval to") @Model.PendingMovement.Facility?.FacilityName
+                            </div>
+                        }
                     </dd>
 
                     <dt class="col-6 border p-1 m-0">Functional Status</dt>

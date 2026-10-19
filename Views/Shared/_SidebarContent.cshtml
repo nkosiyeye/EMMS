@@ -33,6 +33,9 @@
                     <a asp-controller="AssetMovement" asp-action="Index" class="@ViewData["moveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
                         Move Asset
                     </a>
+                    <a asp-controller="AssetMovement" asp-action="Queue" class="@ViewData["movementQueue"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Movement Queue
+                    </a>
                     <a asp-controller="AssetMovement" asp-action="recieveAsset" class="@ViewData["recieveAsset"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
                         Receive Asset
                     </a>
@@ -59,6 +62,12 @@
                 }
             </div>
 
+            <a asp-controller="Cylinder" asp-action="Index" class="@ViewData["cylinder"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-prescription-bottle-medical"></i> <span>Cylinder Requests</span>
+            </a>
+            <a asp-controller="Cylinder" asp-action="Dashboard" class="@ViewData["cylinderDashboard"] list-group-item border-0 d-inline-block text-truncate">
+                <i class="fa-solid fa-chart-bar"></i> <span>Cylinder Dashboard</span>
+            </a>
             <a asp-controller="Reports" asp-action="Index" class="@ViewData["Reports"] list-group-item border-0 d-inline-block text-truncate">
                 <i class="fa-solid fa-file-excel"></i> <span>Reports</span>
             </a>

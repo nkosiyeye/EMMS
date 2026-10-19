@@ -171,86 +171,129 @@ function printAssetDetail() {
 
 
 
-function printSelectedStickers() {
-    const selectedAssets = Array.from(document.querySelectorAll('.asset-checkbox:checked'))
-        .map(checkbox => JSON.parse(checkbox.value));
+// Posts a list of asset tags as a normal form submit (name="tags"), optionally into a new tab.
+function emmsPostTags(action, tags, target) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = action;
+    if (target) form.target = target;
+    tags.forEach(tag => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'tags';
+        input.value = tag;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+}
 
-    if (selectedAssets.length === 0) {
+// Opens the server-rendered sticker sheet (Code 128 barcode of each asset tag) in a new tab.
+// tags: optional array of asset tags; defaults to the ticked .asset-checkbox values.
+function printSelectedStickers(tags) {
+    const selected = (tags || Array.from(document.querySelectorAll('.asset-checkbox:checked')).map(cb => cb.value))
+        .map(t => (t || '').trim())
+        .filter(t => t !== '');
+
+    if (selected.length === 0) {
         alert("No assets selected for printing.");
         return;
     }
 
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Print Asset Stickers</title>
-                        <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
-                        <style>
-                           .sticker {
-                                    width: 2.63in; /* Standard sticker width */
-                                    height: 0.90in; /* Standard sticker height */
-                                    padding: 1px;
-                                    font-family: Arial, sans-serif;
-                                    font-size: 12px;
-                                    display: flex;
-                                    flex-direction: column;
-                                    justify-content: space-between;
-                                }
-
-                                .sticker-header {
-                                    text-align: center;
-                                    font-weight: bold;
-                                    font-size: 14px;
-                                }
-
-                                .sticker-details {
-                                    margin-top: 5px;
-                                }
-
-                                    .sticker-details p {
-                                        margin: 2px 0;
-                                    }
-
-                                .qr-code {
-                                    display: flex;
-                                    justify-content: center;
-                                    align-items: center;
-                                    margin-bottom: 15px;
-                                }
-
-                                    .qr-code img {
-                                        width: 50px;
-                                        height: 50px;
-                                    }
-                        </style>
-                    </head>
-                    <body>
-                        ${selectedAssets.map(asset => `
-                        <div class="sticker mt-4">
-                            <div class="sticker-header">
-                                EMMS Asset
-                            </div>
-                            <div class="row py-0">
-                                <div class="sticker-details col-md-6">
-                                        <p><strong>Asset ID:</strong> ${asset.assetTagNumber}</p>
-                                        <p><strong>Serial Number:</strong> ${asset.serialNumber}</p>
-                                        <p><strong>Model:</strong> ${asset.model}</p>
-                                </div>
-                                <div class="qr-code col-md-6">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=AS-001" alt="QR Code">
-                                </div>
-                            </div>
-                        </div>
-                        `).join('')}
-                    </body>
-                </html>
-            `);
-
-    printWindow.document.close();
-    //printWindow.print();
-   // printWindow.onafterprint = () => printWindow.close();
+    emmsPostTags('/AssetManagement/PrintStickers', selected, '_blank');
 }
+
+// Short confirmation tone for scanning: high beep = accepted, low buzz = rejected.
+function emmsBeep(ok) {
+    try {
+        const ctx = emmsBeep.ctx || (emmsBeep.ctx = new (window.AudioContext || window.webkitAudioContext)());
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = ok ? 'sine' : 'square';
+        osc.frequency.value = ok ? 880 : 220;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + (ok ? 0.12 : 0.35));
+    } catch (e) { /* audio not available */ }
+}
+
+// Phone/tablet camera scanning (Code 128) where the browser supports BarcodeDetector.
+// Needs HTTPS (or localhost). Calls onCode for every new code until the overlay is closed.
+function emmsCameraScanSupported() {
+    return 'BarcodeDetector' in window && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+
+async function emmsOpenCameraScanner(onCode) {
+    const detector = new BarcodeDetector({ formats: ['code_128'] });
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = '<video playsinline muted style="max-width:95vw;max-height:65vh;border-radius:8px;background:#000"></video>' +
+        '<div class="text-white mt-2" data-role="status">Point the camera at the barcode</div>' +
+        '<button type="button" class="btn btn-light mt-3">Done</button>';
+    document.body.appendChild(overlay);
+
+    const video = overlay.querySelector('video');
+    const status = overlay.querySelector('[data-role="status"]');
+    let stream = null, stopped = false, lastCode = null, lastAt = 0;
+    const stop = () => { stopped = true; if (stream) stream.getTracks().forEach(t => t.stop()); overlay.remove(); };
+    overlay.querySelector('button').addEventListener('click', stop);
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        await video.play();
+    } catch (e) {
+        stop();
+        alert('Camera not available: ' + e.message);
+        return;
+    }
+
+    const tick = async () => {
+        if (stopped) return;
+        try {
+            const codes = await detector.detect(video);
+            const now = Date.now();
+            if (codes.length && (codes[0].rawValue !== lastCode || now - lastAt > 2000)) {
+                lastCode = codes[0].rawValue;
+                lastAt = now;
+                status.textContent = 'Read ' + lastCode;
+                onCode(lastCode);
+            }
+        } catch (e) { /* frame not ready */ }
+        requestAnimationFrame(tick);
+    };
+    tick();
+}
+
+// Barcode scanner support. Handheld scanners act as a keyboard: they type the code, then press Enter.
+// - A button with data-scan-target="<input id>" focuses and selects that input, so the next scan replaces it.
+// - On input[data-scan-input], Enter trims the value and moves to the next field instead of submitting the form.
+//   (Textareas are left alone so each scan lands on a new line.)
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest ? e.target.closest('[data-scan-target]') : null;
+    if (!btn) return;
+    const target = document.getElementById(btn.dataset.scanTarget);
+    if (!target || target.disabled) return;
+    target.focus();
+    if (typeof target.select === 'function') target.select();
+});
+
+document.addEventListener('keydown', function (e) {
+    const el = e.target;
+    if (e.key !== 'Enter' || !el.matches || !el.matches('input[data-scan-input]')) return;
+    e.preventDefault();
+    el.value = el.value.trim();
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const scope = el.form || el.closest('.modal') || document;
+    const focusable = Array.from(scope.querySelectorAll('input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+        .filter(x => x.offsetParent !== null);
+    const next = focusable[focusable.indexOf(el) + 1];
+    if (next) next.focus();
+});
 
 function fnExcelReport() {
     var tab_text = "<table border='2px'><tr bgcolor='#87AFC6'>";
@@ -347,3 +390,15 @@ function exportToExcel() {
 
 
 
+
+// Service request links are rendered in several asset tables (some built in JS),
+// so one delegated handler posts them through the hidden form in _Layout.
+document.addEventListener('click', function (event) {
+    const link = event.target.closest('.js-service-request');
+    if (!link) return;
+    event.preventDefault();
+    const form = document.getElementById('serviceRequestForm');
+    if (!form) return;
+    form.querySelector('input[name="id"]').value = link.dataset.assetId;
+    form.submit();
+});

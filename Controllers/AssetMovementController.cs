@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.Office2016.Excel;
+using EMMS.Constants;
 using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Migrations;
@@ -30,10 +31,14 @@ namespace EMMS.Controllers
         private readonly MovementService _movementService;
         private readonly NotificationService _notificationService;
         private readonly AssetManagementRepo _assetManagementRepo;
+        private readonly MovementQueueService _queueService;
+        private readonly CylinderOrderService _orderService;
 
         public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, 
-            AssetManagementRepo assetManagementRepo, MovementService movementService)
+            AssetManagementRepo assetManagementRepo, MovementService movementService, MovementQueueService queueService, CylinderOrderService orderService)
         {
+            _orderService = orderService;
+            _queueService = queueService;
             _context = context;
             _assetService = assetService;
             _notificationService = notificationService;
@@ -109,6 +114,7 @@ namespace EMMS.Controllers
                     canApprove = isAdmin || isManager,
                     dateReceived = m.DateReceived.HasValue,
                     dateRejected = m.DateRejected.HasValue,
+                    batchId = m.BatchId?.ToString(),
                     // You can also return isManager/isAdmin if needed, but usually not necessary
                 }).ToList();
 
@@ -361,6 +367,26 @@ namespace EMMS.Controllers
                 ModelState.AddModelError("", "Can't move an asset that has a work request in progress.");
             }
 
+            // Service point flagged RequiresPatient (e.g. Home Based Care): capture the patient
+            bool requiresPatient = false;
+            if (model.MoveAsset?.MovementType == MovementType.ServicePoint && model.MoveAsset.ServicePointId != null)
+            {
+                var servicePoint = await _context.LookupItems.AsNoTracking().FirstOrDefaultAsync(l => l.Id == model.MoveAsset.ServicePointId);
+                requiresPatient = servicePoint?.GetFlag(LookupFlags.RequiresPatient) == true;
+                if (requiresPatient)
+                    foreach (var error in MovementQueueService.ValidatePatient(model.Patient))
+                        ModelState.AddModelError("", error);
+            }
+            if (model.MoveAsset != null) model.MoveAsset.Patient = null;
+
+            // Dispatch only comes from a cylinder order; Return only goes to the central store
+            if (model.MoveAsset != null)
+            {
+                bool toCentralStore = await _context.Facilities.AnyAsync(f => f.FacilityId == model.MoveAsset.FacilityId && f.IsCentralStore);
+                foreach (var error in MovementQueueService.ValidateReason(model.MoveAsset.Reason, toCentralStore, dispatch: false))
+                    ModelState.AddModelError("", error);
+            }
+
             // 3. If still invalid → repopulate everything and return view
             if (!ModelState.IsValid)
             {
@@ -389,6 +415,9 @@ namespace EMMS.Controllers
                 .AddHours(DateTime.Now.Hour)
                 .AddMinutes(DateTime.Now.Minute)
                 .AddSeconds(DateTime.Now.Second);
+
+            if (requiresPatient)
+                assetMovement.PatientId = await _queueService.UpsertPatientAsync(model.Patient!, CurrentUser!);
 
             CreateEntity(assetMovement);
             _context.Add(assetMovement);
@@ -578,6 +607,8 @@ namespace EMMS.Controllers
 
             _context.Update(movement);
             await _context.SaveChangesAsync();
+            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
 
@@ -603,6 +634,8 @@ namespace EMMS.Controllers
             movement.Remarks = model.MoveAsset.Remarks;
 
             _context.Update(movement);
+            await _context.SaveChangesAsync();
+            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
@@ -692,6 +725,204 @@ namespace EMMS.Controllers
             return RedirectToAction("Index", "AssetManagement");
         }
 
+
+        // ------------------------------------------------------------------------------------------
+        // Movement Queue: scan or tick assets, choose the destination once, submit one batch
+        // ------------------------------------------------------------------------------------------
+        [HttpGet]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> Queue(Guid? orderId)
+        {
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null)
+            {
+                TempData["CylinderError"] = error;
+                return RedirectToAction("Index", "Cylinder");
+            }
+            return View("Queue", await LoadQueueViewModel(new BatchMoveRequest(), order));
+        }
+
+        private async Task<MovementQueueViewModel> LoadQueueViewModel(BatchMoveRequest request, CylinderOrder? order = null)
+        {
+            return new MovementQueueViewModel
+            {
+                Items = await _queueService.GetQueueAsync(CurrentUser!.UserId),
+                Request = request,
+                ServicePoints = await GetRepo().GetServicePoints(),
+                Dispatch = order == null ? null : CylinderOrderService.ToRow(order, isCms: true)
+            };
+        }
+
+        // Dispatch mode: the order must be dispatchable and the user a CMS officer at the central store
+        private async Task<(CylinderOrder? order, string? error)> LoadDispatchOrder(Guid? orderId)
+        {
+            if (orderId == null) return (null, null);
+            if (!await _orderService.IsCmsUserAsync(CurrentUser)) return (null, "Only a CMS officer at the central store can dispatch orders.");
+            var order = await _orderService.GetOrderForDispatchAsync(orderId.Value);
+            if (order == null) return (null, "Order not found.");
+            if (!CylinderOrderService.CanDispatch(order.Status, order.Quantity, CylinderOrderService.ActiveDispatched(order)))
+                return (null, $"Order {order.OrderNumber} cannot be dispatched ({order.Status}).");
+            return (order, null);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> QueueScan([FromForm] string? tag, [FromForm] Guid? orderId)
+        {
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null) return Json(new { code = "Error", message = error, item = (object?)null, queueCount = 0 });
+            var result = await _queueService.ScanAsync(tag, CurrentUser!, order);
+            return Json(new { code = result.Code.ToString(), result.Message, result.Item, result.QueueCount });
+        }
+
+        // "Move selected" from the asset grid: same checks as scanning, for facilities without a scanner
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> QueueAddSelected(List<string> tags)
+        {
+            var results = await _queueService.AddManyAsync(tags ?? new List<string>(), CurrentUser!);
+            var added = results.Count(r => r.Code == QueueScanResult.Added);
+            TempData["QueueInfo"] = $"{added} of {results.Count} selected asset(s) added to the queue.";
+            var rejected = results.Where(r => r.Code != QueueScanResult.Added).Select(r => r.Message).ToList();
+            if (rejected.Any()) TempData["QueueErrors"] = string.Join("\n", rejected);
+            return RedirectToAction(nameof(Queue));
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> QueueRemove(Guid id)
+        {
+            var count = await _queueService.RemoveAsync(CurrentUser!.UserId, id);
+            return Json(new { queueCount = count });
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> QueueClear()
+        {
+            await _queueService.ClearAsync(CurrentUser!.UserId);
+            return RedirectToAction(nameof(Queue));
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        public async Task<IActionResult> QueueSubmit(MovementQueueViewModel model, Guid? orderId)
+        {
+            var request = model.Request ?? new BatchMoveRequest();
+            var (order, error) = await LoadDispatchOrder(orderId);
+            if (error != null)
+            {
+                TempData["CylinderError"] = error;
+                return RedirectToAction("Index", "Cylinder");
+            }
+
+            QueueSubmitResult result;
+            try
+            {
+                result = await _queueService.SubmitAsync(CurrentUser!, request, order);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                result = new QueueSubmitResult { Errors = { "The batch could not be saved. Nothing was moved and the queue is unchanged." } };
+            }
+
+            if (!result.Success)
+            {
+                TempData["QueueErrors"] = string.Join("\n", result.Errors);
+                if (order != null) order = await _orderService.GetOrderForDispatchAsync(order.OrderId);
+                return View("Queue", await LoadQueueViewModel(request, order));
+            }
+
+            TempData["Success"] = order != null
+                ? $"Order {order.OrderNumber}: {result.Count} cylinder(s) dispatched (pre-approved)."
+                : $"Batch submitted: {result.Count} movement(s) awaiting approval.";
+            return RedirectToAction(nameof(Batch), new { id = result.BatchId });
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> Batch(Guid id)
+        {
+            var movements = await _queueService.GetBatchAsync(id);
+            if (movements.Count == 0) return NotFound();
+
+            var userType = CurrentUser?.UserRole?.UserType;
+            var vm = new BatchViewModel
+            {
+                BatchId = id,
+                Movements = movements,
+                CanApprove = userType == UserType.Administrator || userType == UserType.FacilityManager,
+                // Patient details only for admins and the two facilities involved
+                CanSeePatient = isAdmin || movements.Any(m => m.FromId == CurrentUser?.FacilityId || m.FacilityId == CurrentUser?.FacilityId)
+            };
+            return View("Batch", vm);
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        public async Task<IActionResult> ApproveBatch(Guid id)
+        {
+            var count = await _queueService.ApproveBatchAsync(id, CurrentUser!);
+            TempData["Success"] = $"{count} movement(s) approved.";
+            return RedirectToAction(nameof(Batch), new { id });
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> BatchGatePass(Guid id)
+        {
+            var movements = (await _queueService.GetBatchAsync(id)).Where(m => m.IsApproved && m.DateRejected == null).ToList();
+            return movements.Count == 0 ? NotFound() : View("BatchGatePass", movements);
+        }
+
+        // ------------------------------------------------------------------------------------------
+        // Scan to Receive (batch)
+        // ------------------------------------------------------------------------------------------
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> IncomingBatches()
+        {
+            return Json(await _queueService.GetIncomingBatchesAsync(CurrentUser!));
+        }
+
+        [HttpGet]
+        [RequireLogin]
+        public async Task<IActionResult> BatchReceiveItems(Guid id)
+        {
+            return Json(await _queueService.GetBatchForReceiveAsync(id, CurrentUser!));
+        }
+
+        public class ReceiveBatchRequest
+        {
+            public Guid BatchId { get; set; }
+            public List<Guid> MovementIds { get; set; } = new();
+            public int? ConditionId { get; set; }
+            public string? Remarks { get; set; }
+        }
+
+        [HttpPost]
+        [RequireLogin]
+        public async Task<IActionResult> ReceiveBatch([FromBody] ReceiveBatchRequest? request)
+        {
+            if (request == null || request.BatchId == Guid.Empty)
+                return BadRequest(new { errors = new[] { "Choose a batch and scan at least one asset." } });
+            try
+            {
+                var result = await _queueService.ReceiveBatchAsync(CurrentUser!, request.BatchId, request.MovementIds, request.ConditionId, request.Remarks);
+                return result.Errors.Any() ? BadRequest(new { errors = result.Errors }) : Json(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return BadRequest(new { errors = new[] { "The receipt could not be saved. Nothing was changed." } });
+            }
+        }
 
         [HttpGet]
         [RequireLogin]

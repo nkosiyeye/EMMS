@@ -57,5 +57,17 @@ namespace EMMS.Models.Entities
             catch { return false; }
         }
 
+        // Returns defaultValue when the flag is absent or FlagsJson is invalid.
+        public bool GetFlag(string flagName, bool defaultValue)
+        {
+            if (string.IsNullOrEmpty(FlagsJson)) return defaultValue;
+            try
+            {
+                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(FlagsJson);
+                return dict != null && dict.TryGetValue(flagName, out var value) ? value : defaultValue;
+            }
+            catch { return defaultValue; }
+        }
+
     }
 }

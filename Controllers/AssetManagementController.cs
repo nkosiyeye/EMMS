@@ -1,4 +1,5 @@
-﻿using EMMS.CustomAttributes;
+﻿using EMMS.Constants;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
@@ -25,13 +26,15 @@ namespace EMMS.Controllers
             "Id", "Name");
         private readonly AssetManagementRepo _repo;
         private readonly AssetMovementRepo _mrepo;
+        private readonly AssetTagService _tagService;
 
-        public AssetManagementController(ApplicationDbContext context, AssetManagementRepo repo, AssetService assetService)
+        public AssetManagementController(ApplicationDbContext context, AssetManagementRepo repo, AssetService assetService, AssetTagService tagService)
         {
             _context = context;
             _assetService = assetService;
             _repo = repo;
             _mrepo = new AssetMovementRepo(_context);
+            _tagService = tagService;
         }
 
         [HttpGet]
@@ -119,7 +122,7 @@ namespace EMMS.Controllers
                 </button>
                 <ul class='dropdown-menu'>";
 
-                    if (lastMove == null && (isAdmin || isBiomed))
+                    if (lastMove == null && asset.PendingMovement == null && (isAdmin || isBiomed))
                     {
                         actionHtml += $@"
                 <li>
@@ -152,7 +155,7 @@ namespace EMMS.Controllers
                 </li>
 
                 <li>
-                    <a class='dropdown-item' href='/JobManagement/AutomateServiceRequest/{asset.Asset.AssetId}'>
+                    <a class='dropdown-item js-service-request' href='#' data-asset-id='{asset.Asset.AssetId}'>
                         <i class='fa fa-toolbox me-1'></i> Service Request
                     </a>
                 </li>";
@@ -188,11 +191,13 @@ namespace EMMS.Controllers
                 }
                 string statusHtml;
 
-                if (asset.LastMovement != null)
+                // Functional status: the newest report, which is the pending movement's when one exists
+                var statusSource = asset.PendingMovement ?? asset.LastMovement;
+                if (statusSource != null)
                 {
-                    if (asset.LastMovement.Reason != Enumerators.MovementReason.Decommission)
+                    if (statusSource.Reason != Enumerators.MovementReason.Decommission)
                     {
-                        statusHtml = Format.DisplayFunctionalStatus(asset.LastMovement.FunctionalStatus).ToString();
+                        statusHtml = Format.DisplayFunctionalStatus(statusSource.FunctionalStatus).ToString();
                     }
                     else
                     {
@@ -204,9 +209,20 @@ namespace EMMS.Controllers
                     statusHtml = "<span class='text-muted'>-</span>";
                 }
 
+                // Location stays the source until received; show where it is heading
+                if (asset.PendingMovement != null)
+                {
+                    var destination = System.Net.WebUtility.HtmlEncode(
+                        (asset.PendingMovement.Facility?.FacilityName ?? "?") +
+                        (asset.PendingMovement.ServicePoint != null ? " / " + asset.PendingMovement.ServicePoint.Name : ""));
+                    statusHtml += asset.PendingMovement.IsApproved
+                        ? $" <span class='badge bg-primary' title='Approved, not yet received'>In transit &rarr; {destination}</span>"
+                        : $" <span class='badge bg-warning text-dark' title='Movement awaiting approval'>Awaiting approval &rarr; {destination}</span>";
+                }
+
                 return new
                 {
-                    checkbox = $"<input type='checkbox' class='asset-checkbox' value='{asset.Asset.AssetTagNumber}' />",
+                    checkbox = $"<input type='checkbox' class='asset-checkbox' value='{System.Net.WebUtility.HtmlEncode(asset.Asset.AssetTagNumber)}' />",
                     tag = asset.Asset.AssetTagNumber,
                     category = asset.Asset.Category?.Name,
                     itemName = asset.Asset.SubCategory?.Name,
@@ -242,6 +258,8 @@ namespace EMMS.Controllers
                 .Include(a => a.Vendor)
                 .Include(a => a.ServiceProvider)
                 .Include(u => u.User)
+                .Include(a => a.CylinderDetail!.Size)
+                .Include(a => a.CylinderDetail!.Content)
                 .FirstOrDefaultAsync(a => a.AssetId == id);
 
             var serviceHistory = await _context.Job
@@ -267,7 +285,9 @@ namespace EMMS.Controllers
             {
                 Asset = asset,
                 ServiceHistory = serviceHistory,
-                MovementHistory = movementHistory
+                MovementHistory = movementHistory,
+                CurrentLocation = (await _repo.GetCurrentLocationMovements(new[] { id })).GetValueOrDefault(id),
+                PendingMovement = (await _repo.GetInTransitMovements(new[] { id })).GetValueOrDefault(id)
             };
 
             return View(vm);
@@ -328,6 +348,8 @@ namespace EMMS.Controllers
                 LifespanPeriods = new List<LookupItem>(),
                 Facilities = new List<Facility>(),
                 ServicePoints = new List<LookupItem>(),
+                CylinderSizes = new List<LookupItem>(),
+                CylinderContents = new List<LookupItem>(),
             };
         }
         [HttpGet]
@@ -343,6 +365,8 @@ namespace EMMS.Controllers
             var lifespanPeriods = await _repo.GetLifespanPeriods();
             var facilities = await _repo.GetFacilities();
             var servicePoints = await _repo.GetServicePoints();
+            var cylinderSizes = await _repo.GetCylinderSizes();
+            var cylinderContents = await _repo.GetCylinderContents();
 
             var data = new
             {
@@ -357,6 +381,9 @@ namespace EMMS.Controllers
                 Facilities = facilities.Select(f => new { f.FacilityId, f.FacilityName }),
                 ServicePoints = servicePoints.Select(s => new { s.Id, s.Name }),
                 Statuses = procurementStatusList,
+                CylinderSizes = cylinderSizes.Select(s => new { s.Id, s.Name }),
+                CylinderContents = cylinderContents.Select(c => new { c.Id, c.Name }),
+                CentralStoreFacilityId = await _repo.GetCentralStoreFacilityId(),
             };
 
             return Json(data);
@@ -368,7 +395,10 @@ namespace EMMS.Controllers
         {
             var assets = await _repo.GetAssetsFromDb();
             var asset = assets.FirstOrDefault(a => a.AssetId == id)!;
+            asset.CylinderDetail = await _repo.GetCylinderDetail(id);
             var viewModel = await GetBaseAssetRegView(asset);
+            viewModel.CylinderSizes = await _repo.GetCylinderSizes();
+            viewModel.CylinderContents = await _repo.GetCylinderContents();
 
             return View("edit", viewModel);
 
@@ -379,6 +409,19 @@ namespace EMMS.Controllers
         public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
+
+            // Cylinder detail is saved separately (insert, update or remove) so Update(asset) never touches it
+            var detail = asset.CylinderDetail;
+            asset.CylinderDetail = null;
+            bool isCylinder = (await GetCylinderCategoryIds(new[] { asset.CategoryId })).Any();
+            RemoveCylinderModelState(); // CylinderRules owns the Size/Content messages
+            if (isCylinder)
+            {
+                var (sizeIds, contentIds) = await GetCylinderLookupIds();
+                foreach (var error in CylinderRules.ValidateDetail(detail?.SizeId, detail?.ContentId, sizeIds, contentIds))
+                    ModelState.AddModelError("", error);
+            }
+
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
             TempData["Error"] = string.Join("; ", errors);
             if (ModelState.IsValid)
@@ -387,11 +430,26 @@ namespace EMMS.Controllers
                 //asset.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 _context.Update(asset);
+
+                var existing = await _context.AssetCylinderDetails.FindAsync(asset.AssetId);
+                if (isCylinder && existing == null)
+                    _context.AssetCylinderDetails.Add(new AssetCylinderDetail { AssetId = asset.AssetId, SizeId = detail!.SizeId, ContentId = detail.ContentId });
+                else if (isCylinder)
+                {
+                    existing!.SizeId = detail!.SizeId;
+                    existing.ContentId = detail.ContentId;
+                }
+                else if (existing != null)
+                    _context.AssetCylinderDetails.Remove(existing);
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
+            asset.CylinderDetail = detail;
             var viewModel = await GetBaseAssetRegView(asset);
+            viewModel.CylinderSizes = await _repo.GetCylinderSizes();
+            viewModel.CylinderContents = await _repo.GetCylinderContents();
 
             return View("edit", viewModel);
         }
@@ -400,11 +458,26 @@ namespace EMMS.Controllers
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
+            asset.SerialNumber = SerialNumber.Normalize(asset.SerialNumber)!;
 
             // Check for duplicate serial number
-            if (await IsDuplicate(asset.SerialNumber))
+            if (asset.SerialNumber != null && await IsDuplicate(asset.SerialNumber))
             {
                 ModelState.AddModelError("asset.SerialNumber", "An asset with this serial number already exists.");
+            }
+
+            // Category flag CylinderProfile is re-read here; the form's show/hide is never trusted
+            RemoveCylinderModelState(); // CylinderRules owns the Size/Content messages
+            if ((await GetCylinderCategoryIds(new[] { asset.CategoryId })).Any())
+            {
+                var (sizeIds, contentIds) = await GetCylinderLookupIds();
+                foreach (var error in CylinderRules.Validate(asset.CylinderDetail?.SizeId, asset.CylinderDetail?.ContentId,
+                             sizeIds, contentIds, asset.SerialNumber, Assetmodel.alreadyDeployed, Assetmodel.facilityId))
+                    ModelState.AddModelError("", error);
+            }
+            else
+            {
+                asset.CylinderDetail = null;
             }
 
             if (!ModelState.IsValid)
@@ -424,6 +497,8 @@ namespace EMMS.Controllers
                     LifespanPeriods = await _repo.GetLifespanPeriods(),
                     Facilities = await _mrepo.GetFacilities(),
                     ServicePoints = await _mrepo.GetServicePoints(),
+                    CylinderSizes = await _repo.GetCylinderSizes(),
+                    CylinderContents = await _repo.GetCylinderContents(),
                     alreadyDeployed = Assetmodel.alreadyDeployed,
                     dateDeployed = Assetmodel.dateDeployed,
                     facilityId = Assetmodel.facilityId,
@@ -437,14 +512,14 @@ namespace EMMS.Controllers
 
             // Generate AssetId
             asset.AssetId = Guid.NewGuid();
-            var allAssetsCount = (await _repo.GetAssetsFromDb()).Count();
+            if (asset.CylinderDetail != null) asset.CylinderDetail.AssetId = asset.AssetId;
 
             // Determine facility code
             var facilityCode = isAdmin && Assetmodel.facilityId.HasValue
                 ? (await _context.Facilities.FirstOrDefaultAsync(f => f.FacilityId == Assetmodel.facilityId))?.FacilityCode
                 : CurrentUser.Facility.FacilityCode;
 
-            asset.AssetTagNumber = $"{facilityCode}AS-{(allAssetsCount + 1):D3}";
+            asset.AssetTagNumber = await _tagService.NextTagAsync(facilityCode);
             asset.CreatedBy = CurrentUser!.UserId;
             asset.DateCreated = DateTime.Now;
             asset.RowState = RowStatus.Active;
@@ -452,8 +527,6 @@ namespace EMMS.Controllers
             // Add asset
             CreateEntity(asset);
             _context.Add(asset);
-
-            await _context.SaveChangesAsync();
 
             if (Assetmodel.alreadyDeployed)
             {
@@ -484,12 +557,11 @@ namespace EMMS.Controllers
                 if (asset.WarrantyEndDate != null)
                 {
                     asset.WarrantyStartDate = deploymentDate;
-                    _context.Update(asset);
                 }
-
-
-                await _context.SaveChangesAsync();
             }
+
+            // Asset, cylinder detail and initial movement are saved together: all rows or nothing
+            await _context.SaveChangesAsync();
             TempData["Success"] = "Equipment added successfully.";
 
             return RedirectToAction(nameof(Index));
@@ -507,71 +579,86 @@ namespace EMMS.Controllers
             if (currentFacilityCode == null || currentUserId == null)
                 return Unauthorized("User context missing.");
 
-            int existingCount = (await _repo.GetAssetsFromDb()).Count();
-            int counter = existingCount + 1;
+            // Serial validation: the serial is typed or scanned, so normalise it and reject
+            // missing (RequiresSerial), in-list duplicate and already-registered serials before saving anything.
+            foreach (var asset in assets)
+                asset.SerialNumber = SerialNumber.Normalize(asset.SerialNumber)!;
+
+            var subCategoryIds = assets.Select(a => a.SubCategoryId).Distinct().ToList();
+            var subCategories = await _context.LookupItems
+                .AsNoTracking()
+                .Where(l => subCategoryIds.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id);
+
+            var cylinderCategoryIds = await GetCylinderCategoryIds(assets.Select(a => a.CategoryId));
+            var (sizeIds, contentIds) = cylinderCategoryIds.Any()
+                ? await GetCylinderLookupIds()
+                : (new HashSet<int>(), new HashSet<int>());
+
+            var errors = new List<string>();
+            for (int i = 0; i < assets.Count; i++)
+            {
+                if (cylinderCategoryIds.Contains(assets[i].CategoryId))
+                {
+                    foreach (var error in CylinderRules.Validate(assets[i].CylinderDetail?.SizeId, assets[i].CylinderDetail?.ContentId,
+                                 sizeIds, contentIds, assets[i].SerialNumber, assets[i].AlreadyDeployed, assets[i].FacilityId))
+                        errors.Add($"Row {i + 1}: {error}");
+                    continue;
+                }
+
+                assets[i].CylinderDetail = null;
+                subCategories.TryGetValue(assets[i].SubCategoryId, out var subCategory);
+                // Same default as the quick registration form: required unless the item says RequiresSerial = false
+                bool serialRequired = subCategory?.GetFlag(LookupFlags.RequiresSerial, true) ?? true;
+                if (serialRequired && assets[i].SerialNumber == null)
+                    errors.Add($"Row {i + 1}: serial number is required for {subCategory?.Name ?? "this item"}.");
+            }
+
+            foreach (var duplicate in SerialNumber.FindDuplicates(assets.Select(a => a.SerialNumber)))
+                errors.Add($"Serial number {duplicate} appears more than once in this list.");
+
+            var existingSerials = await _repo.GetExistingSerialNumbers(assets.Where(a => a.SerialNumber != null).Select(a => a.SerialNumber));
+            foreach (var existing in existingSerials.Distinct(StringComparer.OrdinalIgnoreCase))
+                errors.Add($"Serial number {existing} is already registered.");
+
+            if (errors.Any())
+                return BadRequest(string.Join("\n", errors));
+
+            var facilityIds = assets.Where(a => a.FacilityId != null).Select(a => a.FacilityId!.Value).Distinct().ToList();
+            var facilityCodes = await _context.Facilities
+                .AsNoTracking()
+                .Where(f => facilityIds.Contains(f.FacilityId))
+                .ToDictionaryAsync(f => f.FacilityId, f => f.FacilityCode);
 
             var toInsert = new List<Asset>();
+            var tagFacilityCodes = new List<string?>();
             var deployments = new List<MoveAsset>();
 
             foreach (var asset in assets)
             {
                 // Determine quantity (default to 1 if not present or invalid)
                 int qty = asset.Quantity;
+                bool hasSerial = asset.SerialNumber != null;
+                var facilityCode = asset.FacilityId != null && facilityCodes.TryGetValue(asset.FacilityId.Value, out var code) ? code : null;
 
-                // Check if serial is required (front end should set SerialNumber to empty if not required)
-                bool requiresSerial = !string.IsNullOrWhiteSpace(asset.SerialNumber) && asset.SerialNumber != asset.AssetTagNumber;
-
-                // If serial is required, always treat as single asset
-                if (requiresSerial || qty < 2)
+                // An asset with a serial is always a single asset; without one, replicate for quantity
+                var created = new List<Asset>();
+                if (hasSerial || qty < 2)
                 {
-                    if (await IsDuplicate(asset.SerialNumber))
-                        return BadRequest($"Duplicate serial number detected: {asset.SerialNumber}");
-
-                    var facility = asset.FacilityId != null ? await _context.Facilities.FirstOrDefaultAsync((f) => f.FacilityId == asset.FacilityId) : null;
-                    var facilityCode = facility != null ? facility.FacilityCode : null;
-
                     asset.AssetId = Guid.NewGuid();
-                    asset.AssetTagNumber = $"{(facilityCode ?? currentFacilityCode)}AS-{counter:D3}";
-                    if (string.IsNullOrEmpty(asset.SerialNumber)) asset.SerialNumber = asset.AssetTagNumber;
-                    counter++;
-
+                    if (asset.CylinderDetail != null) asset.CylinderDetail.AssetId = asset.AssetId;
                     asset.CreatedBy = currentUserId;
                     asset.DateCreated = DateTime.Now;
                     asset.RowState = RowStatus.Active;
-
-                    toInsert.Add(asset);
-
-                    // Deployment logic (unchanged)
-                    if (asset.AlreadyDeployed == true && asset.FacilityId != null)
-                    {
-                        var deployment = new MoveAsset
-                        {
-                            MovementDate = asset.DateDeployed ?? DateTime.Now,
-                            AssetId = asset.AssetId,
-                            MovementType = MovementType.Facility,
-                            FromId = asset.FacilityId.Value,
-                            FacilityId = asset.FacilityId.Value,
-                            ServicePointId = asset.ServicePointId,
-                            Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
-                            FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
-                            IsApproved = true,
-                            ApprovedBy = currentUserId,
-                            ReceivedBy = currentUserId,
-                            DateReceived = asset.DateDeployed ?? DateTime.Now,
-                            DateCreated = DateTime.Now,
-                            CreatedBy = currentUserId
-                        };
-                        deployments.Add(deployment);
-                    }
+                    created.Add(asset);
                 }
                 else
                 {
-                    // For assets without serial, duplicate for quantity
                     for (int i = 0; i < qty; i++)
                     {
-                        var newAsset = new Asset
+                        created.Add(new Asset
                         {
-                            // Copy all properties except AssetId, AssetTagNumber, SerialNumber
+                            AssetId = Guid.NewGuid(),
                             CategoryId = asset.CategoryId,
                             SubCategoryId = asset.SubCategoryId,
                             ItemName = asset.ItemName,
@@ -591,49 +678,57 @@ namespace EMMS.Controllers
                             IsServiceable = asset.IsServiceable,
                             NextServiceDate = asset.NextServiceDate,
                             ServiceInterval = asset.ServiceInterval,
+                            WarrantyStartDate = asset.WarrantyStartDate,
+                            WarrantyEndDate = asset.WarrantyEndDate,
                             AlreadyDeployed = asset.AlreadyDeployed,
                             DateDeployed = asset.DateDeployed,
                             FacilityId = asset.FacilityId,
                             ServicePointId = asset.ServicePointId,
+                            IsIdle = asset.IsIdle,
                             CreatedBy = currentUserId,
                             DateCreated = DateTime.Now,
                             RowState = RowStatus.Active
-                        };
-
-                        var facility = asset.FacilityId != null ? await _context.Facilities.FirstOrDefaultAsync((f) => f.FacilityId == asset.FacilityId) : null;
-                        var facilityCode = facility != null ? facility.FacilityCode : null;
-
-                        newAsset.AssetId = Guid.NewGuid();
-                        newAsset.AssetTagNumber = $"{(facilityCode ?? currentFacilityCode)}AS-{counter:D3}";
-                        newAsset.SerialNumber = newAsset.AssetTagNumber; // No serial, use tag as serial
-                        counter++;
-
-                        toInsert.Add(newAsset);
-
-                        // Deployment logic (unchanged)
-                        if (asset.AlreadyDeployed == true && asset.FacilityId != null)
-                        {
-                            var deployment = new MoveAsset
-                            {
-                                MovementDate = asset.DateDeployed ?? DateTime.Now,
-                                AssetId = newAsset.AssetId,
-                                MovementType = MovementType.Facility,
-                                FromId = asset.FacilityId.Value,
-                                FacilityId = asset.FacilityId.Value,
-                                ServicePointId = asset.ServicePointId,
-                                Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
-                                FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
-                                IsApproved = true,
-                                ApprovedBy = currentUserId,
-                                ReceivedBy = currentUserId,
-                                DateReceived = asset.DateDeployed ?? DateTime.Now,
-                                DateCreated = DateTime.Now,
-                                CreatedBy = currentUserId
-                            };
-                            deployments.Add(deployment);
-                        }
+                        });
                     }
                 }
+
+                foreach (var newAsset in created)
+                {
+                    toInsert.Add(newAsset);
+                    tagFacilityCodes.Add(facilityCode ?? currentFacilityCode);
+
+                    // Deployment logic (unchanged)
+                    if (asset.AlreadyDeployed == true && asset.FacilityId != null)
+                    {
+                        var deployment = new MoveAsset
+                        {
+                            MovementDate = asset.DateDeployed ?? DateTime.Now,
+                            AssetId = newAsset.AssetId,
+                            MovementType = MovementType.Facility,
+                            FromId = asset.FacilityId.Value,
+                            FacilityId = asset.FacilityId.Value,
+                            ServicePointId = asset.ServicePointId,
+                            Reason = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? MovementReason.Decommission : asset.ServicePointId == null ? MovementReason.Deployment : MovementReason.Installation,
+                            FunctionalStatus = (ProcurementStatus)asset.StatusId == ProcurementStatus.Decommissioned ? FunctionalStatus.NonFunctional : asset.IsIdle ? FunctionalStatus.Idle : FunctionalStatus.Functional,
+                            IsApproved = true,
+                            ApprovedBy = currentUserId,
+                            ReceivedBy = currentUserId,
+                            DateReceived = asset.DateDeployed ?? DateTime.Now,
+                            DateCreated = DateTime.Now,
+                            CreatedBy = currentUserId
+                        };
+                        deployments.Add(deployment);
+                    }
+                }
+            }
+
+            // One sequence round trip for the whole batch
+            var tags = await _tagService.NextTagsAsync(tagFacilityCodes);
+            for (int i = 0; i < toInsert.Count; i++)
+            {
+                toInsert[i].AssetTagNumber = tags[i];
+                // Items that do not require a serial keep today's behaviour: tag doubles as serial
+                if (toInsert[i].SerialNumber == null) toInsert[i].SerialNumber = tags[i];
             }
 
             foreach (var entity in toInsert)
@@ -660,6 +755,70 @@ namespace EMMS.Controllers
 
 
 
+
+        // Sticker sheet: Code 128 barcode of the asset tag, rendered server-side (works offline)
+        [RequireLogin]
+        [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
+        public async Task<IActionResult> PrintStickers(List<string> tags)
+        {
+            var wanted = (tags ?? new List<string>())
+                .Select(t => t?.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var assets = await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.SubCategory)
+                .Include(a => a.CylinderDetail!.Size)
+                .Where(a => wanted.Contains(a.AssetTagNumber) && a.RowState == RowStatus.Active)
+                .ToListAsync();
+
+            // Keep the order the user selected them in
+            var byTag = assets.ToDictionary(a => a.AssetTagNumber, StringComparer.OrdinalIgnoreCase);
+            var ordered = wanted.Where(byTag.ContainsKey).Select(t => byTag[t!]).ToList();
+
+            return View("stickers", ordered);
+        }
+
+        // Serial list pre-check for Quick Registration: returns the serials that are already registered
+        [RequireLogin]
+        [HttpPost]
+        public async Task<IActionResult> CheckSerials([FromBody] List<string> serials)
+        {
+            var normalized = (serials ?? new List<string>())
+                .Select(SerialNumber.Normalize)
+                .Where(s => s != null)
+                .Select(s => s!)
+                .Take(1000)
+                .ToList();
+
+            return Json(await _repo.GetExistingSerialNumbers(normalized));
+        }
+
+        // Categories (of those given) whose FlagsJson has CylinderProfile = true
+        async Task<HashSet<int>> GetCylinderCategoryIds(IEnumerable<int> categoryIds)
+        {
+            var ids = categoryIds.Distinct().ToList();
+            var categories = await _context.LookupItems
+                .AsNoTracking()
+                .Where(l => ids.Contains(l.Id))
+                .ToListAsync();
+
+            return categories.Where(c => c.GetFlag(LookupFlags.CylinderProfile)).Select(c => c.Id).ToHashSet();
+        }
+
+        async Task<(HashSet<int> sizeIds, HashSet<int> contentIds)> GetCylinderLookupIds() =>
+            ((await _repo.GetCylinderSizes()).Select(x => x.Id).ToHashSet(),
+             (await _repo.GetCylinderContents()).Select(x => x.Id).ToHashSet());
+
+        // Hidden cylinder inputs on a non-cylinder form must not cause binding errors
+        void RemoveCylinderModelState()
+        {
+            foreach (var key in ModelState.Keys.Where(k => k.StartsWith("asset.CylinderDetail", StringComparison.OrdinalIgnoreCase)).ToList())
+                ModelState.Remove(key);
+        }
 
         async Task<bool> IsDuplicate(string serialNum)
         {

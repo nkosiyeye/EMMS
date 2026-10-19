@@ -1,678 +1,380 @@
-﻿using EMMS.CustomAttributes;
+﻿using EMMS.Constants;
+using EMMS.CustomAttributes;
 using EMMS.Data;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Models.Entities;
 using EMMS.Service;
-using EMMS.Service;
-using EMMS.Utility;
 using EMMS.ViewModels;
-using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using System.Diagnostics;
-using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
 {
+    /// <summary>
+    /// Pages for work requests and jobs. Every status change is made by <see cref="WorkRequestService"/>.
+    /// </summary>
+    [RequireLogin]
     public class JobManagementController : BaseController
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
         private readonly AssetManagementRepo _assetManagementRepo;
-        private readonly NotificationService _notificationService;
-        public JobManagementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, AssetManagementRepo assetMovementRepo)
+        private readonly WorkRequestService _workRequests;
+        private readonly JobManagementRepo _repo;
+        public JobManagementController(ApplicationDbContext context, AssetService assetService, AssetManagementRepo assetMovementRepo, WorkRequestService workRequests, JobManagementRepo repo)
         {
             _context = context;
             _assetService = assetService;
-            _notificationService = notificationService;
             _assetManagementRepo = assetMovementRepo;
-        }
-        
-        public async Task<WorkRequestViewModel> WorkRequestData( WorkRequest? workmodel = null)
-        {
-            if (workmodel is null)
-            {
-                workmodel = new WorkRequest();
-            }
-            
-            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser);
-            WorkRequestViewModel paginatedWorkRequest = new WorkRequestViewModel
-            {
-                WorkRequest = workmodel,
-                AssetIndex = assets,
-            };
-
-            return paginatedWorkRequest;
-
+            _workRequests = workRequests;
+            _repo = repo;
         }
 
-        public async Task<JobViewModel> JobData(Job? jobmodel = null)
+        // Admins see every facility; everyone else their own.
+        private int? FacilityScope => isAdmin ? null : CurrentUser!.FacilityId;
+
+        private IActionResult AccessDenied()
         {
-            if (jobmodel is null)
+            TempData["Error"] = "You do not have access to that record.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        private string? ModelStateErrors()
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            return errors.Count == 0 ? null : string.Join("; ", errors);
+        }
+
+        private IActionResult RedirectToJobCard(Job job) =>
+            RedirectToAction(job.IsExternalProvider ? nameof(externalJobCard) : nameof(jobCard), new { id = job.JobId });
+
+        private IActionResult RedirectBack(string? returnTo) =>
+            RedirectToAction(returnTo == nameof(manageJobs) ? nameof(manageJobs) : nameof(Index));
+
+        private async Task<JobViewModel> JobData()
+        {
+            return new JobViewModel
             {
-                jobmodel = new Job();
-            }
-            var _repo = new JobManagementRepo(_context);
-            var _Assetrepo = _assetManagementRepo;
-            var all = await _repo.GetJobfromDbs();
-            var filteredJobs = all.Where(w => w.AssignedTo == CurrentUser.UserId);
-            var allInfWork = await _repo.GetInfrustructureWorkRequests();
-            var filteredInfWork = allInfWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            var allWork = await _repo.GetWorkRequests();
-            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            JobViewModel paginatedJob = new JobViewModel
-            {
-                Jobs = !isAdmin ? filteredJobs : all,
-                WorkRequests = !isAdmin ? filteredWork : allWork,
-                InfrastructureWorkRequests = !isAdmin ? filteredInfWork : allInfWork,
-                Job = jobmodel,
-                //Asset = await assets.GetAssetsFromDb(),
+                Jobs = await _repo.GetActiveJobsAsync(isAdmin ? null : CurrentUser!.UserId),
+                WorkRequests = await _repo.GetUnassignedWorkRequestsAsync(FacilityScope),
+                InfrastructureWorkRequests = await _repo.GetUnassignedInfrastructureRequestsAsync(FacilityScope),
+                Job = new Job(),
                 FaultReports = await _repo.GetFaultReports(),
-                WorkStatuses = await _repo.GetWorkStatus(),
-                Outcomes = await _repo.GetOutcomes(),
-                ServiceProviders = await _Assetrepo.GetServiceProviders(),
-                CancelReasons = await _repo.GetCancelReasons(),
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
+                Outcomes = await _workRequests.GetOutcomesAsync(),
+                ServiceProviders = await _assetManagementRepo.GetServiceProviders(),
+                CancelReasons = await _workRequests.GetCancelReasonsAsync(),
             };
-
-            return paginatedJob;
         }
 
+        // ------------------------------------------------------------------------------------------
+        // Work requests
+        // ------------------------------------------------------------------------------------------
         [HttpGet]
-        [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            var _repo = new JobManagementRepo(_context);
-            var allWork = await _repo.GetWorkRequests();
-            var filteredWork = allWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            var allInfWork = await _repo.GetInfrustructureWorkRequests();
-            var filteredInfWork = allInfWork.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            var data = await WorkRequestData();
-            data.WorkRequests = !isAdmin ? filteredWork : allWork;//.Result.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            data.InfrastructureWorkRequests = !isAdmin ? filteredInfWork : allInfWork;//.Result.Where(w => w.FacilityId == CurrentUser.FacilityId);
-            data.Outcomes = await _repo.GetOutcomes();
-            data.WorkStatuses = await _repo.GetWorkStatus();
+            var data = new WorkRequestViewModel
+            {
+                WorkRequest = new WorkRequest(),
+                AssetIndex = await _assetService.GetAssetIndexViewModel(CurrentUser!),
+                WorkRequests = await _repo.GetWorkRequestsAsync(FacilityScope),
+                InfrastructureWorkRequests = await _repo.GetInfrastructureRequestsAsync(FacilityScope),
+                Outcomes = await _workRequests.GetOutcomesAsync(),
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
+                CancelReasons = await _workRequests.GetCancelReasonsAsync(),
+            };
             return View(data);
         }
 
         [HttpGet]
-        [RequireLogin]
         public async Task<IActionResult> workRequest(Guid id)
         {
-            var _arepo = _assetManagementRepo.GetAssetsFromDb().Result.FirstOrDefault(a => a.AssetId == id);
-            var _repo = new JobManagementRepo(_context);
-            var workRequest = new WorkRequest()
-            {
-                AssetId = id
-            };
-            var workAssetViewModel = new WorkRequestViewModel()
-            {
-                Asset = _arepo,
-                WorkRequest = workRequest,
-                FaultReports = await _repo.GetFaultReports(),
-                WorkStatuses = await _repo.GetWorkStatus(),
-            };
-
-            return View(workAssetViewModel);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> WorkRequest(WorkRequestViewModel workRequestView)
-        {
-
-            var work = workRequestView.WorkRequest;
-            var workrequest = _context.WorkRequest.OrderByDescending(m => m.DateCreated)
-                   .FirstOrDefault(m => m.AssetId == work!.AssetId);
-            if (workrequest != null)
-            {
-                if (workrequest.CloseDate == null) ModelState.AddModelError("", "Asset Already has a workrequest in progress.");
-            }
-            if (ModelState.IsValid)
-            {
-                work.RequestedBy = CurrentUser.UserId;
-                CreateEntity(work);
-                _context.Add(work);
-                await _context.SaveChangesAsync();
-                await _notificationService.CreateWorkRequestNotification(CurrentUser.FacilityId,CurrentUser.UserId);
-
-                return RedirectToAction(nameof(Index));
-            }
-
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["WorkRequestError"] = string.Join("; ", errors);
-            return RedirectToAction(nameof(workRequest),new { id = workRequestView.WorkRequest!.AssetId });
-        }
-        [HttpGet]
-        [RequireLogin]
-        public async Task<IActionResult> infrustructureWorkRequest()
-        {
-            var _repo = new JobManagementRepo(_context);
-            var workAssetViewModel = new WorkRequestViewModel()
-            {
-                InfrustructureWorkRequest = new InfrustructureWorkRequest(),
-                TypeOfRequests = await _repo.GetTypeOfRequest(),
-                WorkStatuses = await _repo.GetWorkStatus(),
-            };
-
-            return View(workAssetViewModel);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> infrustructureWorkRequest(WorkRequestViewModel workRequestView)
-        {
-
-            var work = workRequestView.InfrustructureWorkRequest;
-            if (ModelState.IsValid)
-            {
-                work.RequestedBy = CurrentUser.UserId;
-                CreateEntity(work);
-                _context.Add(work);
-                await _context.SaveChangesAsync();
-                await _notificationService.CreateWorkRequestNotification(CurrentUser.FacilityId, CurrentUser.UserId);
-
-                return RedirectToAction(nameof(Index));
-            }
-
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["WorkRequestError"] = string.Join("; ", errors);
-            return RedirectToAction(nameof(infrustructureWorkRequest));
-        }
-        [HttpGet]
-        [RequireLogin]
-        public async Task<IActionResult> editWorkRequest(Guid id)
-        {
-            var _repo = new JobManagementRepo(_context);
-            var workRequest = await _repo.GetWorkRequests();
-            var workAssetViewModel = new WorkRequestViewModel()
-            {
-                WorkRequest =workRequest.FirstOrDefault(w => w.WorkRequestId == id),
-                FaultReports = await _repo.GetFaultReports(),
-                WorkStatuses = await _repo.GetWorkStatus(),
-            };
-
-            return View(workAssetViewModel);
-        }
-        [HttpPost]
-        //[RequireLogin]
-        public async Task<IActionResult> editWorkRequest(WorkRequestViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
-                return RedirectToAction(nameof(editWorkRequest), new { id = model.WorkRequest.WorkRequestId });
-            }
-
-            UpdateEntity(model.WorkRequest);
-            _context.Update(model.WorkRequest);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        public async Task<IActionResult> AutomateServiceRequest(Guid id)
-        {
-            var _arepo = _assetManagementRepo;
-            var _repo = new JobManagementRepo(_context);
-            
-            var activeRequest = await _repo.GetWorkRequestByAssetId(id);    
-            if (activeRequest != null)
-            {
-                TempData["Notification"] = JsonConvert.SerializeObject(new ToastNotification("An active work request exists for this asset.", NotificationType.Success));
-                return RedirectToAction("Index", "Home");
-
-            }
-
-            var asset = await _arepo.GetAssetById(id);
-            var assetLocation = await _arepo.GetAssetLocation(id);
-            var WorkStatuses = await _repo.GetWorkStatus();
-            var workStatus = WorkStatuses.FirstOrDefault(w => w.Name == "Open");
-
-            var workRequest = new WorkRequest()
-            {
-                AssetId = id,
-                RequestDate = DateTime.Now,
-                Description = "Service request for asset",
-                FacilityId = (int?)assetLocation ?? CurrentUser.FacilityId,
-                WorkStatusId = workStatus.Id,
-                RequestedBy = CurrentUser!.UserId,
-                CreatedBy = CurrentUser!.UserId,
-                DateCreated = DateTime.Now,
-                RowState = RowStatus.Active,
-            };
+            var asset = await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.SubCategory)
+                .FirstOrDefaultAsync(a => a.AssetId == id && a.RowState == RowStatus.Active);
+            if (asset == null)
+                return NotFound();
 
             var workAssetViewModel = new WorkRequestViewModel()
             {
                 Asset = asset,
-                WorkRequest = workRequest,
+                WorkRequest = new WorkRequest() { AssetId = id },
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
             };
 
-            await WorkRequest(workAssetViewModel);
+            return View(workAssetViewModel);
+        }
 
-            await _notificationService.CreateWorkRequestNotification(workRequest.FacilityId, CurrentUser.UserId);
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> WorkRequest(WorkRequestViewModel workRequestView)
+        {
+            var work = workRequestView.WorkRequest;
+            if (work?.AssetId == null)
+                return BadRequest();
+
+            var error = ModelStateErrors()
+                ?? await _workRequests.CreateAssetRequestAsync(CurrentUser!, work.AssetId.Value, work.RequestDate, work.Description);
+            if (error == null)
+                return RedirectToAction(nameof(Index));
+
+            TempData["WorkRequestError"] = error;
+            return RedirectToAction(nameof(workRequest), new { id = work.AssetId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> infrustructureWorkRequest()
+        {
+            var workAssetViewModel = new WorkRequestViewModel()
+            {
+                InfrustructureWorkRequest = new InfrustructureWorkRequest(),
+                TypeOfRequests = await _repo.GetTypeOfRequest(),
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
+            };
+
+            return View(workAssetViewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> infrustructureWorkRequest(WorkRequestViewModel workRequestView)
+        {
+            var work = workRequestView.InfrustructureWorkRequest;
+            if (work == null)
+                return BadRequest();
+
+            var error = ModelStateErrors()
+                ?? await _workRequests.CreateInfrastructureRequestAsync(CurrentUser!, work.TypeOfRequestId, work.RequestDate, work.Description);
+            if (error == null)
+                return RedirectToAction(nameof(Index));
+
+            TempData["WorkRequestError"] = error;
+            return RedirectToAction(nameof(infrustructureWorkRequest));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> editWorkRequest(Guid id)
+        {
+            var workRequest = await _repo.GetWorkRequestForEditAsync(id);
+
+            if (workRequest == null)
+                return NotFound();
+            if (!WorkRequestService.CanAccessFacility(CurrentUser!, workRequest.FacilityId))
+                return AccessDenied();
+
+            var workAssetViewModel = new WorkRequestViewModel()
+            {
+                WorkRequest = workRequest,
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
+            };
+
+            return View(workAssetViewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> editWorkRequest(WorkRequestViewModel model)
+        {
+            var posted = model.WorkRequest;
+            if (posted == null)
+                return BadRequest();
+
+            var error = ModelStateErrors()
+                ?? await _workRequests.EditRequestAsync(CurrentUser!, posted.WorkRequestId, posted.RequestDate, posted.Description);
+            if (error == null)
+                return RedirectToAction(nameof(Index));
+
+            TempData["WorkRequestError"] = error;
+            return RedirectToAction(nameof(editWorkRequest), new { id = posted.WorkRequestId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AutomateServiceRequest(Guid id)
+        {
+            var error = await _workRequests.CreateServiceRequestAsync(CurrentUser!, id);
+            if (error != null)
+                TempData["Error"] = error;
+            else
+                TempData["Success"] = "Service request created.";
             return RedirectToAction(nameof(Index));
         }
 
-        [RequireLogin]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> closeRequest(WorkRequestViewModel workRequestView, string? returnTo)
+        {
+            var posted = workRequestView.WorkRequest;
+            if (posted == null)
+                return BadRequest();
+
+            var error = await _workRequests.CloseRequestAsync(CurrentUser!, posted.WorkRequestId, posted.CloseDate, posted.OutcomeId);
+            if (error != null)
+                TempData["Error"] = error;
+            return RedirectBack(returnTo);
+        }
+
+        // Admins cancel any request that is not final; requesters withdraw their own before a job exists.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> cancelRequest(WorkRequestViewModel workRequestView, string? returnTo)
+        {
+            var posted = workRequestView.WorkRequest;
+            if (posted == null)
+                return BadRequest();
+
+            var error = await _workRequests.CancelRequestAsync(CurrentUser!, posted.WorkRequestId, posted.CloseDate, posted.OutcomeId, posted.CancelReasonId);
+            if (error != null)
+                TempData["Error"] = error;
+            return RedirectBack(returnTo);
+        }
+
+        // ------------------------------------------------------------------------------------------
+        // Jobs
+        // ------------------------------------------------------------------------------------------
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
         public async Task<IActionResult> manageJobs()
         {
-            ViewData["Biomed"] = new SelectList(_context.User.Where(f => f.RowState == RowStatus.Active && f.UserRole.UserType == Enumerators.UserType.Biomed), "UserId", "FirstName");
+            ViewData["Biomed"] = new SelectList(await _context.User.AsNoTracking()
+                .Where(f => f.RowState == RowStatus.Active && f.UserRole!.UserType == UserType.Biomed)
+                .OrderBy(f => f.FirstName)
+                .ToListAsync(), "UserId", "FirstName");
             return View(await JobData());
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
         public async Task<IActionResult> createJobCard(JobViewModel jobView)
         {
-            var _repo = new JobManagementRepo(_context);
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["JobError"] = string.Join("; ", errors);
+            var job = jobView.Job;
+            if (job == null)
+                return BadRequest();
 
-            if (ModelState.IsValid)
-            {
-                var job = jobView.Job;
-                job.JobId = Guid.NewGuid();
+            var (_, error) = await _workRequests.CreateJobAsync(CurrentUser!, job.WorkRequestId, job.InfrastructureWorkRequestId,
+                job.AssignedTo, job.FaultReportId, job.StartDate, job.IsExternalProvider, job.ExternalProviderId);
+            if (error != null)
+                TempData["JobError"] = error;
 
-                var facilityCode = CurrentUser.Facility.FacilityCode;
-                job.JobNumber = $"{facilityCode}Jb-" + (_repo.GetJobfromDbs().Result.Count() + 1).ToString("D3");
-
-                WorkRequest? wRequest = null;
-                InfrustructureWorkRequest? infraRequest = null;
-
-                if (job.AssetId != null)
-                {
-                    // ----- Asset Work Request -----
-                    wRequest = _repo.GetWorkRequests().Result
-                                    .FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
-
-                    if (wRequest != null)
-                    {
-                        wRequest.DateModified = DateTime.Now;
-                        wRequest.WorkStatusId = job.StatusId;
-                        wRequest.JobId = job.JobId;
-                        job.FacilityId = wRequest.FacilityId;
-                    }
-                }
-                else if (job.InfrastructureWorkRequestId != null)
-                {
-                    // ----- Infrastructure Work Request -----
-                    infraRequest = _repo.GetInfrustructureWorkRequests().Result
-                                        .FirstOrDefault(i => i.WorkRequestId == job.InfrastructureWorkRequestId);
-
-                    if (infraRequest != null)
-                    {
-                        infraRequest.DateModified = DateTime.Now;
-                        infraRequest.WorkStatusId = job.StatusId;
-                        infraRequest.JobId = job.JobId;
-                        job.FacilityId = infraRequest.FacilityId;
-                    }
-                }
-
-                CreateEntity(job); // set CreatedBy, DateCreated, etc.
-                _context.Add(job);
-
-                if (wRequest != null) _context.Update(wRequest);
-                if (infraRequest != null) _context.Update(infraRequest);
-
-                await _context.SaveChangesAsync();
-
-                // ----- Notifications -----
-                if (isAdmin)
-                {
-                    await _notificationService.CreateJobAssignmentNotification(job.AssignedTo,
-                                                                               wRequest?.RequestedBy ?? infraRequest?.RequestedBy,
-                                                                               CurrentUser.UserId);
-                }
-                else
-                {
-                    await _notificationService.CreateJobClaimedNotification(job.AssignedTo,
-                                                                            wRequest?.RequestedBy ?? infraRequest?.RequestedBy,
-                                                                            CurrentUser.UserId);
-                }
-
-                return RedirectToAction(nameof(manageJobs));
-            }
-
-            return View("manageJobs", await JobData());
+            return RedirectToAction(nameof(manageJobs));
         }
 
-
-        public async Task<IActionResult> jobCard(Guid id)
+        private async Task<JobViewModel?> LoadJobCard(Guid id)
         {
-            var _repo = new JobManagementRepo(_context);
-            var job = (await _repo.GetJobfromDbs())
-                .FirstOrDefault(j => j.JobId == id);
+            var job = await _repo.GetJobAsync(id);
 
             if (job == null)
-                return NotFound();
+                return null;
 
             var jobView = new JobViewModel
             {
                 Job = job,
-                WorkStatuses = await _repo.GetWorkStatus(),
-                WorkDoneList = (await _repo.GetWorkDone()).Where(w => w.JobId == job.JobId),
-                WorkDone = new WorkDone()
-            };
-
-            // ✅ Load work request differently depending on type
-            if (job.AssetId != null) // Asset Job
-            {
-                jobView.WorkRequest = (await _repo.GetWorkRequests())
-                    .FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
-            }
-            else if (job.InfrastructureWorkRequestId != null) // Infrastructure Job
-            {
-                jobView.InfraWorkRequest = (await _repo.GetInfrustructureWorkRequests())
-                    .FirstOrDefault(w => w.WorkRequestId == job.InfrastructureWorkRequestId);
-            }
-
-            return View(jobView);
-        }
-
-
-        [HttpPost]
-        public async Task<IActionResult> updateJobCard(JobViewModel jobView)
-        {
-            var errors = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .ToList();
-
-            TempData["Error"] = string.Join("; ", errors);
-
-            if (ModelState.IsValid)
-            {
-                var _repo = new JobManagementRepo(_context);
-                var job = (await _repo.GetJobfromDbs())
-                    .FirstOrDefault(j => j.JobId == jobView.Job!.JobId);
-
-                if (job == null)
-                    return NotFound();
-
-                // ✅ Differentiate between Asset vs Infrastructure work requests
-                if (job.AssetId != null)
-                {
-                    var workRequest = (await _repo.GetWorkRequests())
-                        .FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
-
-                    if (workRequest != null)
-                    {
-                        workRequest.WorkStatusId = jobView.Job.StatusId;
-                        _context.Update(workRequest);
-                    }
-                }
-                else if (job.InfrastructureWorkRequestId != null)
-                {
-                    var infraRequest = (await _repo.GetInfrustructureWorkRequests())
-                        .FirstOrDefault(w => w.WorkRequestId == job.InfrastructureWorkRequestId);
-
-                    if (infraRequest != null)
-                    {
-                        infraRequest.WorkStatusId = jobView.Job.StatusId;
-                        _context.Update(infraRequest);
-                    }
-                }
-
-                // ✅ Update job itself
-                job.StatusId = jobView.Job.StatusId;
-                job.DateModified = DateTime.Now;
-                job.Remarks = jobView.Job.Remarks;
-
-                if (job.IsExternalProvider)
-                {
-                    job.Amount = jobView.Job.Amount;
-                    job.InvoiceNo = jobView.Job.InvoiceNo;
-                }
-
-                _context.Update(job);
-                await _context.SaveChangesAsync();
-
-                // 🔔 Notifications (TBD when service ready)
-                // if (jobView.Job.StatusId != null && job.Status.Name == "Completed")
-                //     await _notificationService.CreateJobCompletedNotification(workRequest.RequestedBy, CurrentUser.UserId);
-
-                return RedirectToAction(nameof(manageJobs));
-            }
-
-            // Redirect back to correct job card type
-            if (jobView.Job!.IsExternalProvider)
-            {
-                return RedirectToAction(nameof(externalJobCard), new { id = jobView.Job.JobId });
-            }
-
-            return RedirectToAction(nameof(jobCard), new { id = jobView.Job.JobId });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> workDone(JobViewModel wView)
-        {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["WorkDoneError"] = string.Join("; ", errors);
-
-            if (ModelState.IsValid)
-            {
-                var workDone = wView.WorkDone;
-
-                if (workDone.WorkDoneId == Guid.Empty || workDone.WorkDoneId == default)
-                {
-                    // ✅ New work
-                    workDone.WorkDoneId = Guid.NewGuid();
-                    workDone.RowState = RowStatus.Active;
-                    CreateEntity(workDone);
-                    _context.Add(workDone);
-                }
-                else
-                {
-                    // ✅ Edit existing
-                    var existingWork = await _context.WorkDone.FindAsync(workDone.WorkDoneId);
-                    if (existingWork != null)
-                    {
-                        existingWork.DateCompleted = workDone.DateCompleted;
-                        existingWork.Hours = workDone.Hours;
-                        existingWork.Details = workDone.Details;
-                        UpdateEntity(existingWork); // your audit/update tracking
-                        _context.Update(existingWork);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Stay on same job card
-                return RedirectToAction(nameof(jobCard), new { id = workDone.JobId });
-            }
-
-            return RedirectToAction(nameof(jobCard), new { id = wView.WorkDone!.JobId });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> ExWorkDone(JobViewModel wView)
-        {
-            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-            TempData["WorkDoneError"] = string.Join("; ", errors);
-
-            if (ModelState.IsValid)
-            {
-                var workDone = wView.WorkDone;
-
-                if (workDone.WorkDoneId == Guid.Empty || workDone.WorkDoneId == default)
-                {
-                    // ✅ New work
-                    workDone.WorkDoneId = Guid.NewGuid();
-                    workDone.RowState = RowStatus.Active;
-                    CreateEntity(workDone);
-                    _context.Add(workDone);
-                }
-                else
-                {
-                    // ✅ Edit existing
-                    var existingWork = await _context.WorkDone.FindAsync(workDone.WorkDoneId);
-                    if (existingWork != null)
-                    {
-                        existingWork.DateCompleted = workDone.DateCompleted;
-                        existingWork.Hours = workDone.Hours;
-                        existingWork.Details = workDone.Details;
-                        UpdateEntity(existingWork); // your audit/update tracking
-                        _context.Update(existingWork);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Stay on same job card
-                return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone.JobId });
-            }
-            return RedirectToAction(nameof(externalJobCard), new { id = wView.WorkDone.JobId });
-        }
-
-        [RequireLogin]
-        public async Task<IActionResult> externalJobCard(Guid id)
-        {
-            var _repo = new JobManagementRepo(_context);
-            var job = (await _repo.GetJobfromDbs())
-                .FirstOrDefault(j => j.JobId == id);
-
-            if (job == null)
-                return NotFound();
-
-            var jobView = new JobViewModel
-            {
-                Job = job,
-                WorkStatuses = await _repo.GetWorkStatus(),
-                WorkDoneList = (await _repo.GetWorkDone()).Where(w => w.JobId == job.JobId),
+                WorkStatuses = await _workRequests.GetStatusesAsync(),
+                WorkDoneList = await _repo.GetWorkDoneForJobAsync(job.JobId),
                 WorkDone = new WorkDone()
             };
 
             // Load work request differently depending on type
-            if (job.AssetId != null) // Asset Job
+            if (job.WorkRequestId != null) // Asset Job
             {
-                jobView.WorkRequest = (await _repo.GetWorkRequests())
-                    .FirstOrDefault(w => w.WorkRequestId == job.WorkRequestId);
+                jobView.WorkRequest = await _repo.GetWorkRequestDetailAsync(job.WorkRequestId.Value);
             }
             else if (job.InfrastructureWorkRequestId != null) // Infrastructure Job
             {
-                jobView.InfraWorkRequest = (await _repo.GetInfrustructureWorkRequests())
-                    .FirstOrDefault(w => w.WorkRequestId == job.InfrastructureWorkRequestId);
+                jobView.InfraWorkRequest = await _repo.GetInfrastructureRequestDetailAsync(job.InfrastructureWorkRequestId.Value);
             }
+
+            return jobView;
+        }
+
+        public async Task<IActionResult> jobCard(Guid id)
+        {
+            var jobView = await LoadJobCard(id);
+            if (jobView == null)
+                return NotFound();
+            if (!WorkRequestService.CanViewJob(CurrentUser!, jobView.Job!))
+                return AccessDenied();
+
             return View(jobView);
         }
-        [HttpPost]
-        public async Task<IActionResult> closeRequest(WorkRequestViewModel workRequestView)
+
+        public async Task<IActionResult> externalJobCard(Guid id)
         {
-            var id = workRequestView.WorkRequest.WorkRequestId;
-            var _repo = new JobManagementRepo(_context);
+            var jobView = await LoadJobCard(id);
+            if (jobView == null)
+                return NotFound();
+            if (!WorkRequestService.CanViewJob(CurrentUser!, jobView.Job!))
+                return AccessDenied();
 
-            // Try normal work request first
-            var work = (await _repo.GetWorkRequests())
-                .FirstOrDefault(w => w.WorkRequestId == id);
-
-            // If not found, try infrastructure work request
-            var infraWork = work == null
-                ? (await _repo.GetInfrustructureWorkRequests())
-                    .FirstOrDefault(i => i.WorkRequestId == id)
-                : null;
-
-            // Get job linked to either request type
-            var job = work != null ? (await _repo.GetJobfromDbs())
-                .FirstOrDefault(j => j.WorkRequestId == id)
-                : (await _repo.GetJobfromDbs())
-                .FirstOrDefault(j => j.InfrastructureWorkRequestId == id);
-
-            if (job != null)
-            {
-                job.EndDate = workRequestView.WorkRequest.CloseDate ?? DateTime.Now;
-                job.StatusId = workRequestView.WorkRequest.WorkStatusId;
-                job.DateModified = DateTime.Now;
-                _context.Update(job);
-            }
-
-            // Update whichever request type was found
-            if (work != null)
-            {
-                work.OutcomeId = workRequestView.WorkRequest.OutcomeId;
-                work.CloseDate = workRequestView.WorkRequest.CloseDate;
-                work.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-                work.DateModified = DateTime.Now;
-
-                _context.Update(work);
-                if(work.Description!.ToLower() == "service request for asset")
-                {
-                    var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == work.AssetId);
-                    if (asset is not null && asset.IsServiceable && asset.ServiceInterval != null)
-                    {
-                        asset.NextServiceDate = DateTime.Now.AddMonths((int)asset.ServiceInterval);
-                        UpdateEntity(asset);
-                        _context.Update(asset);
-                    }
-                    
-
-                }
-            }
-            else if (infraWork != null)
-            {
-                infraWork.OutcomeId = workRequestView.WorkRequest.OutcomeId;
-                infraWork.CloseDate = workRequestView.WorkRequest.CloseDate;
-                infraWork.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-                infraWork.DateModified = DateTime.Now;
-
-                _context.Update(infraWork);
-            }
-
-            await _context.SaveChangesAsync();
-
-            return RedirectToAction(nameof(Index));
+            return View(jobView);
         }
 
         [HttpPost]
-        public async Task<IActionResult> cancelRequest(WorkRequestViewModel workRequestView)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> updateJobCard(JobViewModel jobView)
         {
-            
-           try {
-             var id = workRequestView.WorkRequest.WorkRequestId;
-            var _repo = new JobManagementRepo(_context);
-                // normal work request first
-                var work = (await _repo.GetWorkRequests())
-                    .FirstOrDefault(w => w.WorkRequestId == id);
+            var posted = jobView.Job;
+            if (posted == null)
+                return BadRequest();
 
-                // If not found, try infrastructure work request
-                var infraWork = work == null
-                    ? (await _repo.GetInfrustructureWorkRequests())
-                        .FirstOrDefault(i => i.WorkRequestId == id)
-                    : null;
-
-                // Get job linked to either request type
-                var job = work != null ? (await _repo.GetJobfromDbs())
-                    .FirstOrDefault(j => j.WorkRequestId == id)
-                    : (await _repo.GetJobfromDbs())
-                    .FirstOrDefault(j => j.InfrastructureWorkRequestId == id);
-            if(work != null)
-                {
-                    work.OutcomeId = workRequestView.WorkRequest.OutcomeId;
-                    work.CloseDate = workRequestView.WorkRequest.CloseDate;
-                    work.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-                    work.CancelReasonId = workRequestView.WorkRequest.CancelReasonId;
-                    UpdateEntity(work); // Assuming UpdateEntity handles the update logic
-
-                    _context.Update(work!);
-
-                }else if(infraWork != null)
-                {
-
-                    infraWork.OutcomeId = workRequestView.WorkRequest.OutcomeId;
-                    infraWork.CloseDate = workRequestView.WorkRequest.CloseDate;
-                    infraWork.WorkStatusId = workRequestView.WorkRequest.WorkStatusId;
-                    infraWork.CancelReasonId = workRequestView.WorkRequest.CancelReasonId;
-                    UpdateEntity(infraWork); // Assuming UpdateEntity handles the update logic
-
-                    _context.Update(infraWork!);
-
-                }
-                    await _context.SaveChangesAsync();
-
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
+            // Only the fields the assignee may change are read from the form.
+            var (job, error) = await _workRequests.UpdateJobAsync(CurrentUser!, posted.JobId, posted.StatusId, posted.Remarks, posted.Amount, posted.InvoiceNo);
+            if (job == null)
+                return NotFound();
+            if (error != null)
             {
-                return RedirectToAction("Error", "Home");
+                TempData["Error"] = error;
+                return RedirectToJobCard(job);
             }
+
+            return RedirectToAction(nameof(manageJobs));
+        }
+
+        private async Task<IActionResult> SaveWorkDone(WorkDone? workDone)
+        {
+            if (workDone == null)
+                return BadRequest();
+
+            // Binding errors (e.g. an unreadable date) stop the save before the service's own checks.
+            if (ModelStateErrors() is string modelErrors)
+            {
+                var current = await _context.Job.AsNoTracking().FirstOrDefaultAsync(j => j.JobId == workDone.JobId);
+                if (current == null)
+                    return NotFound();
+                TempData["WorkDoneError"] = modelErrors;
+                return RedirectToJobCard(current);
+            }
+
+            var (job, error) = await _workRequests.SaveWorkDoneAsync(CurrentUser!, workDone);
+            if (job == null)
+                return NotFound();
+            if (error != null)
+                TempData["WorkDoneError"] = error;
+            return RedirectToJobCard(job);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> workDone(JobViewModel wView) => SaveWorkDone(wView.WorkDone);
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> ExWorkDone(JobViewModel wView) => SaveWorkDone(wView.WorkDone);
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> deleteWorkDone(Guid id)
+        {
+            var (job, error) = await _workRequests.DeleteWorkDoneAsync(CurrentUser!, id);
+            if (job == null)
+                return NotFound();
+            if (error != null)
+                TempData["WorkDoneError"] = error;
+            return RedirectToJobCard(job);
         }
     }
 }

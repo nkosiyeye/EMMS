@@ -42,20 +42,11 @@
             <div class="row mb-2">
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
-                    <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "Open").Name" disabled />
-                    <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
-                            data-live-search="true">
-                        @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
-                        {
-                            <option value="@status.Id" selected>@status.Name</option>
-                        }
-                    </select>
-                    <span asp-validation-for="WorkRequest.WorkStatusId" class="text-danger"></span>
+                    <input class="form-control" type="text" value="@(Model.WorkStatuses?.FirstOrDefault(w => w.Name == "Open")?.Name ?? "Open")" disabled />
                 </div>
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.FacilityId" class="form-label"></label>
-                    <input asp-for="WorkRequest.FacilityId" type="hidden" class="form-control" value="@ViewBag._currentUser.FacilityId" readonly />
-                     <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
+                    <input class="form-control" value="@ViewBag._currentUser.Facility?.FacilityName" readonly />
                 </div>
             </div>
 

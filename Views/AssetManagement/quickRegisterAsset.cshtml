@@ -31,6 +31,26 @@
             </div>
         </div>
 
+        @* Bulk entry: one staged row per serial; shared attributes are chosen once in the Add Asset modal *@
+        <div class="border rounded p-3 mb-3" id="serialListPanel">
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <label for="serialList" class="form-label fw-bold">Add serials (type, paste or scan) - one per line</label>
+                    <textarea id="serialList" class="form-control font-monospace" rows="4" spellcheck="false" autocomplete="off" placeholder="CYL-10041&#10;CYL-10042"></textarea>
+                    <div class="form-text" id="serialListStatus"></div>
+                </div>
+                <div class="col-lg-4 d-flex flex-column justify-content-end">
+                    <p class="form-text text-muted mb-2">Next, choose the shared attributes once (category, item name, size, vendor ...). One row is staged per serial.</p>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-scan-target="serialList" title="Click, then scan each serial barcode">
+                            <i class="fa fa-barcode me-1"></i> Scan
+                        </button>
+                        <button type="button" class="btn btn-primary" id="addSerialRows" disabled>Add 0 rows &rarr;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="assetTable">
                 <thead class="table-light">
@@ -91,6 +111,23 @@
                             <span class="text-danger" id="v_modalSubCategory"></span>
                         </div>
                     </div>
+                    @* Shown only when the Category has FlagsJson.CylinderProfile = true *@
+                    <div class="row mb-3 d-none" id="modalCylinderFields">
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Size</label>
+                            <select id="modalCylinderSize" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Size</option>
+                            </select>
+                            <span class="text-danger" id="v_modalCylinderSize"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label required-field">Content</label>
+                            <select id="modalCylinderContent" class="form-select selectpicker col-md-6" data-live-search="true">
+                                <option selected disabled value="">Select Content</option>
+                            </select>
+                            <span class="text-danger" id="v_modalCylinderContent"></span>
+                        </div>
+                    </div>
 
                     <h5 class="mb-3 mt-3 form-subheading">Technical Details</h5>
                     <div class="row mb-3">
@@ -114,7 +151,14 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label required-field" id="serialLabel">Serial Number</label>
-                            <input type="text" id="modalSerialNumber" class="form-control">
+                            <div class="input-group">
+                                <input type="text" id="modalSerialNumber" class="form-control" data-scan-input autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary" data-scan-target="modalSerialNumber" title="Click, then scan the serial number barcode">
+                                    <i class="fa fa-barcode me-1"></i> Scan
+                                </button>
+                            </div>
+                            <div class="form-text text-muted d-none" id="modalSerialHint">Typed or scanned by the user - never auto-generated. Required for cylinders.</div>
+                            <div class="form-text text-primary fw-bold d-none" id="modalSerialBulkNote"></div>
                             <span class="text-danger" id="v_modalSerialNumber"></span>
                         </div>
 
@@ -229,18 +273,35 @@
                         <div class="col-md-12">
                             <div class="border rounded p-3">
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed">
+                                    @if (isAdmin)
+                                    {
+                                        <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed">
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" class="form-check-input" id="modalAlreadyDeployed" checked disabled>
+                                    }
                                     <label class="form-check-label fw-bold">Already Deployed?</label>
+                                    <div class="form-text text-success fw-bold d-none" id="modalLocationHint">Required for cylinders: where is this cylinder physically today? (defaults to Central Medical Stores)</div>
                                 </div>
-                                <div class="row mb-1 d-none" id="modalDeploymentFields">                                    
+                                <div class="row mb-1 @(isAdmin ? "d-none" : "")" id="modalDeploymentFields">
                                     <div class="col-sm-6 col-md-6 col-lg-4">
                                         <input type="date" id="modalDateDeployed" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")">
                                         <span class="text-danger" id="v_modalDateDeployed"></span>
                                     </div>
                                     <div class="col-sm-6 col-md-6 col-lg-4">
-                                        <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
-                                            <option selected disabled value="">Select Facility</option>
-                                        </select>
+                                        @if (isAdmin)
+                                        {
+                                            <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" data-live-search="true">
+                                                <option selected disabled value="">Select Facility</option>
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <select id="modalFacility" class="form-select selectpicker col-sm-6 col-md-6 col-lg-4" disabled>
+                                                <option value="@currentUser!.Facility?.FacilityId" selected>@currentUser!.Facility?.FacilityName</option>
+                                            </select>
+                                        }
                                         <span class="text-danger" id="v_modalFacility"></span>
                                     </div>
                                     <div class="col-sm-6 col-md-6 col-lg-4">
@@ -281,9 +342,14 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const IS_ADMIN = @(isAdmin ? "true" : "false");
+            const CURRENT_USER_FACILITY_ID = '@(currentUser?.Facility?.FacilityId)';
             let assetList = []; // Array to hold the registered asset objects
             let dropdownData = {};
             let editIndex = null; // Track which asset is being edited, null if adding
+            let isCylinderCategory = false; // Category flag CylinderProfile of the modal's current category
+            let bulkSerials = null;         // serials from the list while the modal is the shared template
+            let registeredSerials = new Set(); // upper-cased serials the server says are already registered
 
 
             // --- Load from localStorage if available ---
@@ -297,6 +363,28 @@
                 if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
                 function s4() { return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1); }
                 return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
+            }
+
+            // --- Serial helpers (mirror Utility/SerialNumber.cs) ---
+            // Drops control characters a scanner may add, collapses whitespace, trims.
+            function normalizeSerial(value) {
+                if (!value) return null;
+                const s = String(value)
+                    .replace(/[\u0000-\u0008\u000E-\u001F\u007F-\u009F]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                return s || null;
+            }
+
+            function findDuplicateSerials(list) {
+                const seen = new Map();
+                const dups = new Set();
+                list.forEach(a => {
+                    const key = a.SerialNumber ? a.SerialNumber.toUpperCase() : null;
+                    if (!key) return;
+                    if (seen.has(key)) dups.add(seen.get(key)); else seen.set(key, a.SerialNumber);
+                });
+                return Array.from(dups);
             }
 
             // --- Populate select helper ---
@@ -358,11 +446,16 @@
                     populateSelect(document.getElementById('modalVendor'), data.vendors, 'Select Vendor');
                     populateSelect(document.getElementById('modalServiceProvider'), data.serviceProviders, 'Select Service Provider');
                     if (data.statuses) populateSelect(document.getElementById('modalStatus'), data.statuses, 'Select Status');
-                    populateSelect(document.getElementById('modalFacility'), data.facilities, 'Select Facility');
+                    if (IS_ADMIN) {
+                        populateSelect(document.getElementById('modalFacility'), data.facilities, 'Select Facility');
+                    }
                     populateSelect(document.getElementById('modalServicePoint'), data.servicePoints, 'Select Service Point');
+                    populateSelect(document.getElementById('modalCylinderSize'), data.cylinderSizes, 'Select Size');
+                    populateSelect(document.getElementById('modalCylinderContent'), data.cylinderContents, 'Select Content');
 
                     // Render saved assets if any
                     renderAssetTable();
+                    renderSerialListStatus();
                     document.getElementById('saveAssets').textContent = `Save All (${assetList.length})`;
                 })
                 .catch(error => console.error("Error fetching dropdown data:", error));
@@ -370,6 +463,110 @@
             // --- Event Listeners ---
             document.getElementById('modalCategory').addEventListener('change', function () {
                 updateSubCategory(this.value, 'modalSubCategory');
+                loadModalCategoryProfile(this.value);
+            });
+
+            // --- Category flag CylinderProfile: adds Size, Content and a required initial location ---
+            function loadModalCategoryProfile(categoryId, onDone) {
+                const done = (isCylinder) => { setModalCylinderProfile(isCylinder); if (typeof onDone === 'function') onDone(); };
+                if (!categoryId) { done(false); return; }
+                fetch(`/AssetManagement/GetLookupItemDetails?id=${categoryId}`)
+                    .then(r => r.ok ? r.json() : null)
+                    .then(item => {
+                        let flags = {};
+                        try { flags = item && item.flagsJson ? JSON.parse(item.flagsJson) : {}; } catch (e) { console.error("Invalid FlagsJson:", e); }
+                        done(flags.CylinderProfile === true);
+                    })
+                    .catch(() => done(false));
+            }
+
+            function setModalCylinderProfile(isCylinder) {
+                isCylinderCategory = isCylinder;
+                document.getElementById('modalCylinderFields').classList.toggle('d-none', !isCylinder);
+                document.getElementById('modalSerialHint').classList.toggle('d-none', !isCylinder);
+                document.getElementById('modalLocationHint').classList.toggle('d-none', !isCylinder);
+                if (!isCylinder) return;
+
+                // Initial location is required: reuse Already Deployed, default to the central store
+                const deployed = document.getElementById('modalAlreadyDeployed');
+                deployed.checked = true;
+                document.getElementById('modalDeploymentFields').classList.remove('d-none');
+                const dateInput = document.getElementById('modalDateDeployed');
+                if (!dateInput.value) dateInput.value = new Date().toLocaleDateString('en-CA');
+                const facility = document.getElementById('modalFacility');
+                if (!facility.value && dropdownData.centralStoreFacilityId) {
+                    facility.value = String(dropdownData.centralStoreFacilityId);
+                    $(facility).selectpicker('refresh');
+                }
+            }
+
+            // --- Serial list: one staged row per serial ---
+            function parseSerialList() {
+                const lines = document.getElementById('serialList').value.split(/\r?\n/).map(normalizeSerial).filter(Boolean);
+                const staged = new Set(assetList.filter(a => a.SerialNumber).map(a => a.SerialNumber.toUpperCase()));
+                const seen = new Set();
+                const result = { lines, duplicates: [], alreadyStaged: [], registered: [], ready: [] };
+                lines.forEach(serial => {
+                    const key = serial.toUpperCase();
+                    if (seen.has(key)) { result.duplicates.push(serial); return; }
+                    seen.add(key);
+                    if (staged.has(key)) result.alreadyStaged.push(serial);
+                    else if (registeredSerials.has(key)) result.registered.push(serial);
+                    else result.ready.push(serial);
+                });
+                return result;
+            }
+
+            function renderSerialListStatus() {
+                const r = parseSerialList();
+                const sample = (list) => list.slice(0, 3).join(', ') + (list.length > 3 ? ' ...' : '');
+                const parts = [`${r.lines.length} lines`];
+                if (r.duplicates.length) parts.push(`${r.duplicates.length} duplicate in this list (${sample(r.duplicates)})`);
+                if (r.alreadyStaged.length) parts.push(`${r.alreadyStaged.length} already in the table (${sample(r.alreadyStaged)})`);
+                parts.push(`${r.registered.length} already registered${r.registered.length ? ' (' + sample(r.registered) + ')' : ''}`);
+
+                const status = document.getElementById('serialListStatus');
+                status.textContent = r.lines.length ? parts.join(' · ') : '';
+                status.classList.toggle('text-danger', r.duplicates.length + r.alreadyStaged.length + r.registered.length > 0);
+
+                const btn = document.getElementById('addSerialRows');
+                btn.innerHTML = `Add ${r.ready.length} row${r.ready.length === 1 ? '' : 's'} &rarr;`;
+                btn.disabled = r.ready.length === 0;
+            }
+
+            let serialCheckTimer = null;
+            document.getElementById('serialList').addEventListener('input', function () {
+                renderSerialListStatus();
+                clearTimeout(serialCheckTimer);
+                serialCheckTimer = setTimeout(function () {
+                    const lines = parseSerialList().lines;
+                    if (!lines.length) return;
+                    fetch('/AssetManagement/CheckSerials', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(lines)
+                    })
+                        .then(r => r.ok ? r.json() : [])
+                        .then(existing => {
+                            registeredSerials = new Set((existing || []).map(x => String(x).toUpperCase()));
+                            renderSerialListStatus();
+                        })
+                        .catch(err => console.error("Serial check failed:", err));
+                }, 400);
+            });
+
+            document.getElementById('addSerialRows').addEventListener('click', function () {
+                const ready = parseSerialList().ready;
+                if (!ready.length) return;
+                bulkSerials = ready;
+                const serialInput = document.getElementById('modalSerialNumber');
+                serialInput.value = '';
+                serialInput.disabled = true;
+                const note = document.getElementById('modalSerialBulkNote');
+                note.textContent = `${ready.length} serial(s) from the list - one row each, sharing everything else below.`;
+                note.classList.remove('d-none');
+                document.getElementById('saveAssetToTable').textContent = `Add ${ready.length} rows`;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('assetModal')).show();
             });
 
             document.getElementById('isDeployed').addEventListener('change', function () {
@@ -386,6 +583,7 @@
 
 
             document.getElementById('modalAlreadyDeployed').addEventListener('change', function () {
+                if (isCylinderCategory && !this.checked) this.checked = true; // initial location is required for cylinders
                 document.getElementById('modalDeploymentFields').classList.toggle('d-none', !this.checked);
             });
 
@@ -399,6 +597,17 @@
                 clearValidationErrors();
                     editIndex = null;
                     document.getElementById('saveAssetToTable').textContent = 'Add to List';
+                setModalCylinderProfile(false);
+                bulkSerials = null;
+                document.getElementById('modalSerialNumber').disabled = false;
+                document.getElementById('modalSerialBulkNote').classList.add('d-none');
+                if (!IS_ADMIN) {
+                    document.getElementById('modalAlreadyDeployed').checked = true;
+                    document.getElementById('modalDeploymentFields').classList.remove('d-none');
+                    const facility = document.getElementById('modalFacility');
+                    facility.value = CURRENT_USER_FACILITY_ID;
+                    $(facility).selectpicker('refresh');
+                }
             });
 
             // --- Add Asset to local list ---
@@ -411,7 +620,20 @@
                 return;
             }
 
-            if (editIndex !== null) {
+            if (bulkSerials) {
+                // One row per serial from the list, sharing every other attribute
+                bulkSerials.forEach(serial => {
+                    assetList.push({
+                        ...asset,
+                        AssetId: generateGuid(),
+                        SerialNumber: serial,
+                        Quantity: 1,
+                        CylinderDetail: asset.CylinderDetail ? { ...asset.CylinderDetail } : null
+                    });
+                });
+                document.getElementById('serialList').value = '';
+                renderSerialListStatus();
+            } else if (editIndex !== null) {
                 // Update existing asset
                 asset.AssetId = assetList[editIndex].AssetId; // Preserve original ID
                 assetList[editIndex] = asset;
@@ -465,6 +687,11 @@
                     alert("Please add at least one asset to the list.");
                     return;
                 }
+                const duplicateSerials = findDuplicateSerials(assetList);
+                if (duplicateSerials.length) {
+                    alert('These serial numbers appear more than once in the list:\n' + duplicateSerials.join('\n'));
+                    return;
+                }
                 console.log(JSON.stringify(assetList));
 
                 fetch('/AssetManagement/SaveAssets', {
@@ -509,7 +736,7 @@
                     ItemName: getSelectText('modalSubCategory') || null,
                     DepartmentId: document.getElementById('modalDepartment').value || null,
                     ManufacturerId: document.getElementById('modalManufacturer').value || null,
-                    SerialNumber: document.getElementById('modalSerialNumber').value || null,
+                    SerialNumber: normalizeSerial(document.getElementById('modalSerialNumber').value),
                     Model: document.getElementById('modalModel').value || null,
                     IsPlacement: document.getElementById('modalPlacement').checked,
                     PlacementStartDate: document.getElementById('modalPlacementStart').value || null,
@@ -531,7 +758,11 @@
                     DateDeployed: alreadyDeployed ? document.getElementById('modalDateDeployed').value || null : null,
                     FacilityId: alreadyDeployed ? document.getElementById('modalFacility').value || null : null,
                     ServicePointId: alreadyDeployed ? document.getElementById('modalServicePoint').value || null : null,
-					IsIdle: document.getElementById('modalIsIdle').checked || false
+                    IsIdle: document.getElementById('modalIsIdle').checked || false,
+                    CylinderDetail: isCylinderCategory ? {
+                        SizeId: parseInt(document.getElementById('modalCylinderSize').value) || 0,
+                        ContentId: parseInt(document.getElementById('modalCylinderContent').value) || 0
+                    } : null
                 };
             }
 
@@ -598,7 +829,7 @@
             function validateAssetClient(asset) {
                 const errs = [];
                 const serialInput = document.getElementById('modalSerialNumber');
-                const isSerialMandatory = serialInput.dataset.required === "true";
+                const isSerialMandatory = !bulkSerials && (serialInput.dataset.required === "true" || isCylinderCategory);
                 if (!asset.CategoryId) errs.push({ id: 'v_modalCategory', msg: 'Category is required' });
                 if (!asset.SubCategoryId) errs.push({ id: 'v_modalSubCategory', msg: 'Item name is required' });
                 if (!asset.DepartmentId) errs.push({ id: 'v_modalDepartment', msg: 'Department is required' });
@@ -619,6 +850,12 @@
                     if (!asset.ServiceInterval) errs.push({ id: 'v_modalServiceInterval', msg: 'Service interval required' });
                 }
 
+                if (isCylinderCategory) {
+                    if (!asset.CylinderDetail || !asset.CylinderDetail.SizeId) errs.push({ id: 'v_modalCylinderSize', msg: 'Size is required for cylinders' });
+                    if (!asset.CylinderDetail || !asset.CylinderDetail.ContentId) errs.push({ id: 'v_modalCylinderContent', msg: 'Content is required for cylinders' });
+                    if (!asset.AlreadyDeployed || !asset.FacilityId) errs.push({ id: 'v_modalFacility', msg: 'Initial location is required for cylinders' });
+                }
+
                 if(asset.AlreadyDeployed){
                     if (!asset.FacilityId) errs.push({ id: 'v_modalFacility', msg: 'Facility is required' });
                     if (!asset.DateDeployed) errs.push({ id: 'v_modalDateDeployed', msg: 'Date deployed is required' });
@@ -630,6 +867,13 @@
                     if (!asset.SerialNumber || asset.SerialNumber.trim() === '') {
                         errs.push({ id: 'v_modalSerialNumber', msg: 'Serial number is mandatory for this item type' });
                     }
+                }
+
+                // In-list duplicate serials (the server also checks the database)
+                if (asset.SerialNumber) {
+                    const key = asset.SerialNumber.toUpperCase();
+                    const clash = assetList.some((a, i) => i !== editIndex && a.SerialNumber && a.SerialNumber.toUpperCase() === key);
+                    if (clash) errs.push({ id: 'v_modalSerialNumber', msg: 'This serial number is already in the list' });
                 }                                                                           
 
                 return errs;
@@ -665,7 +909,14 @@
                 const qtyCell = row.insertCell();
                 qtyCell.innerHTML = quantityCell;
                 row.insertCell().textContent = getNameForId(dropdownData.categories, asset.CategoryId) || asset.CategoryId || '';
-                row.insertCell().textContent = getNameForId(dropdownData.subcategories, asset.SubCategoryId) || asset.ItemName || '';
+                const itemCell = row.insertCell();
+                itemCell.textContent = getNameForId(dropdownData.subcategories, asset.SubCategoryId) || asset.ItemName || '';
+                if (asset.CylinderDetail) {
+                    const extra = document.createElement('div');
+                    extra.className = 'small text-muted';
+                    extra.textContent = `${getNameForId(dropdownData.cylinderSizes, asset.CylinderDetail.SizeId) || ''} / ${getNameForId(dropdownData.cylinderContents, asset.CylinderDetail.ContentId) || ''}`;
+                    itemCell.appendChild(extra);
+                }
                 row.insertCell().textContent = getNameForId(dropdownData.departments, asset.DepartmentId) || asset.DepartmentId || '';
                 row.insertCell().textContent = getNameForId(dropdownData.manufacturers, asset.ManufacturerId) || asset.ManufacturerId || '';
                 row.insertCell().textContent = asset.Model || '';
@@ -755,16 +1006,24 @@
             document.getElementById('modalNextServiceDate').value = asset.NextServiceDate || '';
 
             // Already Deployed
-            document.getElementById('modalAlreadyDeployed').checked = !!asset.AlreadyDeployed;
-            document.getElementById('modalDeploymentFields').classList.toggle('d-none', !asset.AlreadyDeployed);
+            document.getElementById('modalAlreadyDeployed').checked = IS_ADMIN ? !!asset.AlreadyDeployed : true;
+            document.getElementById('modalDeploymentFields').classList.toggle('d-none', IS_ADMIN && !asset.AlreadyDeployed);
             document.getElementById('modalDateDeployed').value = asset.DateDeployed || '';
-            document.getElementById('modalFacility').value = asset.FacilityId || '';
+            document.getElementById('modalFacility').value = IS_ADMIN ? (asset.FacilityId || '') : CURRENT_USER_FACILITY_ID;
             $('#modalFacility').selectpicker('refresh');
             document.getElementById('modalServicePoint').value = asset.ServicePointId || '';
             $('#modalServicePoint').selectpicker('refresh');
 
             // Is Idle
-			document.getElementById('modalIsIdle').checked = !!asset.IsIdle;
+            document.getElementById('modalIsIdle').checked = !!asset.IsIdle;
+
+            // Cylinder profile (after the category flag is known)
+            loadModalCategoryProfile(asset.CategoryId, function () {
+                if (!asset.CylinderDetail) return;
+                document.getElementById('modalCylinderSize').value = asset.CylinderDetail.SizeId || '';
+                document.getElementById('modalCylinderContent').value = asset.CylinderDetail.ContentId || '';
+                $('#modalCylinderSize, #modalCylinderContent').selectpicker('refresh');
+            });
         }
 
         });

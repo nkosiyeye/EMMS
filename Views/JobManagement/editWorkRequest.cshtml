@@ -9,7 +9,7 @@
 <div class="card mb-12">
     <div class="card-header">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Create Work Request</span>
+            <span>Edit Work Request</span>
         </div>
     </div>
     <div class="card-body">
@@ -26,11 +26,7 @@
 
                 <!-- Date -->
                 <div class="col-md-6">
-                    <input asp-for="WorkRequest.WorkRequestId" hidden />
-                    <input asp-for="WorkRequest.DateCreated" type="hidden" id="asset-tag" class="form-control" readonly>
-                    <input asp-for="WorkRequest.CreatedBy" type="hidden" id="asset-tag" class="form-control" readonly>
-                    <input asp-for="WorkRequest.RowState" type="hidden" id="asset-tag" class="form-control" readonly>
-                    <input asp-for="WorkRequest.RequestedBy" type="hidden" id="asset-tag" class="form-control" readonly>
+                    <input asp-for="WorkRequest.WorkRequestId" type="hidden" />
                     <label asp-for="WorkRequest.RequestDate" for="requestDate" class="form-label required-field">Request Date</label>
                     <input asp-for="WorkRequest.RequestDate" type="date" class="form-control" id="requestDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" required>
                     <span asp-validation-for="WorkRequest.RequestDate" class="text-danger"></span>
@@ -40,26 +36,17 @@
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.AssetId" class="form-label required-field"></label>
                     <input asp-for="WorkRequest.AssetId" class="form-control" type="Guid" hidden />
-                    <input class="form-control" type="text" value="@($"{Model.WorkRequest!.Asset!.AssetTagNumber} - {Model.WorkRequest.Asset.SubCategory?.Name}" )" disabled />
+                    <input class="form-control" type="text" value="@($"{Model.WorkRequest!.Asset?.AssetTagNumber} - {Model.WorkRequest.Asset?.SubCategory?.Name}" )" disabled />
                 </div>
             </div>
             <div class="row mb-2">
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.WorkStatusId" for="title" class="form-label required-field"></label>
-                    <input class="form-control" type="text" value="@Model.WorkStatuses.FirstOrDefault(w => w.Name == "Open").Name" disabled />
-                    <select asp-for="WorkRequest.WorkStatusId" id="movementType" class="form-select selectpicker col-md-6 d-none"
-                            data-live-search="true">
-                        @foreach (var status in Model.WorkStatuses.Where(w => w.Name == "Open"))
-                        {
-                            <option value="@status.Id" selected>@status.Name</option>
-                        }
-                    </select>
-                    <span asp-validation-for="WorkRequest.WorkStatusId" class="text-danger"></span>
+                    <input class="form-control" type="text" value="@(Model.WorkStatuses?.FirstOrDefault(w => w.Name == "Open")?.Name ?? "Open")" disabled />
                 </div>
                 <div class="col-md-6">
                     <label asp-for="WorkRequest.FacilityId" class="form-label"></label>
-                    <input asp-for="WorkRequest.FacilityId" type="hidden" class="form-control" value="@ViewBag._currentUser.FacilityId" readonly />
-                    <input class="form-control" value="@ViewBag._currentUser.Facility.FacilityName" readonly />
+                    <input class="form-control" value="@Model.WorkRequest.Facility?.FacilityName" readonly />
                 </div>
             </div>
 
@@ -70,7 +57,7 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary">Request</button>
+            <button type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>
 </div>
