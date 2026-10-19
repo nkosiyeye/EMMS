@@ -37,7 +37,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><strong>Request Cylinders</strong> <span class="text-muted">(facility user)</span></h5>
+                <h5 class="modal-title"><strong>Request Cylinders</strong></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -98,7 +98,7 @@
     <div class="row g-4 mb-4">
         <div class="col-xl-12">
             <div class="card h-100">
-                <div class="card-header"><strong>Pending Requests</strong> <span class="text-muted">(Central Medical Stores)</span></div>
+                <div class="card-header"><strong>Pending Requests</strong></div>
                 <div class="card-body">
                     @if (!Model.ApprovedRequests.Any())
                     {
@@ -141,7 +141,7 @@
 @if (Model.IsCmsUser)
 {
     <div class="card mb-4 d-none" id="createOrderCard">
-        <div class="card-header"><strong>Create Order</strong> <span class="text-muted">(assigns stock, then opens the Movement Queue to dispatch)</span></div>
+        <div class="card-header"><strong>Create Order</strong></div>
         <div class="card-body">
             <form asp-action="CreateOrder" method="post">
                 <input type="hidden" name="requestId" id="orderRequestId" />
