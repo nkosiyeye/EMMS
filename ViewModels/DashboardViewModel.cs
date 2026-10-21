@@ -36,7 +36,7 @@ namespace EMMS.ViewModels
 
             FunctionalStatusCounts = viewModel.assetViewModels
                 .Where(vm => vm.LastMovement != null)
-                .GroupBy(vm => vm.LastMovement.FunctionalStatus)
+                .GroupBy(vm => vm.Asset.FunctionalStatus)
                 .ToDictionary(
                     g => g.Key.ToString(),
                     g => g.Count()
@@ -51,7 +51,7 @@ namespace EMMS.ViewModels
             DecommissionedByFacilityCounts = viewModel.assetViewModels
                         .Where(vm => vm.LastMovement != null
                                   && (vm.LastMovement.Reason == MovementReason.Decommission
-                                      || vm.LastMovement.FunctionalStatus == FunctionalStatus.NonFunctional)
+                                      || vm.Asset.FunctionalStatus == FunctionalStatus.NonFunctional)
                                   && vm.LastMovement.FacilityId != null)
                         .GroupBy(vm => vm.LastMovement.Facility?.FacilityName ?? "Unknown Facility")
                         .OrderByDescending(g => g.Count())   // sort by highest count

@@ -28,6 +28,8 @@ namespace EMMS.Data
         public DbSet<EMMS.Models.InfrustructureWorkRequest> InfrustructureWorkRequest { get; set; }
         public DbSet<EMMS.Models.Job> Job { get; set; }
         public DbSet<EMMS.Models.WorkDone> WorkDone { get; set; }
+        public DbSet<EMMS.Models.JobPart> JobPart { get; set; }
+        public DbSet<EMMS.Models.AssetStatusChange> AssetStatusChanges { get; set; }
         public DbSet<EMMS.Models.ExternalWorkDone> ExternalWorkDone { get; set; }
         public DbSet<EMMS.Models.Entities.Notification> Notifications { get; set; }
         public DbSet<EMMS.Models.Admin.User> User { get; set; }
@@ -142,6 +144,28 @@ namespace EMMS.Data
                 .WithMany()
                 .HasForeignKey(w => w.JobId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<EMMS.Models.WorkDone>()
+                .HasOne(w => w.Biomed).WithMany().HasForeignKey(w => w.BiomedId).OnDelete(DeleteBehavior.Restrict);
+
+            // JobPart belongs to a job; Part is an optional SparePart lookup
+            modelBuilder.Entity<EMMS.Models.JobPart>(e =>
+            {
+                e.HasIndex(p => p.JobId);
+                e.HasOne<EMMS.Models.Job>().WithMany().HasForeignKey(p => p.JobId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(p => p.Part).WithMany().HasForeignKey(p => p.PartId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(p => p.Biomed).WithMany().HasForeignKey(p => p.BiomedId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Asset functional status history, read per asset newest first
+            modelBuilder.Entity<EMMS.Models.AssetStatusChange>(e =>
+            {
+                e.HasIndex(c => new { c.AssetId, c.DateChanged });
+                e.HasIndex(c => c.JobId);
+                e.HasOne(c => c.Asset).WithMany().HasForeignKey(c => c.AssetId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(c => c.Job).WithMany().HasForeignKey(c => c.JobId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(c => c.Movement).WithMany().HasForeignKey(c => c.MovementId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(c => c.ChangedByUser).WithMany().HasForeignKey(c => c.ChangedBy).OnDelete(DeleteBehavior.Restrict);
+            });
 
             // Job: numbers come from a sequence; at most one job per asset work request
             modelBuilder.HasSequence<long>(EMMS.Service.WorkRequestService.JobNumberSequence);
@@ -180,6 +204,98 @@ namespace EMMS.Data
                 .IsUnique();
         }
 
+        // ------------------------------------------------------------------------------------------
+        // Asset functional status: received movements set it, and nothing but AssetStatusTracker may write it.
+        // ------------------------------------------------------------------------------------------
+        private readonly HashSet<Guid> _statusWriters = new();
 
+        internal void AllowStatusWrite(Guid assetId) => _statusWriters.Add(assetId);
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ApplyMovementStatusesAsync(CancellationToken.None).GetAwaiter().GetResult();
+            GuardAssetStatus();
+            var result = base.SaveChanges(acceptAllChangesOnSuccess);
+            _statusWriters.Clear();
+            return result;
+        }
+
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            await ApplyMovementStatusesAsync(cancellationToken);
+            GuardAssetStatus();
+            var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            _statusWriters.Clear();
+            return result;
+        }
+
+        // A movement that is received now (or whose status is edited after receipt) sets its asset's status,
+        // but only if it is the asset's latest received movement, i.e. its current location.
+        private async Task ApplyMovementStatusesAsync(CancellationToken ct)
+        {
+            var entries = ChangeTracker.Entries<EMMS.Models.MoveAsset>()
+                .Where(e => (e.State == EntityState.Added || e.State == EntityState.Modified)
+                    && e.Entity.DateReceived != null && e.Entity.RowState == EMMS.Models.Enumerators.RowStatus.Active)
+                .ToList();
+            if (entries.Count == 0) return;
+
+            // Movements attached with Update() carry no original values, so compare with the database.
+            var modifiedIds = entries.Where(e => e.State == EntityState.Modified).Select(e => e.Entity.MovementId).ToList();
+            var before = modifiedIds.Count == 0 ? new()
+                : await AssetMovement.AsNoTracking().Where(m => modifiedIds.Contains(m.MovementId))
+                    .Select(m => new { m.MovementId, m.DateReceived, m.FunctionalStatus })
+                    .ToDictionaryAsync(m => m.MovementId, ct);
+
+            var changed = entries.Select(e => e.Entity)
+                .Where(m => !before.TryGetValue(m.MovementId, out var b) || b.DateReceived == null || b.FunctionalStatus != m.FunctionalStatus)
+                .GroupBy(m => m.AssetId)
+                .Select(g => g.OrderByDescending(m => m.DateCreated).ThenByDescending(m => m.MovementDate).First())
+                .ToList();
+            if (changed.Count == 0) return;
+
+            var assetIds = changed.Select(m => m.AssetId).ToList();
+            var changedIds = changed.Select(m => m.MovementId).ToList();
+            var latestOther = await AssetMovement.AsNoTracking()
+                .Where(m => assetIds.Contains(m.AssetId) && !changedIds.Contains(m.MovementId)
+                    && m.RowState == EMMS.Models.Enumerators.RowStatus.Active && m.DateReceived != null)
+                .GroupBy(m => m.AssetId)
+                .Select(g => g.OrderByDescending(m => m.DateCreated).ThenByDescending(m => m.MovementDate)
+                    .Select(m => new { m.AssetId, m.DateCreated, m.MovementDate }).First())
+                .ToDictionaryAsync(m => m.AssetId, ct);
+            var dbStatus = await Assets.AsNoTracking().Where(a => assetIds.Contains(a.AssetId))
+                .Select(a => new { a.AssetId, a.FunctionalStatus })
+                .ToDictionaryAsync(a => a.AssetId, a => a.FunctionalStatus, ct);
+
+            foreach (var movement in changed)
+            {
+                // Same order as vw_AssetCurrentLocation (DateCreated, then MovementDate; NULL dates sort lowest).
+                if (latestOther.TryGetValue(movement.AssetId, out var other)
+                    && ((other.DateCreated ?? DateTime.MinValue) > (movement.DateCreated ?? DateTime.MinValue)
+                        || (other.DateCreated == movement.DateCreated && other.MovementDate > movement.MovementDate)))
+                    continue;
+
+                var asset = await Assets.FindAsync(new object[] { movement.AssetId }, ct);
+                if (asset == null) continue;
+                // An asset attached with Update() holds whatever was posted; start from the stored value.
+                if (!_statusWriters.Contains(asset.AssetId) && dbStatus.TryGetValue(asset.AssetId, out var stored))
+                    asset.FunctionalStatus = stored;
+
+                EMMS.Service.AssetStatusTracker.Change(this, asset, movement.FunctionalStatus, EMMS.Models.Enumerators.StatusChangeSource.Movement,
+                    movement.ReceivedBy ?? movement.ModifiedBy ?? movement.CreatedBy, movementId: movement.MovementId);
+            }
+        }
+
+        // Asset forms post the whole entity; their FunctionalStatus must never reach the database.
+        private void GuardAssetStatus()
+        {
+            foreach (var entry in ChangeTracker.Entries<EMMS.Models.Asset>())
+            {
+                if (_statusWriters.Contains(entry.Entity.AssetId)) continue;
+                if (entry.State == EntityState.Modified)
+                    entry.Property(a => a.FunctionalStatus).IsModified = false;
+                else if (entry.State == EntityState.Added)
+                    entry.Entity.FunctionalStatus = EMMS.Models.Enumerators.FunctionalStatus.Unknown;
+            }
+        }
     }
 }

@@ -121,6 +121,11 @@ namespace EMMS.Models
         [Display(Name = "Warranty End Date")]
         public DateTime? WarrantyEndDate { get; set; }
 
+        // Current functional status. Only AssetStatusTracker changes it (ApplicationDbContext ignores other writes),
+        // and every change is logged in AssetStatusChange.
+        [Display(Name = "Functional Status")]
+        public FunctionalStatus FunctionalStatus { get; set; } = FunctionalStatus.Unknown;
+
         public Guid? CreatedBy { get; set; }
         [ForeignKey(nameof(CreatedBy))]
         public virtual User? User { get; set; }

@@ -220,8 +220,7 @@ function emmsBeep(ok) {
     } catch (e) { /* audio not available */ }
 }
 
-// Phone/tablet camera scanning (Code 128) where the browser supports BarcodeDetector.
-// Needs HTTPS (or localhost). Calls onCode for every new code until the overlay is closed.
+
 function emmsCameraScanSupported() {
     return 'BarcodeDetector' in window && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }

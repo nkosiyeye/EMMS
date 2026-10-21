@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Globalization;
 using EMMS.Constants;
 using EMMS.Data;
@@ -38,6 +38,7 @@ namespace EMMS.Service
         // ------------------------------------------------------------------------------------------
         public static bool IsAdmin(User u) => u.UserRole?.UserType == UserType.Administrator;
         public static bool IsBiomed(User u) => u.UserRole?.UserType == UserType.Biomed;
+        public static bool IsFacilityManager(User u) => u.UserRole?.UserType == UserType.FacilityManager;
 
         public static bool CanAccessFacility(User u, int facilityId) => IsAdmin(u) || u.FacilityId == facilityId;
         public static bool CanViewJob(User u, Job job) => CanAccessFacility(u, job.FacilityId) || job.AssignedTo == u.UserId;
@@ -58,12 +59,31 @@ namespace EMMS.Service
         // The assignee moves a running job between In Progress and Completed; Completed is final for them.
         public static bool CanUpdateJob(WorkState jobStatus, DateTime? endDate) =>
             jobStatus == WorkState.InProgress && endDate == null;
+        // Admins reassign anywhere, facility managers within their facility; only a running job, to someone new.
+        public static bool CanReassignJob(User u, Job job, WorkState jobStatus) =>
+            (IsAdmin(u) || (IsFacilityManager(u) && u.FacilityId == job.FacilityId))
+            && CanUpdateJob(jobStatus, job.EndDate);
+
+        // An entry on a job (work done, part) is changed only by the Biomed who recorded it.
+        public static bool CanEditJobEntry(User u, Guid? entryBiomedId) => entryBiomedId == u.UserId;
+
         public static bool IsAllowedJobStatus(WorkState s) => s is WorkState.InProgress or WorkState.Completed;
 
         public static DateTime? NextServiceDate(bool isServiceRequest, bool successful, bool serviceable, int? intervalMonths, DateTime closeDate) =>
             isServiceRequest && successful && serviceable && intervalMonths is > 0
                 ? closeDate.Date.AddMonths(intervalMonths.Value)
                 : null;
+
+        // A part needs a name (picked or typed), a positive quantity and a non-negative unit cost.
+        public static string? ValidateJobPart(string? partName, decimal quantity, decimal unitCost)
+        {
+            if (string.IsNullOrWhiteSpace(partName)) return "Select or enter a part.";
+            if (quantity <= 0) return "Quantity must be greater than zero.";
+            if (unitCost < 0) return "Unit cost cannot be negative.";
+            return null;
+        }
+
+        public static decimal PartsTotal(IEnumerable<JobPart> parts) => parts.Sum(p => p.LineTotal);
 
         public static string FormatJobNumber(string? facilityCode, long number) =>
             $"{facilityCode}Jb-{number.ToString("D3", CultureInfo.InvariantCulture)}";
@@ -90,6 +110,7 @@ namespace EMMS.Service
         public Task<List<LookupItem>> GetStatusesAsync() => GetListAsync(LookupListNames.WorkRequestStatus);
         public Task<List<LookupItem>> GetOutcomesAsync() => GetListAsync(LookupListNames.WorkRequestOutcome);
         public Task<List<LookupItem>> GetCancelReasonsAsync() => GetListAsync(LookupListNames.CancelReason);
+        public Task<List<LookupItem>> GetSparePartsAsync() => GetListAsync(LookupListNames.SparePart);
 
         /// <summary>Status lookup id &lt;-&gt; workflow state, loaded once per operation.</summary>
         public sealed class StatusMap
@@ -320,6 +341,10 @@ namespace EMMS.Service
                 wRequest.WorkStatusId = inProgress;
                 wRequest.JobId = job.JobId;
                 Touch(wRequest, user);
+
+                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == wRequest.AssetId);
+                if (asset != null)
+                    AssetStatusTracker.Change(_context, asset, AssetStatusTracker.OnJobOpened, StatusChangeSource.JobOpened, user.UserId, jobId: job.JobId);
             }
             else
             {
@@ -400,6 +425,31 @@ namespace EMMS.Service
             return (job, null);
         }
 
+        public async Task<(Job? job, string? error)> ReassignJobAsync(User user, Guid jobId, Guid? newAssignee)
+        {
+            var job = await _context.Job.FirstOrDefaultAsync(j => j.JobId == jobId);
+            if (job == null) return (null, "Job not found.");
+            var statuses = await LoadStatusMapAsync();
+            if (statuses == null) return (job, StatusesMissing);
+            if (!CanReassignJob(user, job, statuses.State(job.StatusId)))
+                return (job, "Only an Admin or the facility manager can reassign this job, and only while it is In Progress.");
+
+            var assignee = await _context.User.AsNoTracking().FirstOrDefaultAsync(u =>
+                u.UserId == newAssignee && u.RowState == RowStatus.Active && u.UserRole!.UserType == UserType.Biomed);
+            if (assignee == null) return (job, "Select a Biomed to assign the job to.");
+            if (!IsAdmin(user) && assignee.FacilityId != user.FacilityId) return (job, "Select a Biomed from your facility.");
+            if (assignee.UserId == job.AssignedTo) return (job, "The job is already assigned to that Biomed.");
+
+            var previous = job.AssignedTo;
+            job.AssignedTo = assignee.UserId;
+            Touch(job, user);
+            await _context.SaveChangesAsync();
+
+            await _notificationService.CreateUserNotification(assignee.UserId, $"Job {job.JobNumber} has been reassigned to you.", "job", user.UserId);
+            await _notificationService.CreateUserNotification(previous, $"Job {job.JobNumber} has been reassigned to another Biomed.", "job", user.UserId);
+            return (job, null);
+        }
+
         // Work done can only be recorded by the assignee while the job is running.
         private async Task<string?> CheckWorkDoneAllowedAsync(User user, Job job)
         {
@@ -424,6 +474,7 @@ namespace EMMS.Service
                 {
                     WorkDoneId = Guid.NewGuid(),
                     JobId = job.JobId,
+                    BiomedId = user.UserId,
                     DateCompleted = posted.DateCompleted,
                     Hours = posted.Hours,
                     Details = posted.Details,
@@ -436,6 +487,7 @@ namespace EMMS.Service
                 var existing = await _context.WorkDone.FirstOrDefaultAsync(w =>
                     w.WorkDoneId == posted.WorkDoneId && w.JobId == job.JobId && w.RowState == RowStatus.Active);
                 if (existing == null) return (job, "Work done entry not found.");
+                if (!CanEditJobEntry(user, existing.BiomedId)) return (job, "You can only edit work you recorded.");
                 existing.DateCompleted = posted.DateCompleted;
                 existing.Hours = posted.Hours;
                 existing.Details = posted.Details;
@@ -455,8 +507,79 @@ namespace EMMS.Service
             var error = await CheckWorkDoneAllowedAsync(user, job);
             if (error != null) return (job, error);
 
+            if (!CanEditJobEntry(user, work.BiomedId)) return (job, "You can only delete work you recorded.");
+
             work.RowState = RowStatus.Deleted;
             Touch(work, user);
+            await _context.SaveChangesAsync();
+            return (job, null);
+        }
+
+        // Parts follow the same rule as work done: only the assignee, only while the job is running.
+        public async Task<(Job? job, string? error)> SaveJobPartAsync(User user, JobPart posted)
+        {
+            var job = await _context.Job.FirstOrDefaultAsync(j => j.JobId == posted.JobId);
+            if (job == null) return (null, "Job not found.");
+            var error = await CheckWorkDoneAllowedAsync(user, job);
+            if (error != null) return (job, error);
+
+            // A picked part takes its name from the lookup; otherwise the typed name is used.
+            var name = posted.PartName?.Trim();
+            if (posted.PartId != null)
+            {
+                var part = await _context.LookupItems.AsNoTracking().FirstOrDefaultAsync(l =>
+                    l.Id == posted.PartId && l.LookupList!.Name == LookupListNames.SparePart && l.RowState == RowStatus.Active);
+                if (part == null) return (job, "Part not found.");
+                name = part.Name;
+            }
+            error = ValidateJobPart(name, posted.Quantity, posted.UnitCost);
+            if (error != null) return (job, error);
+
+            if (posted.JobPartId == Guid.Empty)
+            {
+                var jobPart = new JobPart
+                {
+                    JobPartId = Guid.NewGuid(),
+                    JobId = job.JobId,
+                    BiomedId = user.UserId,
+                    PartId = posted.PartId,
+                    PartName = name,
+                    Quantity = posted.Quantity,
+                    UnitCost = posted.UnitCost,
+                };
+                Stamp(jobPart, user);
+                _context.JobPart.Add(jobPart);
+            }
+            else
+            {
+                var existing = await _context.JobPart.FirstOrDefaultAsync(p =>
+                    p.JobPartId == posted.JobPartId && p.JobId == job.JobId && p.RowState == RowStatus.Active);
+                if (existing == null) return (job, "Part entry not found.");
+                if (!CanEditJobEntry(user, existing.BiomedId)) return (job, "You can only edit parts you recorded.");
+                existing.PartId = posted.PartId;
+                existing.PartName = name;
+                existing.Quantity = posted.Quantity;
+                existing.UnitCost = posted.UnitCost;
+                Touch(existing, user);
+            }
+
+            await _context.SaveChangesAsync();
+            return (job, null);
+        }
+
+        public async Task<(Job? job, string? error)> DeleteJobPartAsync(User user, Guid jobPartId)
+        {
+            var jobPart = await _context.JobPart.FirstOrDefaultAsync(p => p.JobPartId == jobPartId && p.RowState == RowStatus.Active);
+            if (jobPart == null) return (null, "Part entry not found.");
+            var job = await _context.Job.FirstOrDefaultAsync(j => j.JobId == jobPart.JobId);
+            if (job == null) return (null, "Job not found.");
+            var error = await CheckWorkDoneAllowedAsync(user, job);
+            if (error != null) return (job, error);
+
+            if (!CanEditJobEntry(user, jobPart.BiomedId)) return (job, "You can only delete parts you recorded.");
+
+            jobPart.RowState = RowStatus.Deleted;
+            Touch(jobPart, user);
             await _context.SaveChangesAsync();
             return (job, null);
         }
@@ -514,14 +637,17 @@ namespace EMMS.Service
             request.CloseDate = date;
             Touch(request.Entity, user);
 
-            if (request.Asset is { IsServiceRequest: true })
+            var asset = request.Asset?.AssetId == null ? null
+                : await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == request.Asset.AssetId);
+            if (asset != null && AssetStatusTracker.StatusAfterClose(outcome.Name) is FunctionalStatus after)
+                AssetStatusTracker.Change(_context, asset, after, StatusChangeSource.JobClosed, user.UserId, jobId: job.JobId);
+
+            if (asset != null && request.Asset!.IsServiceRequest)
             {
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == request.Asset.AssetId);
-                var next = asset == null ? null
-                    : NextServiceDate(true, outcome.Name == WorkOutcomeNames.Successful, asset.IsServiceable, asset.ServiceInterval, date);
+                var next = NextServiceDate(true, outcome.Name == WorkOutcomeNames.Successful, asset.IsServiceable, asset.ServiceInterval, date);
                 if (next != null)
                 {
-                    asset!.NextServiceDate = next;
+                    asset.NextServiceDate = next;
                     Touch(asset, user);
                 }
             }
@@ -552,6 +678,12 @@ namespace EMMS.Service
                 job.StatusId = cancelled;
                 job.EndDate ??= date;
                 Touch(job, user);
+
+                var asset = request.Asset?.AssetId == null ? null
+                    : await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == request.Asset.AssetId);
+                if (asset != null
+                    && AssetStatusTracker.StatusAfterCancel(asset.FunctionalStatus, await AssetStatusTracker.GetJobOpenedAsync(_context, job.JobId)) is FunctionalStatus restored)
+                    AssetStatusTracker.Change(_context, asset, restored, StatusChangeSource.JobCancelled, user.UserId, jobId: job.JobId);
             }
 
             request.WorkStatusId = cancelled;

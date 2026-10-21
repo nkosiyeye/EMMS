@@ -60,6 +60,12 @@
                         Create Job
                     </a>
                 }
+                @if (isAdmin || isManager)
+                {
+                    <a asp-controller="JobManagement" asp-action="workload" class="@ViewData["workload"] list-group-item border-0 d-inline-block text-truncate fw-semibold small">
+                        Technician Workload
+                    </a>
+                }
             </div>
 
             <a asp-controller="Cylinder" asp-action="Index" class="@ViewData["cylinder"] list-group-item border-0 d-inline-block text-truncate">

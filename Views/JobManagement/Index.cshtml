@@ -296,14 +296,7 @@
                                             }
                                         </td>
                                         <td width="10%">
-                                            @if (lastMove != null)
-                                            {
-                                                @(lastMove.FunctionalStatus.ToString() ?? "N/A")
-                                            }
-                                            else
-                                            {
-                                                <span>-</span>
-                                            }
+                                            @EMMS.Utility.Format.DisplayFunctionalStatus(asset.Asset.FunctionalStatus)
                                         </td>
                                         @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@

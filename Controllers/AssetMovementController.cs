@@ -163,10 +163,7 @@ namespace EMMS.Controllers
                        ?? "N/A")
                     : "-";
 
-                // Functional Status from last movement (or "-" if none)
-                string functionalStatus = lastMove != null
-                    ? Format.DisplayFunctionalStatus(lastMove.FunctionalStatus).ToString()
-                    : "-";
+                string functionalStatus = Format.DisplayFunctionalStatus(asset.FunctionalStatus).ToString();
 
                 // Simple action: only "Move Asset" link (matching commented Razor)
                 string actionHtml = $@"<a class='table-cta-btn btn btn-sm btn-primary'

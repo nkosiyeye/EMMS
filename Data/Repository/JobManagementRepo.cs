@@ -1,5 +1,6 @@
 ﻿using EMMS.Constants;
 using EMMS.Models;
+using EMMS.Models.Admin;
 using EMMS.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using static EMMS.Models.Enumerators;
@@ -107,13 +108,40 @@ namespace EMMS.Data.Repository
             return await query.OrderByDescending(j => j.StartDate).ToListAsync();
         }
 
+        // Jobs not yet closed or cancelled; facilityId null = every facility.
+        public async Task<List<Job>> GetOpenJobsAsync(int? facilityId)
+        {
+            var query = JobList().Where(j => j.Status!.Name != WorkStatusNames.Closed && j.Status!.Name != WorkStatusNames.Cancelled);
+            if (facilityId != null)
+                query = query.Where(j => j.FacilityId == facilityId);
+            return await query.OrderBy(j => j.StartDate).ToListAsync();
+        }
+
+        // Active Biomeds a job can be given to; facilityId null = every facility.
+        public async Task<List<User>> GetBiomedsAsync(int? facilityId)
+        {
+            var query = _context.User.AsNoTracking()
+                .Where(u => u.RowState == RowStatus.Active && u.UserRole!.UserType == UserType.Biomed);
+            if (facilityId != null)
+                query = query.Where(u => u.FacilityId == facilityId);
+            return await query.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
+        }
+
         public async Task<Job?> GetJobAsync(Guid id) =>
             await JobList().FirstOrDefaultAsync(j => j.JobId == id);
 
         public async Task<List<WorkDone>> GetWorkDoneForJobAsync(Guid jobId) =>
             await _context.WorkDone.AsNoTracking()
+                .Include(w => w.Biomed)
                 .Where(w => w.JobId == jobId && w.RowState == RowStatus.Active)
                 .OrderByDescending(w => w.DateCompleted)
+                .ToListAsync();
+
+        public async Task<List<JobPart>> GetPartsForJobAsync(Guid jobId) =>
+            await _context.JobPart.AsNoTracking()
+                .Include(p => p.Biomed)
+                .Where(p => p.JobId == jobId && p.RowState == RowStatus.Active)
+                .OrderBy(p => p.DateCreated)
                 .ToListAsync();
 
         public async Task<int> GetJobsCount(int facilityId, bool completed, bool isAdmin)

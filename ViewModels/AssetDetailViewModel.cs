@@ -9,6 +9,7 @@ namespace EMMS.ViewModels
         public IEnumerable<MoveAsset>? MovementHistory { get; set; } // or a custom DTO
         public MoveAsset? CurrentLocation { get; set; }   // vw_AssetCurrentLocation
         public MoveAsset? PendingMovement { get; set; }   // vw_AssetInTransit
+        public IEnumerable<AssetStatusChange>? StatusHistory { get; set; } // newest first
     }
 
 }
