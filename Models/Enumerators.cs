@@ -100,6 +100,16 @@
             Idle = 5,
         }
 
+        // What changed an asset's functional status (AssetStatusChange.Source).
+        public enum StatusChangeSource : byte
+        {
+            Movement = 1,       // a movement was received (or its status edited) and it is the asset's latest
+            JobOpened = 2,
+            JobClosed = 3,
+            JobCancelled = 4,
+            Backfill = 5,       // starting value taken from the latest movement when tracking began
+        }
+
         public enum ProcurementStatus
         {
             New = 0,

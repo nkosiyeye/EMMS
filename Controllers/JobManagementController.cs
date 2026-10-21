@@ -246,6 +246,30 @@ namespace EMMS.Controllers
             return View(await JobData());
         }
 
+        // Open jobs per technician. Admins see every facility, facility managers their own.
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        public async Task<IActionResult> workload()
+        {
+            var model = WorkloadViewModel.Build(await _repo.GetOpenJobsAsync(FacilityScope), await _repo.GetBiomedsAsync(FacilityScope));
+            model.ReassignTo = await _repo.GetBiomedsAsync(FacilityScope);
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        public async Task<IActionResult> reassignJob(Guid jobId, Guid? assignedTo)
+        {
+            var (job, error) = await _workRequests.ReassignJobAsync(CurrentUser!, jobId, assignedTo);
+            if (job == null)
+                return NotFound();
+            if (error != null)
+                TempData["Error"] = error;
+            else
+                TempData["Success"] = $"Job {job.JobNumber} reassigned.";
+            return RedirectToAction(nameof(workload));
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
@@ -275,7 +299,10 @@ namespace EMMS.Controllers
                 Job = job,
                 WorkStatuses = await _workRequests.GetStatusesAsync(),
                 WorkDoneList = await _repo.GetWorkDoneForJobAsync(job.JobId),
-                WorkDone = new WorkDone()
+                WorkDone = new WorkDone(),
+                Parts = await _repo.GetPartsForJobAsync(job.JobId),
+                JobPart = new JobPart(),
+                SpareParts = await _workRequests.GetSparePartsAsync()
             };
 
             // Load work request differently depending on type
@@ -374,6 +401,43 @@ namespace EMMS.Controllers
                 return NotFound();
             if (error != null)
                 TempData["WorkDoneError"] = error;
+            return RedirectToJobCard(job);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> jobPart(JobViewModel jView)
+        {
+            var posted = jView.JobPart;
+            if (posted == null)
+                return BadRequest();
+
+            if (ModelStateErrors() is string modelErrors)
+            {
+                var current = await _context.Job.AsNoTracking().FirstOrDefaultAsync(j => j.JobId == posted.JobId);
+                if (current == null)
+                    return NotFound();
+                TempData["JobPartError"] = modelErrors;
+                return RedirectToJobCard(current);
+            }
+
+            var (job, error) = await _workRequests.SaveJobPartAsync(CurrentUser!, posted);
+            if (job == null)
+                return NotFound();
+            if (error != null)
+                TempData["JobPartError"] = error;
+            return RedirectToJobCard(job);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> deleteJobPart(Guid id)
+        {
+            var (job, error) = await _workRequests.DeleteJobPartAsync(CurrentUser!, id);
+            if (job == null)
+                return NotFound();
+            if (error != null)
+                TempData["JobPartError"] = error;
             return RedirectToJobCard(job);
         }
     }

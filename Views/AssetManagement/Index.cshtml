@@ -17,8 +17,8 @@
             <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed ? "" : "d-none")" asp-controller="AssetManagement" asp-action="registerAsset">
                 <i class="fa fa-plus me-1"></i> New Asset
             </a>
-            <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed || isDataCollector ? "" : "d-none")" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
-                <i class="fa fa-plus me-1"></i> Add Muliple Assets
+            <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed || isDataCollector ? "":"d-none")" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
+                <i class="fa fa-plus me-1"></i> Add Multiple Assets
             </a>
             <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm me-2 d-none" title="Reset all column filters">
                 <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
@@ -26,12 +26,16 @@
             <button type="button" id="clearSelection" class="btn btn-link btn-sm d-none" title="Clear selection">
                 Clear selection
             </button>
-            <button type="button" id="moveSelected" class="btn btn-primary btn-sm me-2 @(isDataCollector ? "d-none" : "")" title="Add the selected assets to the Movement Queue" disabled>
+            @if (!isDataCollector)
+            {
+            <button type="button" id="moveSelected" class="btn btn-primary btn-sm me-2 d-none" title="Add the selected assets to the Movement Queue">
                 <i class="fa fa-arrows-alt me-1"></i> Move Selected (<span class="selected-count">0</span>)
             </button>
             <button type="button" id="printSelected" class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "" : "d-none")" title="Print Stickers" disabled>
                 <i class="fa fa-print me-1"></i> Print Stickers for Selected (<span class="selected-count">0</span>)
             </button>
+                
+            }
         </div>
     </div>
 
@@ -153,7 +157,7 @@
                 boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
                 $('#selectAllAssets').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
                 $('.selected-count').text(selectedAssetTags.size);
-                $('#printSelected, #moveSelected').prop('disabled', selectedAssetTags.size === 0);
+                $('#printSelected, #moveSelected').toggleClass('d-none', selectedAssetTags.size === 0);
                 $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
             }
 
@@ -218,16 +222,14 @@
                             });
                         });
 
-                    // Clear all column filters at once
-                    $('#clearFilters').on('click', function () {
-                        $('#assetTable thead select.column-filter').each(function () {
-                            this.value = '';
-                        });
-                        const api = $('#assetTable').DataTable();
-                        api.columns([2, 4, 5, 6, 8, 10]).search('').draw();
-                    });
-                }
-            });
+            function syncSelection() {
+                const boxes = $('#assetTable tbody .asset-checkbox');
+                boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
+                $('#selectAllAssets').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
+                $('.selected-count').text(selectedAssetTags.size);
+                $('#printSelected, #moveSelected').toggleClass('d-none', selectedAssetTags.size === 0);
+                $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
+            }
 
             $('#assetTable').on('change', '.asset-checkbox', function () {
                 this.checked ? selectedAssetTags.add(this.value) : selectedAssetTags.delete(this.value);

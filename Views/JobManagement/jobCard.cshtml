@@ -173,6 +173,7 @@
                             <th><i class="fa-regular fa-calendar me-1"></i>Date</th>
                             <th><i class="fa-regular fa-file-lines me-1"></i>Details</th>
                             <th><i class="fa-solid fa-hourglass-half me-1"></i>Hours</th>
+                            <th><i class="fa-solid fa-user-gear me-1"></i>Biomed</th>
                             <th><i class="fa-solid fa-hourglass-half me-1"></i>Actions</th>
                         </tr>
                     </thead>
@@ -197,8 +198,10 @@
                                         }
                                     </td>
                                     <td>@work.Hours</td>
+                                    <td>@($"{work.Biomed?.FirstName} {work.Biomed?.LastName}".Trim())</td>
                                     <td>
-                                        @if (canWork)
+                                        @* Entries stay with the Biomed who recorded them, even after a reassignment. *@
+                                        @if (canWork && work.BiomedId == currentUser.UserId)
                                         {
                                             <a href="javascript:void(0);"
                                                class="btn btn-sm btn-primary edit-workdone"
@@ -228,6 +231,7 @@
                 </table>
             </div>
         </div>
+        <partial name="_JobParts" model="Model" view-data='@(new ViewDataDictionary(ViewData) { ["CanWork"] = canWork })' />
         <div class="text-start mt-4">
             <a asp-action="@(isAdmin || isBiomed ? "manageJobs" : "Index")" asp-controller="JobManagement" class="btn btn-outline-secondary">
                 <i class="fa fa-arrow-left me-1"></i> @(isAdmin || isBiomed ? "Back to Jobs" : "Back to Work Requests")

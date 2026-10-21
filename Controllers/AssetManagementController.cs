@@ -210,13 +210,13 @@ namespace EMMS.Controllers
 
                 string statusHtml;
 
-                // Functional status: the newest report, which is the pending movement's when one exists
+                // Functional status is the asset's own (see AssetStatusTracker); a decommission movement still overrides it
                 var statusSource = asset.PendingMovement ?? asset.LastMovement;
                 if (statusSource != null)
                 {
                     if (statusSource.Reason != Enumerators.MovementReason.Decommission)
                     {
-                        statusHtml = Format.DisplayFunctionalStatus(statusSource.FunctionalStatus).ToString();
+                        statusHtml = Format.DisplayFunctionalStatus(asset.Asset.FunctionalStatus).ToString();
                     }
                     else
                     {
@@ -306,7 +306,8 @@ namespace EMMS.Controllers
                 ServiceHistory = serviceHistory,
                 MovementHistory = movementHistory,
                 CurrentLocation = (await _repo.GetCurrentLocationMovements(new[] { id })).GetValueOrDefault(id),
-                PendingMovement = (await _repo.GetInTransitMovements(new[] { id })).GetValueOrDefault(id)
+                PendingMovement = (await _repo.GetInTransitMovements(new[] { id })).GetValueOrDefault(id),
+                StatusHistory = await AssetStatusTracker.GetHistoryAsync(_context, id)
             };
 
             return View(vm);

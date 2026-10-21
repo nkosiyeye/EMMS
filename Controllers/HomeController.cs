@@ -196,7 +196,7 @@ namespace EMMS.Controllers
                 NextServiceDate = a.Asset.NextServiceDate?.ToString("yyyy-MM-dd"),
                 FacilityName = a.LastMovement?.Facility?.FacilityName,
                 ServicePointName = a.LastMovement?.ServicePoint?.Name,
-                FunctionalStatus = a.LastMovement?.FunctionalStatus,
+                FunctionalStatus = a.Asset.FunctionalStatus,
                 OverDueService = a.Asset.NextServiceDate != null ? (DateTime.Now - a.Asset.NextServiceDate.Value).Days : 0
 
             }));

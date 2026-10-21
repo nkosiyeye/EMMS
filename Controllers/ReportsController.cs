@@ -140,7 +140,7 @@ namespace EMMS.Controllers
                 worksheet.Cell(row, 7).Value = ((ProcurementStatus)asset.StatusId).ToString() ?? "";
                 worksheet.Cell(row, 8).Value = movement?.Facility?.FacilityName ?? "";
                 worksheet.Cell(row, 9).Value = movement?.ServicePoint?.Name ?? "";
-                worksheet.Cell(row, 10).Value = movement?.FunctionalStatus.ToString() ?? ""; // adjust if you have Lookup for Status
+                worksheet.Cell(row, 10).Value = asset.FunctionalStatus.ToString();
                 worksheet.Cell(row, 11).Value = movement?.Reason.ToString() ?? ""; // adjust if you have Lookup for Status
                 worksheet.Cell(row, 12).Value = asset.User?.FirstName ?? "";
                 worksheet.Cell(row, 13).Value = movement?.MovementDate.ToString("yyyy-MM-dd HH:mm:ss") ?? "";

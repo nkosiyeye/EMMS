@@ -1,0 +1,141 @@
+﻿@model EMMS.ViewModels.WorkloadViewModel
+@using EMMS.Constants
+@{
+    ViewData["Title"] = "Technician Workload";
+    ViewData["JobManagement"] = "active";
+    ViewData["workload"] = "active";
+    var allJobs = Model.Technicians.SelectMany(t => t.Jobs.Select(j => (Tech: t, Job: j))).OrderBy(x => x.Job.StartDate).ToList();
+}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong><i class="fa-solid fa-users-gear me-2"></i>Technician Workload</strong></span>
+        <span class="text-muted small">@allJobs.Count open job(s)</span>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered table-hover" id="workloadSummary">
+            <thead>
+                <tr>
+                    <th>Technician</th>
+                    @foreach (var status in Model.StatusColumns)
+                    {
+                        <th class="text-end">@status</th>
+                    }
+                    <th class="text-end">Total Open</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tech in Model.Technicians)
+                {
+                    <tr class="tech-row" role="button" data-name="@tech.Name" title="Show @tech.Name's jobs">
+                        <td>@tech.Name</td>
+                        @foreach (var status in Model.StatusColumns)
+                        {
+                            <td class="text-end">@tech.CountsByStatus.GetValueOrDefault(status)</td>
+                        }
+                        <td class="text-end fw-bold">@tech.Total</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong><i class="fa-solid fa-briefcase me-2"></i>Open Jobs</strong></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="clearTechFilter">
+            <i class="fa fa-xmark me-1"></i> Show all technicians
+        </button>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered" id="workloadJobs">
+            <thead>
+                <tr>
+                    <th>Job Card</th>
+                    <th>Technician</th>
+                    <th>Asset / Request</th>
+                    <th>Start Date</th>
+                    <th class="text-end">Days Open</th>
+                    <th>Status</th>
+                    <th>Reassign</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var (tech, job) in allJobs)
+                {
+                    var running = job.Status?.Name == WorkStatusNames.InProgress && job.EndDate == null;
+                    <tr>
+                        <td>
+                            <a asp-action="@(job.IsExternalProvider ? "externalJobCard" : "jobCard")" asp-route-id="@job.JobId">@job.JobNumber</a>
+                        </td>
+                        <td>@tech.Name</td>
+                        <td>@(job.Asset?.AssetTagNumber ?? job.InfraWorkRequest?.TypeOfRequest?.Name)</td>
+                        <td data-order="@job.StartDate.ToString("yyyy-MM-dd")">@job.StartDate.ToShortDateString()</td>
+                        <td class="text-end">@((DateTime.Today - job.StartDate.Date).Days)</td>
+                        <td>@job.Status?.Name</td>
+                        <td>
+                            @if (running)
+                            {
+                                <form asp-action="reassignJob" method="post" class="d-flex gap-1">
+                                    <input type="hidden" name="jobId" value="@job.JobId" />
+                                    <select name="assignedTo" class="form-select form-select-sm" required>
+                                        <option value="">Select Biomed</option>
+                                        @foreach (var b in Model.ReassignTo.Where(b => b.UserId != job.AssignedTo))
+                                        {
+                                            <option value="@b.UserId">@EMMS.ViewModels.WorkloadViewModel.DisplayName(b)</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary" title="Reassign"
+                                            onclick="return confirm('Reassign job @job.JobNumber?');">
+                                        <i class="fa-solid fa-right-left"></i>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Awaiting close</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Rows come busiest first from the server; keep that order until a header is clicked.
+            $('#workloadSummary').DataTable({
+                pageLength: 10,
+                order: [],
+                lengthChange: false,
+                language: { emptyTable: 'No Biomeds or open jobs.' }
+            });
+            const jobs = $('#workloadJobs').DataTable({
+                pageLength: 10,
+                order: [[3, 'asc']],
+                lengthChange: false,
+                columnDefs: [{ targets: 6, orderable: false, searchable: false }],
+                language: { emptyTable: 'No open jobs.' }
+            });
+            const clear = $('#clearTechFilter');
+
+            // Clicking a technician narrows the job list to them.
+            $('#workloadSummary').on('click', '.tech-row', function () {
+                const name = $(this).data('name');
+                $('#workloadSummary .tech-row').removeClass('table-active');
+                $(this).addClass('table-active');
+                jobs.column(1).search('^' + $.fn.dataTable.util.escapeRegex(name) + '$', true, false).draw();
+                clear.removeClass('d-none');
+            });
+            clear.on('click', function () {
+                $('#workloadSummary .tech-row').removeClass('table-active');
+                jobs.column(1).search('').draw();
+                clear.addClass('d-none');
+            });
+        });
+    </script>
+}

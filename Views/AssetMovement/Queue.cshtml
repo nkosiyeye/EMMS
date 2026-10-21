@@ -115,8 +115,8 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
-                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker">
+                                <label asp-for="Request.FunctionalStatus" class="form-label required-field col-md-12"></label>
+                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker col-md-12">
                                     @foreach (var status in Enum.GetValues<FunctionalStatus>())
                                     {
                                         <option value="@((int)status)">@status</option>
@@ -139,11 +139,11 @@
                     }
                     else
                     {
-                    <h5 class="mb-3 mt-2 form-subheading">Destination (chosen once for the batch)</h5>
+                    <h5 class="mb-3 mt-2 form-subheading">Destination</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.MovementType" class="form-label required-field"></label>
-                            <select asp-for="Request.MovementType" id="movementType" class="form-select selectpicker">
+                            <label asp-for="Request.MovementType" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.MovementType" id="movementType" class="form-select selectpicker col-md-12">
                                 @foreach (var type in Enum.GetValues<MovementType>())
                                 {
                                     <option value="@((int)type)">@type</option>
@@ -151,24 +151,24 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Request.FacilityId" class="form-label required-field"></label>
-                            <select asp-for="Request.FacilityId" id="facility" class="form-select selectpicker" data-live-search="true" data-selected="@req.FacilityId">
+                            <label asp-for="Request.FacilityId" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.FacilityId" id="facility" class="form-select selectpicker col-md-12" data-live-search="true" data-selected="@req.FacilityId">
                                 <option selected disabled value="">Select Facility</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3 d-none" id="servicePointRow">
                         <div class="col-md-6">
-                            <label asp-for="Request.ServicePointId" class="form-label required-field"></label>
-                            <select asp-for="Request.ServicePointId" id="servicePoint" class="form-select selectpicker" data-live-search="true" data-selected="@req.ServicePointId">
+                            <label asp-for="Request.ServicePointId" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.ServicePointId" id="servicePoint" class="form-select selectpicker col-md-12" data-live-search="true" data-selected="@req.ServicePointId">
                                 <option selected disabled value="">Select Service Point</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.Reason" class="form-label required-field">Movement Reason</label>
-                            <select asp-for="Request.Reason" id="movementReason" class="form-select selectpicker" data-live-search="true">
+                            <label asp-for="Request.Reason" class="form-label required-field col-md-12">Movement Reason</label>
+                            <select asp-for="Request.Reason" id="movementReason" class="form-select selectpicker col-md-12" data-live-search="true">
                                 <option selected disabled value="">Select Movement Reason</option>
                                 @foreach (var reason in reasons)
                                 {
@@ -177,8 +177,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
-                            <select asp-for="Request.FunctionalStatus" id="functionalStatus" class="form-select selectpicker">
+                            <label asp-for="Request.FunctionalStatus" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.FunctionalStatus" id="functionalStatus" class="form-select selectpicker col-md-12">
                                 <option selected disabled value="">Select Functional Status</option>
                                 @foreach (var status in Enum.GetValues<FunctionalStatus>())
                                 {
@@ -189,8 +189,8 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.MovementDate" class="form-label required-field"></label>
-                            <input asp-for="Request.MovementDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <label asp-for="Request.MovementDate" class="form-label required-field col-md-12"></label>
+                            <input asp-for="Request.MovementDate" type="date" class="form-control col-md-12" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-6 d-none" id="otherReasonField">
                             <label asp-for="Request.OtherReason" class="form-label required-field"></label>

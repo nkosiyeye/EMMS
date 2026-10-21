@@ -1,0 +1,180 @@
+﻿@model EMMS.ViewModels.JobViewModel
+@using System.Globalization
+@using EMMS.Service
+@{
+    // canWork is decided by the job card that renders this partial.
+    bool canWork = (bool)(ViewData["CanWork"] ?? false);
+    var parts = Model.Parts ?? Enumerable.Empty<EMMS.Models.JobPart>();
+    var inv = CultureInfo.InvariantCulture;
+    Guid? currentUserId = (ViewBag._currentUser as EMMS.Models.Admin.User)?.UserId;
+}
+
+<!-- Spare Parts Section -->
+<div class="mb-3">
+    @if (TempData["JobPartError"] != null)
+    {
+        <div class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+            @TempData["JobPartError"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <h5 class="fw-bold"><i class="fa-solid fa-gears me-2"></i>Spare Parts Used</h5>
+    @if (canWork)
+    {
+        <button class="btn btn-sm btn-primary mb-2"
+                title="Add Part"
+                data-bs-toggle="modal"
+                data-bs-target="#jobPartModal">
+            <i class="fa fa-plus"></i> Add Part
+        </button>
+    }
+
+    <table class="table table-bordered" id="jobParts">
+        <thead>
+            <tr>
+                <th>Part</th>
+                <th class="text-end">Quantity</th>
+                <th class="text-end">Unit Cost</th>
+                <th class="text-end">Total</th>
+                <th>Biomed</th>
+                @if (canWork)
+                {
+                    <th>Actions</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (!parts.Any())
+            {
+                <tr><td colspan="@(canWork ? 6 : 5)" class="text-muted text-center">No parts recorded.</td></tr>
+            }
+            @foreach (var part in parts)
+            {
+                <tr>
+                    <td>@part.PartName</td>
+                    <td class="text-end">@part.Quantity.ToString("0.##", inv)</td>
+                    <td class="text-end">@part.UnitCost.ToString("N2", inv)</td>
+                    <td class="text-end">@part.LineTotal.ToString("N2", inv)</td>
+                    <td>@($"{part.Biomed?.FirstName} {part.Biomed?.LastName}".Trim())</td>
+                    @if (canWork)
+                    {
+                        <td>
+                            @if (part.BiomedId == currentUserId)
+                            {
+                                <a href="javascript:void(0);"
+                                   class="btn btn-sm btn-primary"
+                                   title="Edit Part"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#jobPartModal"
+                                   data-id="@part.JobPartId"
+                                   data-part-id="@part.PartId"
+                                   data-part-name="@part.PartName"
+                                   data-quantity="@part.Quantity.ToString(inv)"
+                                   data-unit-cost="@part.UnitCost.ToString(inv)">
+                                    <i class="fa fa-edit"></i>
+                                </a>
+                                <form asp-controller="JobManagement" asp-action="deleteJobPart" asp-route-id="@part.JobPartId" method="post" class="d-inline"
+                                      onsubmit="return confirm('Remove this part from the job?');">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Part">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="fw-bold">
+                <td colspan="3" class="text-end">Parts Total</td>
+                <td class="text-end">@WorkRequestService.PartsTotal(parts).ToString("N2", inv)</td>
+                <td></td>
+                @if (canWork)
+                {
+                    <td></td>
+                }
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+@if (canWork)
+{
+    <!-- Job Part Modal -->
+    <div class="modal fade" id="jobPartModal" tabindex="-1" aria-labelledby="jobPartModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="jobPartModalLabel">Add Part</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form asp-action="jobPart" asp-controller="JobManagement" method="post" class="row g-2 mb-3">
+                        <input type="hidden" asp-for="JobPart.JobId" value="@Model.Job!.JobId" />
+                        <input type="hidden" asp-for="JobPart.JobPartId" id="jobPartId" />
+                        <div class="col-md-12 mb-2">
+                            <label asp-for="JobPart.PartId" class="form-label required-field"></label>
+                            <select asp-for="JobPart.PartId" id="jobPartPartId" class="form-select"
+                                    asp-items="@(new SelectList(Model.SpareParts ?? Enumerable.Empty<EMMS.Models.Entities.LookupItem>(), "Id", "Name"))">
+                                <option value="">Other (type the name)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-2" id="jobPartNameGroup">
+                            <label asp-for="JobPart.PartName" class="form-label required-field"></label>
+                            <input asp-for="JobPart.PartName" id="jobPartName" class="form-control" maxlength="200" placeholder="Part name" />
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="JobPart.Quantity" class="form-label required-field"></label>
+                            <input asp-for="JobPart.Quantity" id="jobPartQuantity" type="number" min="0.01" step="0.01" class="form-control" value="1" required />
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label asp-for="JobPart.UnitCost" class="form-label required-field"></label>
+                            <input asp-for="JobPart.UnitCost" id="jobPartUnitCost" type="number" min="0" step="0.01" class="form-control" value="0" required />
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-sm btn-primary" type="submit">Submit</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById("jobPartModal");
+            const title = document.getElementById("jobPartModalLabel");
+            const idInput = document.getElementById("jobPartId");
+            const partSelect = document.getElementById("jobPartPartId");
+            const nameGroup = document.getElementById("jobPartNameGroup");
+            const nameInput = document.getElementById("jobPartName");
+            const qtyInput = document.getElementById("jobPartQuantity");
+            const costInput = document.getElementById("jobPartUnitCost");
+
+            // The typed name is only needed when no catalogue part is picked.
+            function syncName() {
+                const other = partSelect.value === "";
+                nameGroup.style.display = other ? "" : "none";
+                nameInput.required = other;
+            }
+            partSelect.addEventListener("change", syncName);
+
+            modal.addEventListener("show.bs.modal", function (event) {
+                const button = event.relatedTarget;
+                const id = button && button.getAttribute("data-id");
+                title.textContent = id ? "Edit Part" : "Add Part";
+                idInput.value = id || "@Guid.Empty";
+                partSelect.value = id ? (button.getAttribute("data-part-id") || "") : "";
+                nameInput.value = id && !button.getAttribute("data-part-id") ? button.getAttribute("data-part-name") : "";
+                qtyInput.value = id ? button.getAttribute("data-quantity") : "1";
+                costInput.value = id ? button.getAttribute("data-unit-cost") : "0";
+                syncName();
+            });
+            syncName();
+        });
+    </script>
+}
