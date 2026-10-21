@@ -89,11 +89,28 @@ namespace EMMS.Controllers
                 bool isAdmin = currentUser.UserRole?.UserType == UserType.Administrator;
                 bool isManager = currentUser.UserRole?.UserType == UserType.FacilityManager;
 
+                // NEW: collect per-column filter values from the header dropdowns.
+                // Front end wraps values in ^...$ (regex anchors) — strip them here;
+                // the service does exact matching.
+                var columnFilters = new Dictionary<string, string>();
+
+                foreach (var col in request.Columns ?? new List<DataTablesColumn>())
+                {
+                    var val = col.Search?.Value;
+                    if (string.IsNullOrWhiteSpace(val) || !col.Searchable || string.IsNullOrWhiteSpace(col.Name))
+                        continue;
+
+                    val = val.Trim('^', '$').Trim();
+                    if (val.Length > 0)
+                        columnFilters[col.Name] = val;
+                }
+
                 var result = _movementService.GetPaginatedMovements(
                     request.Start,
                     request.Length,
                     request.Search?.Value?.Trim() ?? "",
-                    currentUser
+                    currentUser,
+                    columnFilters
                 );
 
                 var rows = result.Items.Select(m => new
@@ -132,6 +149,7 @@ namespace EMMS.Controllers
                 return JsonError(request);
             }
         }
+
         [HttpPost]
         public IActionResult GetAssets([FromForm] DataTablesRequest request)
         {

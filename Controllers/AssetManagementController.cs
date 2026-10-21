@@ -90,13 +90,31 @@ namespace EMMS.Controllers
         [HttpPost]
         public IActionResult GetAssets([FromForm] DataTablesRequest request)
         {
-            var currentUser = CurrentUser; // however you fetch user
+            var currentUser = CurrentUser;
 
             bool isAdmin = currentUser?.UserRole?.UserType == Enumerators.UserType.Administrator;
             bool isBiomed = currentUser?.UserRole?.UserType == Enumerators.UserType.Biomed;
             bool isDataCollector = currentUser?.UserRole?.UserType == Enumerators.UserType.DataCollector;
 
-            var result = _assetService.GetPaginatedAssets(request.Start, request.Length, request.Search?.Value,CurrentUser);
+            // NEW: collect per-column filter values sent by the header dropdowns.
+            // The front end wraps each value in ^...$ (regex anchors) — strip them here,
+            // the service does exact matching instead.
+            var columnFilters = new Dictionary<string, string>();
+
+            foreach (var col in request.Columns ?? new List<DataTablesColumn>())
+            {
+                var val = col.Search?.Value;
+                if (string.IsNullOrWhiteSpace(val) || !col.Searchable || string.IsNullOrWhiteSpace(col.Name))
+                    continue;
+
+                val = val.Trim('^', '$').Trim();
+                if (val.Length > 0)
+                    columnFilters[col.Name] = val;
+            }
+
+            // Pass the filters to the service — it must apply them BEFORE paging
+            var result = _assetService.GetPaginatedAssets(
+                request.Start, request.Length, request.Search?.Value, CurrentUser, columnFilters);
 
             var data = result.Items.Select(asset =>
             {
@@ -189,6 +207,7 @@ namespace EMMS.Controllers
 
                     actionHtml += "</ul></div>";
                 }
+
                 string statusHtml;
 
                 // Functional status: the newest report, which is the pending movement's when one exists

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using EMMS.Data.Migrations;
 using Microsoft.Extensions.Caching.Memory;
 using EMMS.Models.Pagination;
+using static EMMS.Models.Enumerators;
 
 namespace EMMS.Service
 {
@@ -101,7 +102,10 @@ namespace EMMS.Service
                 moveAsset = new MoveAsset()
             };
         }
-        public PaginatedResult<AssetViewModel> GetPaginatedAssets(int start, int length, string search, User currentUser)
+
+        public PaginatedResult<AssetViewModel> GetPaginatedAssets(
+            int start, int length, string search, User currentUser,
+            Dictionary<string, string> columnFilters = null)
         {
             var query = _context.Assets
                 .Include(a => a.Category)
@@ -139,6 +143,86 @@ namespace EMMS.Service
                     a.AssetTagNumber.Contains(search) ||
                     a.SubCategory.Name.Contains(search) ||
                     a.Category.Name.Contains(search));
+            }
+
+            // NEW: per-column filters from the header dropdowns.
+            // Applied BEFORE filteredCount and BEFORE paging, so both the count
+            // and the returned page honour them.
+            if (columnFilters != null)
+            {
+                foreach (var (name, value) in columnFilters)
+                {
+                    switch (name)
+                    {
+                        case "Category":
+                            query = query.Where(a => a.Category.Name == value);
+                            break;
+
+                        case "Vendor":
+                            query = query.Where(a => a.Vendor.Name == value);
+                            break;
+
+                        case "Service Provider":
+                            query = query.Where(a => a.ServiceProvider.Name == value);
+                            break;
+
+                        case "ServicePoint":
+                            var servicePoint = _context.LookupItems.FirstOrDefault(l => l.Name == value );
+                            query = query.Where(a => a.ServicePointId == servicePoint.Id);
+                            break;
+
+                        case "Facility":
+                            // Facility shown in the table = current location's facility
+                            var facility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
+                            query = query.Where(a => _context.AssetCurrentLocations
+                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == facility.FacilityId));
+                            break;
+
+                        case "FromFacility":
+                            var fromFacility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
+                            query = query.Where(a => _context.AssetCurrentLocations
+                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == fromFacility.FacilityId));
+                            break;
+
+                        case "ToFacility":
+                            var toFacility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
+                            query = query.Where(a => _context.AssetCurrentLocations
+                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == toFacility.FacilityId));
+                            break;
+
+                        case "Status":
+                            // Mirror the controller's status logic:
+                            //   PendingMovement ?? LastMovement drives the functional status;
+                            //   Decommission renders as "Decommissioned".
+                            // Nulls render as "-", which is not a filterable value.
+                            query = query.Where(a =>
+                                (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)          // pending movement row exists
+                                 || _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId))
+                                && (
+                                    // Decommissioned branch
+                                    (
+                                        (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)
+                                            ? _context.AssetMovement.Where(m => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && t.MovementId == m.MovementId))
+                                                .Select(m => m.Reason).FirstOrDefault()
+                                            : _context.AssetMovement.Where(m => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.MovementId == m.MovementId))
+                                                .Select(m => m.Reason).FirstOrDefault()
+                                        ) == MovementReason.Decommission
+                                    )
+                                    && ((int)ProcurementStatus.Decommissioned).ToString() == value
+                                 ||
+                                    // Non-decommissioned branch: functional status text matches
+                                    (
+                                        (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)
+                                            ? _context.AssetMovement.Where(m => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && t.MovementId == m.MovementId))
+                                                .Select(m => (int)m.FunctionalStatus).FirstOrDefault()
+                                            : _context.AssetMovement.Where(m => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.MovementId == m.MovementId))
+                                                .Select(m => (int)m.FunctionalStatus).FirstOrDefault()
+                                        )).ToString() == value
+                                 )
+                                );
+                            break;
+                    }
+                }
             }
 
             int filteredCount = query.Count();
@@ -188,5 +272,6 @@ namespace EMMS.Service
                 Items = items
             };
         }
+
     }
 }

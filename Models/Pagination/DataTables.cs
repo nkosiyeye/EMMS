@@ -6,6 +6,7 @@
         public int Start { get; set; }
         public int Length { get; set; }
         public DataTablesSearch Search { get; set; }
+        public List<DataTablesColumn> Columns { get; set; }
     }
 
     public class DataTablesSearch
@@ -13,4 +14,12 @@
         public string Value { get; set; }
     }
 
+    public class DataTablesColumn
+    {
+        public string Data { get; set; }
+        public string Name { get; set; }
+        public bool Searchable { get; set; }
+        public bool Orderable { get; set; }
+        public DataTablesSearch Search { get; set; }
+    }
 }
