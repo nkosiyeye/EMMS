@@ -15,14 +15,6 @@
         <span>Register Asset</span>
     </div>
     <div class="card-body">
-        @if (TempData["RegistrationError"] != null)
-        {
-            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                @TempData["RegistrationError"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
-        }
         <form class="row bg-white registrationForm" asp-action="RegisterAsset" asp-controller="AssetManagement" method="post">
             <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">

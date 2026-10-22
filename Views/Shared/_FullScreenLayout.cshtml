@@ -44,8 +44,9 @@
             }
         </style>
     }
-    <div class="container-fluid h-full w-full" style="height: 100vh;">
-        <div class="row flex-nowrap" style="height: 100vh;">
+    @await Html.PartialAsync("_Notification")
+    <div class="container-fluid viewport-height">
+        <div class="row flex-nowrap h-100">
             <main class="col px-0 py-0 mb-5">
                 <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB; height:50px;">
                 </nav>

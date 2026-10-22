@@ -44,7 +44,7 @@
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-bordered table-hover" id="assetTable">
-                <thead class="table-dark">
+                <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAllAssets" title="Select all on this page" /></th>
                         <th>Tag</th>
@@ -66,12 +66,6 @@
         </div>
     </div>
 </div>
-
-<style>
-    #assetTable thead th {
-        vertical-align: top;
-    }
-</style>
 
 <div class="modal fade" id="stolenMissingModal" tabindex="-1" aria-labelledby="stolenMissingLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -139,8 +133,6 @@
             // so a facility without a scanner can tick assets and act on them in bulk.
             const selectedAssetTags = new Set();
 
-            var isTabletOrSmaller = window.innerWidth <= 1024;
-
             // Full option lists per column name, from the lookup lists / enums (AssetManagementController.GetFilterOptions)
             const filterOptions = @Html.Raw(filterOptionsJson);
 
@@ -151,13 +143,6 @@
                 $('.selected-count').text(selectedAssetTags.size);
                 $('#printSelected, #moveSelected').toggleClass('d-none', selectedAssetTags.size === 0);
                 $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
-            }
-
-            // Show "Clear Filters" only when at least one column filter is applied
-            function syncFilterState() {
-                const hasFilters = $('#assetTable thead select.column-filter').toArray()
-                    .some(s => s.value !== '');
-                $('#clearFilters').toggleClass('d-none', !hasFilters);
             }
 
             const assetColumns = [
@@ -185,11 +170,7 @@
                 },
                 pageLength: 10,
                 searchDelay: 400,
-                responsive: isTabletOrSmaller,
-                drawCallback: function () {
-                    syncSelection();
-                    syncFilterState();
-                },
+                drawCallback: syncSelection,
                 columns: assetColumns,
                 initComplete: function () {
                     emmsColumnFilters(this.api(), filterOptions, '#clearFilters');

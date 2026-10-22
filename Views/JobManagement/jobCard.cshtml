@@ -147,14 +147,6 @@
 
             <!-- Work Done Section -->
             <div class="mb-3 col-md-12 col-lg-12 col-xl-6">
-                @if (TempData["WorkDoneError"] != null)
-                {
-                    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                        @TempData["WorkDoneError"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-
-                }
                 <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
                 @if (canWork)
                 {
@@ -167,6 +159,7 @@
                     </button>
                 }
 
+                <div class="table-responsive">
                 <table class="table table-bordered" id="workDone">
                     <thead>
                         <tr>
@@ -216,7 +209,7 @@
                                             </a>
 
                                             <form asp-controller="JobManagement" asp-action="deleteWorkDone" asp-route-id="@work.WorkDoneId" method="post" class="d-inline"
-                                                  onsubmit="return confirm('Delete this work done entry?');">
+                                                  data-confirm="Delete this work done entry?" data-confirm-ok="Delete" data-confirm-danger>
                                                 <button type="submit"
                                                         class="btn btn-sm btn-danger" title="Delete Work">
                                                     <i class="fa fa-trash"></i>
@@ -229,6 +222,7 @@
                         }
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
         <partial name="_JobParts" model="Model" view-data='@(new ViewDataDictionary(ViewData) { ["CanWork"] = canWork })' />

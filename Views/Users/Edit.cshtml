@@ -21,15 +21,6 @@
 
                 <!-- Body -->
                 <div class="card-body p-4">
-                    @if (TempData["UserEditError"] != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            <div>@TempData["UserEditError"]</div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
-
                     <form asp-action="Edit" asp-controller="Users" method="post" class="needs-validation">
                         <input type="hidden" asp-for="UserId" />
 

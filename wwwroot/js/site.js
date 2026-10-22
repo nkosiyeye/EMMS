@@ -45,6 +45,133 @@ window.fetch = (resource, init = {}) => {
     return emmsNativeFetch(resource, init);
 };
 
+// Toasts: the one way the app tells the user something, instead of the browser's alert().
+// type: 'success' | 'info' | 'warning' | 'danger'. Success and info close by themselves (not while hovered);
+// warnings and errors stay until closed, so they can't disappear before they are read.
+// Server messages arrive the same way: _Notification.cshtml turns TempData into the #emms-server-toasts list.
+function emmsToast(message, type = 'info') {
+    let stack = document.getElementById('emms-toasts');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'emms-toasts';
+        stack.className = 'emms-toasts';
+        document.body.appendChild(stack);
+    }
+
+    const icons = { success: 'fa-circle-check', info: 'fa-circle-info', warning: 'fa-triangle-exclamation', danger: 'fa-circle-exclamation' };
+    const urgent = type === 'warning' || type === 'danger';
+    const toast = document.createElement('div');
+    toast.className = `emms-toast emms-toast-${icons[type] ? type : 'info'}`;
+    toast.setAttribute('role', urgent ? 'alert' : 'status');
+    toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}" aria-hidden="true"></i>
+        <div class="emms-toast-text"></div>
+        <button type="button" class="btn-close" aria-label="Close"></button>`;
+    toast.querySelector('.emms-toast-text').textContent = message;
+
+    const close = () => {
+        toast.classList.add('emms-toast-out');
+        setTimeout(() => toast.remove(), 200);
+    };
+    toast.querySelector('.btn-close').addEventListener('click', close);
+    stack.appendChild(toast);
+
+    if (!urgent) {
+        let timer = setTimeout(close, 5000);
+        toast.addEventListener('mouseenter', () => clearTimeout(timer));
+        toast.addEventListener('mouseleave', () => { timer = setTimeout(close, 2500); });
+    }
+}
+
+// For a script that reloads or navigates right after: the toast is shown on the next page instead.
+function emmsToastAfterReload(message, type = 'info') {
+    try {
+        const queued = JSON.parse(sessionStorage.getItem('emms-toasts') || '[]');
+        queued.push({ message, type });
+        sessionStorage.setItem('emms-toasts', JSON.stringify(queued));
+    } catch (e) {
+        emmsToast(message, type);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    let queued = [];
+    try {
+        queued = JSON.parse(sessionStorage.getItem('emms-toasts') || '[]');
+        sessionStorage.removeItem('emms-toasts');
+    } catch (e) { /* storage unavailable */ }
+
+    const server = document.getElementById('emms-server-toasts');
+    if (server) queued = queued.concat(JSON.parse(server.textContent));
+    queued.forEach(t => emmsToast(t.message, t.type));
+});
+
+// In-app confirmation dialog, used instead of the browser's confirm(). Resolves to true when the user confirms.
+// options: { okText: label of the confirm button, danger: true for a red confirm button (deleting, removing) }
+function emmsConfirm(message, { okText = 'Confirm', danger = false } = {}) {
+    return new Promise(resolve => {
+        const element = document.createElement('div');
+        element.className = 'modal fade emms-confirm';
+        element.tabIndex = -1;
+        element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body"><p class="mb-0"></p></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-role="ok"></button>
+                    </div>
+                </div>
+            </div>`;
+        element.querySelector('p').textContent = message;
+        const ok = element.querySelector('[data-role="ok"]');
+        ok.textContent = okText;
+        document.body.appendChild(element);
+
+        const dialog = new bootstrap.Modal(element);
+        let confirmed = false;
+        ok.addEventListener('click', () => { confirmed = true; dialog.hide(); });
+        element.addEventListener('shown.bs.modal', () => ok.focus());
+        element.addEventListener('hidden.bs.modal', () => {
+            dialog.dispose();
+            element.remove();
+            resolve(confirmed);
+        });
+        dialog.show();
+    });
+}
+
+// A form, or the button that submits it, with data-confirm="Question?" asks in the in-app dialog first.
+// data-confirm-ok sets the confirm button's label; data-confirm-danger makes it red.
+// Capture phase, so neither the page's submit handlers nor the loading overlay see the held-back submit.
+document.addEventListener('submit', event => {
+    const form = event.target;
+    const source = [event.submitter, form].find(el => el && el.dataset.confirm);
+    if (!source) return;
+    if (form.dataset.confirmed) {
+        delete form.dataset.confirmed;
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const submitter = event.submitter;
+    emmsConfirm(source.dataset.confirm, {
+        okText: source.dataset.confirmOk || 'Confirm',
+        danger: 'confirmDanger' in source.dataset
+    }).then(confirmed => {
+        if (!confirmed) return;
+        form.dataset.confirmed = '1';
+        if (!form.requestSubmit) {
+            emmsAddCsrfInput(form);
+            form.submit();
+        } else if (submitter) {
+            form.requestSubmit(submitter);
+        } else {
+            form.requestSubmit();
+        }
+    });
+}, true);
+
 
 
 function printAssetDetail() {
@@ -246,7 +373,7 @@ function printSelectedStickers(tags) {
         .filter(t => t !== '');
 
     if (selected.length === 0) {
-        alert("No assets selected for printing.");
+        emmsToast('Select at least one asset to print stickers for.', 'warning');
         return;
     }
 
@@ -295,7 +422,7 @@ async function emmsOpenCameraScanner(onCode) {
         await video.play();
     } catch (e) {
         stop();
-        alert('Camera not available: ' + e.message);
+        emmsToast('Camera not available: ' + e.message, 'danger');
         return;
     }
 
@@ -412,12 +539,41 @@ document.addEventListener('click', function (event) {
     form.submit();
 });
 
-// Searchable header filters for a DataTable.
+// Every DataTable folds the columns that don't fit into an expandable row (Responsive) instead of scrolling sideways.
+// Responsive drops columns right to left. On a <th>, data-priority="n" keeps a column longer (lower n = kept longer),
+// class="all" always keeps it and class="none" always folds it. By default the first column and an "Action(s)"
+// column are kept, so every row stays identifiable and actionable. Priorities are read when a table is set up,
+// so they are stamped here, before the pages' ready handlers create their tables.
+if (window.jQuery && $.fn.dataTable) {
+    $.extend($.fn.dataTable.defaults, { responsive: true, autoWidth: false });
+
+    document.querySelectorAll('table > thead > tr:last-child').forEach(row => {
+        const cells = Array.from(row.children);
+        const keep = (th, priority) => { if (th && !th.hasAttribute('data-priority')) th.setAttribute('data-priority', priority); };
+        keep(cells[0], 1);
+        keep(cells.find(th => /^actions?$/i.test(th.textContent.trim())), 2);
+    });
+
+    // Tables in hidden tabs, modals and collapses are measured at zero width; fit them again once shown
+    $(document).on('shown.bs.tab shown.bs.modal shown.bs.collapse', () => {
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust().responsive.recalc();
+    });
+
+    // Responsive opens a row's details on a click anywhere in its first cell; a checkbox there (row selection)
+    // should only tick. Capture phase, so Responsive's handler on the table body never sees the click.
+    ['click', 'mousedown', 'mouseup'].forEach(type => document.addEventListener(type, e => {
+        if (e.target.matches('td.dtr-control input[type=checkbox]')) e.stopPropagation();
+    }, true));
+}
+
+// Searchable column filters for a DataTable, in a bar above the table rather than in its header, so they don't
+// widen the table and stay reachable when Responsive folds their column away. Below 1200px the bar folds behind
+// a "Filters" button that shows how many are applied.
 // options: { columnName: [{ text, value }] } (built on the server from lookup lists / enums), keyed by the
 // DataTables column `name`. Server-side tables send the selected value as that column's search and the server
 // matches it exactly. Client-side tables match it exactly against the cell's search text (its data-search
 // attribute when set, else its text), so for those the option values are the cell values.
-// clearButton: optional selector for a button that resets every filter.
+// clearButton: optional selector for a button that resets every filter; it is shown only while one is applied.
 // A query-string value named like a column (e.g. ?Status=2&Facility=5, from the dashboard charts) presets that filter.
 function emmsColumnFilters(api, options, clearButton) {
     let clearing = false;   // resetting the pickers fires their change events; draw once at the end instead
@@ -429,6 +585,23 @@ function emmsColumnFilters(api, options, clearButton) {
         ? column.search(value, false, false)
         : column.search(value ? `^\\s*${escapeRegex(value)}\\s*$` : '', true, false);
 
+    const fieldsId = `${api.table().node().id}-filters`;
+    const bar = $(`
+        <div class="emms-filter-bar">
+            <button type="button" class="btn btn-sm btn-outline-secondary d-xl-none" data-bs-toggle="collapse"
+                    data-bs-target="#${fieldsId}" aria-expanded="false" aria-controls="${fieldsId}">
+                <i class="fa fa-filter me-1"></i> Filters <span class="badge bg-primary ms-1 d-none" data-role="count"></span>
+            </button>
+            <div class="collapse d-xl-block" id="${fieldsId}"><div class="emms-filter-grid"></div></div>
+        </div>`);
+    const grid = bar.find('.emms-filter-grid');
+
+    // Above the table's scroll wrapper, so the bar never scrolls sideways with the table
+    const container = $(api.table().container());
+    const wrapper = container.parents('.table-responsive, .table-wrapper').last();
+    bar.insertBefore(wrapper.length ? wrapper : container);
+
+    const selects = [];
     api.columns().every(function () {
         const column = this;
         const name = api.settings()[0].aoColumns[column.index()].sName;
@@ -437,8 +610,10 @@ function emmsColumnFilters(api, options, clearButton) {
 
         const select = document.createElement('select');
         select.className = 'column-filter';
+        select.setAttribute('aria-label', `Filter by ${column.title()}`);
         select.add(new Option('All', ''));
         items.forEach(o => select.add(new Option(o.text, o.value)));
+        selects.push(select);
 
         const wanted = params.get(name);
         if (wanted && items.some(o => o.value === wanted)) {
@@ -447,11 +622,10 @@ function emmsColumnFilters(api, options, clearButton) {
             preset = true;
         }
 
-        // Wrapper stops header clicks (including the open menu) from sorting the column
-        const wrap = $('<div class="column-filter-wrap"></div>')
-            .on('click mousedown keydown', e => e.stopPropagation())
+        $('<div class="emms-filter-field"></div>')
+            .append($('<label></label>').text(column.title()))
             .append(select)
-            .appendTo(column.header());
+            .appendTo(grid);
 
         $(select)
             .selectpicker({
@@ -459,7 +633,7 @@ function emmsColumnFilters(api, options, clearButton) {
                 liveSearchPlaceholder: 'Search…',
                 size: 8,
                 width: '100%',
-                container: 'body',   // keeps the menu from being clipped by the scrolling table
+                container: 'body',
                 style: 'btn-light btn-sm'
             })
             .on('changed.bs.select', () => {
@@ -468,16 +642,33 @@ function emmsColumnFilters(api, options, clearButton) {
             });
     });
 
+    if (selects.length === 0) {
+        bar.remove();
+        return;
+    }
+
+    const syncState = () => {
+        const applied = selects.filter(s => s.value !== '').length;
+        bar.find('[data-role="count"]').text(applied).toggleClass('d-none', applied === 0);
+        if (clearButton) $(clearButton).toggleClass('d-none', applied === 0);
+    };
+    api.on('draw', syncState);
+    syncState();
+
     if (clearButton) {
         $(clearButton).on('click', function () {
             clearing = true;
-            $(api.table().header()).find('select.column-filter').selectpicker('val', '');
+            $(selects).selectpicker('val', '');
             clearing = false;
             api.columns().search('').draw();
         });
     }
 
-    if (preset) api.draw();
+    // A filter preset from the link is shown open, so it is clear why the list is narrowed
+    if (preset) {
+        $(`#${fieldsId}`).addClass('show');
+        api.draw();
+    }
 }
 
 // Opens a list page on one row: ?focus=<id> scrolls to and highlights the element with data-focus-id=<id>,

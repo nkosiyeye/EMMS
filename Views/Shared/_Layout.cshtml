@@ -81,10 +81,9 @@
     <!-- Main Content (hidden initially) -->
     <div id="main-content">
         @await Html.PartialAsync("_Notification")
-        @* page *@
-        <div class="container-fluid h-full w-full" style="height: 100vh;">
-            <div class="row flex-nowrap" style="height: 100vh;">
-                <div class="col-auto px-0 py-0 h-full" style="height: 100vh;">
+        @* App shell: exactly the viewport tall; only the main area and the sidebar menu scroll (style.css) *@
+        <div class="app-shell">
+                <div class="app-sidebar">
                     <!-- Offcanvas sidebar for tablets & smaller (shown when toggled) -->
                     <div id="offcanvasSidebar" class="offcanvas offcanvas-start d-lg-none h-100" tabindex="-1" aria-labelledby="offcanvasSidebarLabel" style="width:260px;">
                         <div class="offcanvas-header" style="background-color: #2563EB;">
@@ -109,7 +108,7 @@
                     </div>
 
                     <!-- Static sidebar for large screens and above -->
-                    <div class="d-none d-lg-block h-100">
+                    <div class="d-none d-lg-flex flex-column h-100">
                         <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
                             <div class="container-fluid justify-content-start">
                                 <a class="align-items-center float-start" href="#">
@@ -127,7 +126,7 @@
                         @await Html.PartialAsync("_SidebarContent")
                     </div>
                 </div>
-                <main class="col px-0 py-0 mb-5">
+                <main class="app-main">
                     <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
                         <div class="container-fluid d-flex items-center">
                             <div class="d-flex align-items-center">
@@ -138,9 +137,7 @@
                             <div class="d-flex align-items-center">
                                 <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                     <i class="fa-solid fa-bell"></i>
-                                    
-                                        <span class="badge bg-danger rounded-pill" style="font-size:xx-small">
-                                        </span>
+                                    <span class="badge bg-danger rounded-pill d-none" style="font-size:xx-small"></span>
                                 </a>
                                 <div class="row justify-content-center align-items-center">
                                     <span class="fw-bold text-white" style="font-size: smaller;">
@@ -179,14 +176,13 @@
                         </div>
                     </div>
 
-                    <div class="container-fluid p-4 mb-2">
+                    <div class="container-fluid p-4">
                         @RenderBody()
                     </div>
                 </main>
-            </div>
         </div>
 
-        <footer class="footer border-top-1" style="background-color:#F5F5F5">
+        <footer class="app-footer">
             <div class="d-flex justify-content-between align-items-center">
                 <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
                 <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
@@ -233,9 +229,10 @@
         </div>
 
         <style>
-            /* Push the rest of the layout down slightly to prevent overlap */
-            body {
-                padding-bottom: 40px;
+            /* Leave room for the banner below the app shell */
+            #main-content {
+                height: calc(100vh - 40px);
+                height: calc(100dvh - 40px);
             }
         </style>
     }
@@ -271,9 +268,10 @@
             fetch('/api/notifications/current')
         .then(r => r.json())
         .then(data => {
-            console.log(data);
-            document.querySelector('#notificationBell .badge').textContent = data.unreadCount;
-            //document.querySelector('#notificationList').innerHTML = data.html;
+            // No badge at all when there is nothing unread
+            const badge = document.querySelector('#notificationBell .badge');
+            badge.textContent = data.unreadCount;
+            badge.classList.toggle('d-none', !data.unreadCount);
         })
         .catch(err => console.error('Notification load error', err));
         });
@@ -281,17 +279,6 @@
         // Initialize selectpicker
         $(function () {
             $('.selectpicker').selectpicker();
-        });
-               setTimeout(function () {
-            document.querySelectorAll('[id^="notification-"]').forEach(function(alert) {
-                alert.remove();
-            });
-        }, 7000); // 7 seconds
-             // Remove on any click in the window
-        window.addEventListener('click', function () {
-            document.querySelectorAll('[id^="notification-"]').forEach(function(alert) {
-                alert.remove();
-            });
         });
     </script>
 

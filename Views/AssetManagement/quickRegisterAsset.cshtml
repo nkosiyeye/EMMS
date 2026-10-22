@@ -68,7 +68,7 @@
 
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="assetTable">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th style="width: 2%;">#</th>
                         <th style="width: 8%;">Quantity</th>
@@ -736,12 +736,12 @@
             // --- Save all rows to server ---
             document.getElementById('saveAssets').addEventListener('click', function () {
                 if (assetList.length === 0) {
-                    alert("Please add at least one asset to the list.");
+                    emmsToast('Add at least one asset to the list.', 'warning');
                     return;
                 }
                 const duplicateSerials = findDuplicateSerials(assetList);
                 if (duplicateSerials.length) {
-                    alert('These serial numbers appear more than once in the list:\n' + duplicateSerials.join('\n'));
+                    emmsToast('These serial numbers appear more than once in the list:\n' + duplicateSerials.join('\n'), 'danger');
                     return;
                 }
                 console.log(JSON.stringify(assetList));
@@ -759,7 +759,7 @@
                     return response.json().catch(() => ({}));
                 })
                 .then(result => {
-                    alert('Assets saved successfully.');
+                    emmsToast('Assets saved successfully.', 'success');
                     assetList = [];
                     renderAssetTable();
                     document.getElementById('saveAssets').textContent = `Save All (0)`;
@@ -767,7 +767,7 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    alert('Error saving assets: ' + (err.message || 'Unknown error'));
+                    emmsToast('Error saving assets: ' + (err.message || 'Unknown error'), 'danger');
                 });
             });
 

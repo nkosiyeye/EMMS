@@ -1,27 +1,45 @@
-﻿@{
-    var success = TempData["Success"] as string;
-    var error = TempData["Error"] as string;
-    var registrationError = TempData["RegistrationError"] as string;
-}
+﻿@using EMMS.Utility
+@using Newtonsoft.Json
+@using static EMMS.Models.Enumerators
+@*
+    Messages the server left for the user in TempData, shown as toasts by site.js (emmsToast).
+    Both layouts render this, so every page (login included) shows messages the same way.
+    A new message key goes in this list; views don't render TempData messages themselves.
+*@
+@{
+    var keys = new (string Key, string Type)[]
+    {
+        ("Success", "success"),
+        ("MovementSuccess", "success"),
+        ("UserRegistrationSuccess", "success"),
+        ("QueueInfo", "info"),
+        ("Error", "danger"),
+        ("CylinderError", "danger"),
+        ("JobError", "danger"),
+        ("JobPartError", "danger"),
+        ("LookupError", "danger"),
+        ("MovementError", "danger"),
+        ("QueueErrors", "danger"),
+        ("RegistrationError", "danger"),
+        ("UserCreationError", "danger"),
+        ("UserEditError", "danger"),
+        ("UserRegistrationError", "danger"),
+        ("WorkDoneError", "danger"),
+        ("WorkRequestError", "danger"),
+    };
 
-@if (!string.IsNullOrEmpty(success))
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert" id="notification-popup">
-        @success
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    var toasts = keys
+        .Select(k => new { message = TempData[k.Key] as string, type = k.Type })
+        .Where(t => !string.IsNullOrWhiteSpace(t.message))
+        .ToList();
+
+    // TempData["Notification"] holds a serialised ToastNotification (login and password reset)
+    if (TempData["Notification"] is string json && JsonConvert.DeserializeObject<ToastNotification>(json) is { } notification)
+    {
+        toasts.Add(new { message = (string?)notification.Message, type = notification.Type == NotificationType.Error ? "danger" : "success" });
+    }
 }
-@if (!string.IsNullOrEmpty(error))
+@if (toasts.Count > 0)
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert" id="notification-popup">
-        @error
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-@if (!string.IsNullOrEmpty(registrationError))
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert" id="notification-popup">
-        @registrationError
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    <script type="application/json" id="emms-server-toasts">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(toasts))</script>
 }

@@ -40,8 +40,7 @@
         </div>
     </div>
     <div class="card-body">
-        <div class="table-responsive" id="table-responsive-asset">
-            <div class="table-responsive" id="table-responsive-asset">
+        <div class="table-responsive">
                 <table class="table fixed-table table-striped table-bordered table-hover" id="userTable">
                     <thead>
                         <tr>
@@ -72,7 +71,7 @@
                             <th>
                                 @Html.DisplayNameFor(model => model.RowState)
                             </th>
-                            <th></th>
+                            <th data-priority="2"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,8 +134,6 @@
                     </tbody>
                 </table>
 
-            </div>
-
         </div>
 
     </div>
@@ -160,11 +157,6 @@
                     { name: "Status" },
                     { orderable: false, searchable: false }
                 ],
-                // Show "Clear Filters" only while a column filter is applied
-                drawCallback: function () {
-                    const hasFilters = $('#userTable thead select.column-filter').toArray().some(s => s.value !== '');
-                    $('#clearFilters').toggleClass('d-none', !hasFilters);
-                },
                 // ?Status=Inactive (the dashboard's "waiting for activation" banner) presets the Status filter
                 initComplete: function () {
                     emmsColumnFilters(this.api(), filterOptions, '#clearFilters');

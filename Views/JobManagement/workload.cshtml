@@ -13,6 +13,7 @@
         <span class="text-muted small">@allJobs.Count open job(s)</span>
     </div>
     <div class="card-body">
+        <div class="table-responsive">
         <table class="table table-bordered table-hover" id="workloadSummary">
             <thead>
                 <tr>
@@ -38,6 +39,7 @@
                 }
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -49,6 +51,7 @@
         </button>
     </div>
     <div class="card-body">
+        <div class="table-responsive">
         <table class="table table-bordered" id="workloadJobs">
             <thead>
                 <tr>
@@ -58,7 +61,7 @@
                     <th>Start Date</th>
                     <th class="text-end">Days Open</th>
                     <th>Status</th>
-                    <th>Reassign</th>
+                    <th data-priority="2">Reassign</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,7 +90,7 @@
                                         }
                                     </select>
                                     <button type="submit" class="btn btn-sm btn-primary" title="Reassign"
-                                            onclick="return confirm('Reassign job @job.JobNumber?');">
+                                            data-confirm="Reassign job @job.JobNumber?" data-confirm-ok="Reassign">
                                         <i class="fa-solid fa-right-left"></i>
                                     </button>
                                 </form>
@@ -101,6 +104,7 @@
                 }
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

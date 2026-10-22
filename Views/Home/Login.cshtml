@@ -11,29 +11,6 @@
     <div class="d-flex justify-content-center align-content-center">
         <div class="card col-md-12 col-lg-6 col-xl-6 mb-6">
             <div class="card-body">
-                <!-- Success Notification -->
-                 @if (TempData["UserRegistrationSuccess"] != null)
-                {
-                    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center w-100 mb-3"
-                         role="alert" id="successNotification">
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                        <div>User registration was successful! You can now login with your credentials.</div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
- 
-                <!-- Error Notification -->
-                @if (TempData["Notification"] != null)
-                {
-                    var toast = JsonConvert.DeserializeObject<ToastNotification>(TempData["Notification"].ToString());
-                    <div class="alert alert-@(toast.Type == NotificationType.Error ? "danger" : "success") alert-dismissible fade show d-flex align-items-center w-100 mb-3"
-                         role="alert">
-                        <i class="bi @(toast.Type == NotificationType.Error ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-2"></i>
-                        <div>@toast.Message</div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
                 <main class="container py-5" style="background-color: white;">
                     <div class="row justify-content-center">
                         <div class="col-md-12 col-lg-12">
@@ -155,53 +132,6 @@
                             toggleIcon.classList.add('fa-eye');
                         }
                     });
-
-                    // Simple form validation
-                    const loginForm = document.getElementById('loginForm');
-                    const loginBtn = document.getElementById('loginBtn');
-
-                    loginForm.addEventListener('submit', function(e) {
-                        e.preventDefault();
-
-                        // Clear previous errors
-                        document.getElementById('usernameError').textContent = '';
-                        document.getElementById('passwordError').textContent = '';
-
-                        const username = document.getElementById('username').value.trim();
-                        const password = document.getElementById('password').value;
-
-                        let hasErrors = false;
-
-                        if (!username) {
-                            document.getElementById('usernameError').textContent = 'Username is required';
-                            hasErrors = true;
-                        }
-
-                        if (!password) {
-                            document.getElementById('passwordError').textContent = 'Password is required';
-                            hasErrors = true;
-                        }
-
-                        if (!hasErrors) {
-                            // Show loading state
-                            loginBtn.classList.add('btn-loading');
-                            loginBtn.disabled = true;
-
-                            // Simulate form submission (replace with your actual form submission)
-                            setTimeout(() => {
-                                loginBtn.classList.remove('btn-loading');
-                                loginBtn.disabled = false;
-                                alert('Login form would be submitted here');
-                            }, 1500);
-                        }
-                    });
-
-                    // Show success notification (simulated - replace with your TempData check)
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('registered') === 'true') {
-                        const notification = document.getElementById('successNotification');
-                        notification.style.display = 'flex';
-                    }
                 });
                 </script>
 }

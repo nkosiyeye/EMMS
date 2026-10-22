@@ -11,13 +11,6 @@
 
 <!-- Spare Parts Section -->
 <div class="mb-3">
-    @if (TempData["JobPartError"] != null)
-    {
-        <div class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-            @TempData["JobPartError"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
     <h5 class="fw-bold"><i class="fa-solid fa-gears me-2"></i>Spare Parts Used</h5>
     @if (canWork)
     {
@@ -29,6 +22,7 @@
         </button>
     }
 
+    <div class="table-responsive">
     <table class="table table-bordered" id="jobParts">
         <thead>
             <tr>
@@ -74,7 +68,7 @@
                                     <i class="fa fa-edit"></i>
                                 </a>
                                 <form asp-controller="JobManagement" asp-action="deleteJobPart" asp-route-id="@part.JobPartId" method="post" class="d-inline"
-                                      onsubmit="return confirm('Remove this part from the job?');">
+                                      data-confirm="Remove this part from the job?" data-confirm-ok="Remove" data-confirm-danger>
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete Part">
                                         <i class="fa fa-trash"></i>
                                     </button>
@@ -97,6 +91,7 @@
             </tr>
         </tfoot>
     </table>
+    </div>
 </div>
 
 @if (canWork)

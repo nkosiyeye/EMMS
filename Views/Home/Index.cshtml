@@ -63,31 +63,6 @@
     }
 </div>
 
-<!-- Toast Notification -->
-@if (TempData["Notification"] is string notificationJson)
-{
-    var notification = JsonConvert.DeserializeObject<ToastNotification>(notificationJson);
-    var className = notification?.Type switch
-    {
-        NotificationType.Error => "error-notification notification",
-        NotificationType.Success => "success-notification notification",
-        _ => "notification"
-    };
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            Toastify({
-                text: "@notification?.Message",
-                duration: 8000,
-                close: true,
-                gravity: "top",
-                position: "center",
-                className: "@className"
-            }).showToast();
-        });
-    </script>
-}
-
 @section Scripts {
     <script>
         $(function () {

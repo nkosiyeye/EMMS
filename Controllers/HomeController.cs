@@ -66,7 +66,7 @@ namespace EMMS.Controllers
                 _context.Add(user);
                 await _context.SaveChangesAsync();
                 await _notificationService.UserRegistrationNotification(user);
-                TempData["UserRegistrationSuccess"] = "User Registrated Successfully";
+                TempData["UserRegistrationSuccess"] = "Registration successful. You can now log in with your credentials.";
                 return RedirectToAction(nameof(Login));
             }
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();

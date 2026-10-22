@@ -66,7 +66,7 @@
 
     function revealMainContent() {
         const mainContent = document.getElementById('main-content');
-        if (mainContent) mainContent.style.display = 'block';
+        if (mainContent) mainContent.style.display = 'flex'; // the app shell is a flex column (style.css)
     }
 
     function clearTimers() {

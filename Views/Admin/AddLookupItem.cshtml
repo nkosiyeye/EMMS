@@ -10,13 +10,6 @@
                 </div>
             </div>
             <div class="card-body">
-                @if (TempData["LookupError"] != null)
-                {
-                    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                        @TempData["LookupError"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
                 <form asp-action="AddLookupItem" asp-controller="Admin" method="post">
                     <div class="row">
                         <input type="hidden" asp-for="_lookupItem.LookupListId" value="@Model.LookupList?.LookupListId" />
