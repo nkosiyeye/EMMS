@@ -1,8 +1,7 @@
 ﻿@model EMMS.ViewModels.JobViewModel;
 @using EMMS.Constants
 @{
-    ViewData["Title"] = "Job";
-    ViewData["JobManagement"] = "active"; 
+    ViewData["Title"] = "External Job Card";
     
     Model.WorkDone.DateCompleted = DateTime.Today;
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
@@ -178,7 +177,7 @@
 
             <!-- Work Done Section -->
             <div class="mb-3 col-md-12 col-lg-12 col-xl-6">
-                <h5 class="fw-bold"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
+                <h5 class="form-subheading"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Work Done</h5>
                 @if (canWork)
                 {
                     <button class="btn btn-sm btn-primary"

@@ -1,9 +1,7 @@
 ﻿@using EMMS.ViewModels
 @model WorkRequestViewModel
 @{
-    ViewData["Title"] = "Work Request";
-    ViewData["workRequest"] = "active";
-    ViewData["JobManagement"] = "active";
+    ViewData["Title"] = "New Work Request";
     Model.WorkRequest.RequestDate = DateTime.Today;
 }
 
@@ -48,8 +46,10 @@
                 <span asp-validation-for="WorkRequest.Description" class="text-danger"></span>
             </div>
 
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary">Request</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Submit request</button>
+            </div>
         </form>
     </div>
 </div>

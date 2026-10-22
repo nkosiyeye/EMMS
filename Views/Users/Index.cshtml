@@ -2,9 +2,7 @@
 
 @{
 
-    ViewData["Title"] = "Manage Users";
-    ViewData["UserManagement"] = "active";
-    ViewData["userAccounts"] = "active";
+    ViewData["Title"] = "User Accounts";
 
     const string NoFacility = "No facility";
     string FacilityOf(EMMS.Models.Admin.User u) => u.Facility?.FacilityName ?? NoFacility;
@@ -23,20 +21,18 @@
 }
 
 <div class="card">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>User Accounts</span>
-            <div class="d-flex justify-content-between align-items-center">
-                <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm me-2 d-none" title="Reset all column filters">
-                    <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
-                </button>
-                <a class="btn btn-primary btn-sm" asp-action="Create">
-                    <i class="fa fa-plus me-1"></i> Create New
-                </a>
-                <a class="btn btn-primary btn-sm" style="margin-left:2px;" title="Export to Excel" data-no-loading asp-action="Export">
-                    <i class="fa fa-download"></i>
-                </a>
-            </div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>User Accounts</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm d-none" title="Reset all column filters">
+                <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
+            </button>
+            <a class="btn btn-primary btn-sm" asp-action="Create">
+                <i class="fa fa-plus me-1"></i> Create New
+            </a>
+            <a class="btn btn-primary btn-sm" title="Export to Excel" aria-label="Export to Excel" data-no-loading asp-action="Export">
+                <i class="fa fa-download"></i>
+            </a>
         </div>
     </div>
     <div class="card-body">

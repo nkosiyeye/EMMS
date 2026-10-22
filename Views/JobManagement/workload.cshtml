@@ -2,8 +2,6 @@
 @using EMMS.Constants
 @{
     ViewData["Title"] = "Technician Workload";
-    ViewData["JobManagement"] = "active";
-    ViewData["workload"] = "active";
     var allJobs = Model.Technicians.SelectMany(t => t.Jobs.Select(j => (Tech: t, Job: j))).OrderBy(x => x.Job.StartDate).ToList();
 }
 
@@ -90,7 +88,7 @@
                                         }
                                     </select>
                                     <button type="submit" class="btn btn-sm btn-primary" title="Reassign"
-                                            data-confirm="Reassign job @job.JobNumber?" data-confirm-ok="Reassign">
+                                            data-confirm="Reassign job @job.JobNumber to {assignedTo}?" data-confirm-ok="Reassign">
                                         <i class="fa-solid fa-right-left"></i>
                                     </button>
                                 </form>

@@ -142,6 +142,8 @@ function emmsConfirm(message, { okText = 'Confirm', danger = false } = {}) {
 
 // A form, or the button that submits it, with data-confirm="Question?" asks in the in-app dialog first.
 // data-confirm-ok sets the confirm button's label; data-confirm-danger makes it red.
+// {fieldName} in the question is replaced by that form field's value as the user sees it (a select's option text),
+// so the dialog can say what is affected: data-confirm="Reassign JC-0042 to {assignedTo}?".
 // Capture phase, so neither the page's submit handlers nor the loading overlay see the held-back submit.
 document.addEventListener('submit', event => {
     const form = event.target;
@@ -155,7 +157,12 @@ document.addEventListener('submit', event => {
     event.preventDefault();
     event.stopImmediatePropagation();
     const submitter = event.submitter;
-    emmsConfirm(source.dataset.confirm, {
+    const question = source.dataset.confirm.replace(/\{([\w.]+)\}/g, (token, name) => {
+        const field = form.elements[name];
+        if (!field) return token;
+        return field.tagName === 'SELECT' ? (field.selectedOptions[0]?.text ?? '') : field.value;
+    });
+    emmsConfirm(question, {
         okText: source.dataset.confirmOk || 'Confirm',
         danger: 'confirmDanger' in source.dataset
     }).then(confirmed => {
@@ -232,17 +239,18 @@ function printAssetDetail() {
                 body { padding: 20px; font-family: sans-serif; }
                 .letterhead { text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
                 .letterhead img { height: 72px; width: auto; max-width: 100%; }
+                /* Same status colours as the --status-* tokens in style.css (not loaded in this print window) */
                 .status-btn {
-                    padding: 2px 6px;
-                    border-radius: 4px;
+                    padding: 2px 8px;
+                    border-radius: 1rem;
                     display: inline-block;
-                    color: #fff;
+                    font-weight: 600;
                     font-size: 0.85rem;
                 }
-                .status-new { background-color: #198754; }
-                .status-info { background-color: #0dcaf0; }
-                .status-warning { background-color: #ffc107; }
-                .status-danger { background-color: #dc3545; }
+                .status-new { background-color: #dcfce7; color: #166534; }
+                .status-info { background-color: #dbeafe; color: #1e40af; }
+                .status-warning { background-color: #fef3c7; color: #92400e; }
+                .status-danger { background-color: #fee2e2; color: #991b1b; }
             </style>
         </head>
         <body>

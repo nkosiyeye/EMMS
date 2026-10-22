@@ -3,7 +3,6 @@
 
 @{
     ViewData["Title"] = "Quick Registration";
-    ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var currentUser = ViewBag._currentUser as User;
 }

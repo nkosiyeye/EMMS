@@ -64,11 +64,6 @@
         return true;
     }
 
-    function revealMainContent() {
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) mainContent.style.display = 'flex'; // the app shell is a flex column (style.css)
-    }
-
     function clearTimers() {
         clearTimeout(failsafeTimer);
         clearInterval(messageInterval);
@@ -103,7 +98,6 @@
 
     function hideLoading() {
         clearTimers();
-        revealMainContent();
         if (document.body) document.body.classList.remove('loading');
         if (overlay) overlay.classList.remove('show');
     }
@@ -161,10 +155,9 @@
     window.addEventListener('pageshow', hideLoading);
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { ensureOverlay(); revealMainContent(); });
+        document.addEventListener('DOMContentLoaded', ensureOverlay);
     } else {
         ensureOverlay();
-        revealMainContent();
     }
 
     window.showLoading = showLoading;

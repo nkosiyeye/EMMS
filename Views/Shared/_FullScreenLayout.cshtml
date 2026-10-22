@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /><!-- Bootstrap-Select CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap-selectpicker/css/bootstrap-select.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
-    @* <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" /> *@
 
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
@@ -31,7 +30,6 @@
         font-weight: bold;
         padding: 8px 0;
         z-index: 11000;
-        font-family: 'Montserrat', sans-serif;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             ">
             TRAINING Data here is for testing only
@@ -48,7 +46,7 @@
     <div class="container-fluid viewport-height">
         <div class="row flex-nowrap h-100">
             <main class="col px-0 py-0 mb-5">
-                <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB; height:50px;">
+                <nav class="navbar sticky-top d-flex align-items-center app-bar">
                 </nav>
 
                 <div class="container-fluid p-4 mb-2">
@@ -63,7 +61,7 @@
     <div class="footer border-top-1" style="background-color:#F5F5F5">
         <div class="d-flex justify-content-between align-items-center">
             <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="MOH" width="30" height="24" class="float-start ms-1">
-            <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
+            <span class="text-muted text-center mx-auto py-0">© @DateTime.Now.Year EMMS. All rights reserved.</span>
             <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
         </div>
     </div>

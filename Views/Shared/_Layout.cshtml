@@ -38,103 +38,35 @@
     <link rel="stylesheet" href="~/css/style.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/DataTables/datatables.min.css" />
     <link rel="stylesheet" href="~/css/notification.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/EMMS.styles.css" asp-append-version="true" />
     <script src="~/js/chart.js"></script>
-
-
-    <!-- Inline CSS to ensure loading screen shows immediately -->
-    <style>
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: white;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #main-content {
-            display: none; /* Hidden by default until page loads */
-        }
-
-        .loading-logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 15px;
-        }
-
-        .loading-title {
-            font-family: 'Montserrat', sans-serif;
-            color: #2563EB;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-    </style>
 </head>
 <body>
 
-    <!-- Main Content (hidden initially) -->
     <div id="main-content">
         @await Html.PartialAsync("_Notification")
         @* App shell: exactly the viewport tall; only the main area and the sidebar menu scroll (style.css) *@
         <div class="app-shell">
-                <div class="app-sidebar">
-                    <!-- Offcanvas sidebar for tablets & smaller (shown when toggled) -->
-                    <div id="offcanvasSidebar" class="offcanvas offcanvas-start d-lg-none h-100" tabindex="-1" aria-labelledby="offcanvasSidebarLabel" style="width:260px;">
-                        <div class="offcanvas-header" style="background-color: #2563EB;">
-                            <nav class="navbar d-flex align-items-center">
-                                <div class="container-fluid justify-content-start">
-                                    <a class="align-items-center float-start py-1" href="#">
-                                        <div class="me-3">
-                                            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
-                                                 class="rounded-circle border border-2 border-primary"
-                                                 style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
-                                            <span class="fw-bold text-white" style="font-size: larger;">
-                                                EMMS
-                                            </span>
-                                        </div>
-                                    </a>
-                                </div>
-                            </nav>
-                            <button type="button" class="btn-close text-reset text-white" style="color:white !important;" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-                        </div>
-                        @* Sidebar content *@
-                        @await Html.PartialAsync("_SidebarContent")
+                @* The one sidebar: docked from 1200px up, a slide-out menu (offcanvas) below that (style.css) *@
+                <aside id="appSidebar" class="offcanvas offcanvas-start app-sidebar" tabindex="-1" aria-label="Main menu">
+                    <div class="offcanvas-header app-bar">
+                        <a asp-controller="Home" asp-action="Index" class="d-flex align-items-center gap-2 text-white fw-bold">
+                            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="" class="app-logo">
+                            EMMS
+                        </a>
+                        <button type="button" class="btn-close btn-close-white d-xl-none" data-bs-dismiss="offcanvas" aria-label="Close menu"></button>
                     </div>
-
-                    <!-- Static sidebar for large screens and above -->
-                    <div class="d-none d-lg-flex flex-column h-100">
-                        <nav class="navbar d-flex align-items-center" style="background-color: #2563EB;">
-                            <div class="container-fluid justify-content-start">
-                                <a class="align-items-center float-start" href="#">
-                                    <div class="me-3">
-                                        <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms"
-                                             class="rounded-circle border border-2 border-primary"
-                                             style="width: 35px; height: 35px; object-fit: contain; padding: 4px; background: white;">
-                                        <span class="fw-bold text-white" style="font-size: larger;">
-                                            EMMS
-                                        </span>
-                                    </div>
-                                </a>
-                            </div>
-                        </nav>
-                        @await Html.PartialAsync("_SidebarContent")
-                    </div>
-                </div>
+                    @await Html.PartialAsync("_SidebarContent")
+                </aside>
                 <main class="app-main">
-                    <nav class="navbar sticky-top d-flex align-items-center" style="background-color: #2563EB;">
-                        <div class="container-fluid d-flex items-center">
-                            <div class="d-flex align-items-center">
-                                <a href="#" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle d-lg-none">
+                    <nav class="navbar sticky-top app-bar">
+                        <div class="container-fluid flex-nowrap gap-2">
+                            <div class="d-flex align-items-center gap-2 min-w-0">
+                                <a href="#" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" class="menu-toggle d-xl-none" aria-label="Open menu">
                                     <i class="fa-solid fa-bars"></i>
                                 </a>
+                                <partial name="_Breadcrumb" />
                             </div>
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center flex-shrink-0">
                                 <a href="#" id="notificationBell" title="notification" class="border rounded-3 p-1 text-decoration-none me-2 menu-toggle" data-bs-toggle="popover" data-bs-html="true">
                                     <i class="fa-solid fa-bell"></i>
                                     <span class="badge bg-danger rounded-pill d-none" style="font-size:xx-small"></span>
@@ -185,7 +117,7 @@
         <footer class="app-footer">
             <div class="d-flex justify-content-between align-items-center">
                 <img src="~/lib/coa.jpeg" alt="MOH" width="30" height="24" class="float-start ms-1">
-                <span class="text-muted text-center mx-auto py-0">© 2025 EMMS. All rights reserved.</span>
+                <span class="text-muted text-center mx-auto py-0">© @DateTime.Now.Year EMMS. All rights reserved.</span>
                 <img src="~/lib/HMIS.jpg" alt="HIMS" width="30" height="24" class="float-end me-1">
             </div>
         </footer>
@@ -222,7 +154,6 @@
         font-weight: bold;
         padding: 8px 0;
         z-index: 11000;
-        font-family: 'Montserrat', sans-serif;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             ">
             TRAINING Data here is for testing only
@@ -279,6 +210,12 @@
         // Initialize selectpicker
         $(function () {
             $('.selectpicker').selectpicker();
+        });
+
+        // The sidebar docks from 1200px up; close it as a slide-out menu if the window grows past that while it's open
+        window.matchMedia('(min-width: 1200px)').addEventListener('change', function (e) {
+            const menu = bootstrap.Offcanvas.getInstance(document.getElementById('appSidebar'));
+            if (e.matches && menu) menu.hide();
         });
     </script>
 

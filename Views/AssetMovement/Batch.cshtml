@@ -3,8 +3,6 @@
 @model EMMS.ViewModels.BatchViewModel
 @{
     ViewData["Title"] = "Movement Batch";
-    ViewData["moveAsset"] = "active";
-    ViewData["JobMovement"] = "active";
     var first = Model.Movements.First();
     var pending = Model.Movements.Count(m => !m.IsApproved && m.DateRejected == null);
     var approved = Model.Movements.Count(m => m.IsApproved && m.DateRejected == null);

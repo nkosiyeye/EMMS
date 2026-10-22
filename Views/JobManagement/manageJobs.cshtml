@@ -2,8 +2,6 @@
 @using EMMS.Constants
 @{
     ViewData["Title"] = "Manage Jobs";
-    ViewData["manageJob"] = "active";
-    ViewData["JobManagement"] = "active";
     Model.Job.StartDate = DateTime.Today;
     var openWork = Model.WorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();
     var openInfraWork = Model.InfrastructureWorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();

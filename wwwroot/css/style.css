@@ -2,17 +2,26 @@
    Global Styles
 =========================== */
 :root {
-    --color-green: #228B22;
-    --color-blue: #3b82f6;
-    --color-yellow: #ff7e0d;
-    --color-red: #ff1616;
-    --brand-blue: #0d6efd;
+    /* Brand: one primary blue and one lighter shade for hover, focus and accents. Every blue in the app uses these. */
     --primary: #153D77;
+    --primary-hover: #2563EB;
     --primary-foreground: #ffffff;
+    --brand-blue: var(--primary-hover); /* accent name used by the dashboard styles */
     --sidebar-border: #e2e8f0;
     --border: #e2e8f0;
     --foreground: #0f172a;
-    --muted: #c7bbc9;
+    /* Status colours: tinted background with dark text (readable, and the text still prints).
+       Shared by .status-*, the toasts and the printed asset detail (site.js). */
+    --status-success-bg: #dcfce7;
+    --status-success-fg: #166534;
+    --status-info-bg: #dbeafe;
+    --status-info-fg: #1e40af;
+    --status-warning-bg: #fef3c7;
+    --status-warning-fg: #92400e;
+    --status-danger-bg: #fee2e2;
+    --status-danger-fg: #991b1b;
+    --status-muted-bg: #f1f5f9;
+    --status-muted-fg: #475569;
     /* Table header theme, used by every .table header (see "Table Styles").
        Change these three to restyle all tables at once, e.g. a light header:
        --table-head-bg: #f1f5f9; --table-head-color: var(--foreground); --table-head-border: var(--border); */
@@ -39,7 +48,7 @@
     width: 36px;
     height: 36px;
     border: 4px solid #e5e7eb;
-    border-top-color: #3b82f6;
+    border-top-color: var(--primary-hover);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -53,31 +62,8 @@
 
 
 
-/* Form section headers */
-h5 {
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: var(--primary) !important;
-    border-bottom: 2px solid var(--primary) !important;
-    padding-bottom: 0.5rem !important;
-    margin-bottom: 1.5rem !important;
-    position: relative;
-}
-
-    h5::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 50px;
-        height: 2px;
-    }
-
 .text-primary {
     color: var(--primary) !important;
-}
-.status-muted{
-    background-color: var(--muted);
 }
 
 /* Spinner Animation (three bouncing dots) */
@@ -90,7 +76,7 @@ h5 {
     .spinner > div {
         width: 16px;
         height: 16px;
-        background-color: #007bff;
+        background-color: var(--primary-hover);
         border-radius: 100%;
         display: inline-block;
         animation: bouncedelay 1.4s infinite ease-in-out both;
@@ -210,26 +196,26 @@ h5 {
 }
 
 .emms-toast-success {
-    background-color: #dcfce7;
-    color: #166534;
+    background-color: var(--status-success-bg);
+    color: var(--status-success-fg);
     border-left-color: #16a34a;
 }
 
 .emms-toast-info {
-    background-color: #dbeafe;
-    color: #1e40af;
-    border-left-color: #2563eb;
+    background-color: var(--status-info-bg);
+    color: var(--status-info-fg);
+    border-left-color: var(--primary-hover);
 }
 
 .emms-toast-warning {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-fg);
     border-left-color: #d97706;
 }
 
 .emms-toast-danger {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger-fg);
     border-left-color: #dc2626;
 }
 
@@ -266,27 +252,66 @@ h5 {
     z-index: 1065;
 }
 
-/* Button styling */
+/* Buttons and Bootstrap's own blue bits (links, outline buttons, paging, checkboxes) in the brand colours */
 .btn-primary {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
-    .btn-primary:hover {
-        background-color: #2563EB !important;
-        border-color: #2563EB;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(21, 61, 119, 0.3);
+    .btn-primary:hover,
+    .btn-primary:focus {
+        background-color: var(--primary-hover) !important;
+        border-color: var(--primary-hover) !important;
     }
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary.active {
+        color: #fff;
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+.page-link {
+    color: var(--primary);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Brand bar: the top bar and the sidebar's header, the same height so their edges line up */
+.app-bar {
+    min-height: 3.5rem;
+}
 
 .offcanvas-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: var(--primary) !important; /* Dark blue background */
-    padding: 0rem 1rem;
+    background-color: var(--primary) !important;
+    padding: 0 1rem;
+}
+
+.app-logo {
+    width: 35px;
+    height: 35px;
+    padding: 4px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 50%;
 }
 
 .collapse-icon {
@@ -307,7 +332,6 @@ h5 {
 }
 
 body {
-    font-family: 'Montserrat', sans-serif;
     overflow-y: hidden; /* the layouts scroll their main area, not the page */
 }
 
@@ -323,7 +347,8 @@ main {
    and the sidebar menu scroll, so nothing needs extra bottom margins to stay reachable.
 =========================== */
 #main-content {
-    flex-direction: column; /* display is set to flex by loading.js once the page is ready */
+    display: flex;
+    flex-direction: column;
     height: 100vh;
     height: 100dvh;
 }
@@ -334,9 +359,22 @@ main {
     min-height: 0;
 }
 
-.app-sidebar {
-    flex-shrink: 0;
-    height: 100%;
+/* The sidebar is a Bootstrap offcanvas (slide-out menu) below 1200px. From 1200px it docks beside the
+   page instead; !important beats the inline visibility Bootstrap leaves after closing it. */
+.app-sidebar.offcanvas {
+    width: 16rem;
+}
+
+@media (min-width: 1200px) {
+    .app-sidebar.offcanvas {
+        position: static;
+        z-index: auto;
+        flex-shrink: 0;
+        height: 100%;
+        transform: none;
+        visibility: visible !important;
+        transition: none;
+    }
 }
 
 .app-sidebar-body {
@@ -419,7 +457,7 @@ main {
 nav.navbar {
     position: sticky !important; /* Make the navbar sticky */
     top: 0 !important; /* Stick to the top of the viewport */
-    background-color: #153D77 !important; /* Dark blue background */
+    background-color: var(--primary) !important;
     color: white; /* White text color */
 }
 
@@ -434,18 +472,59 @@ a.menu-toggle {
     border: none !important;
 }
 
-.list-group-item a[b-n2pq3b41xv] {
-    color: black !important;
+/* Top-bar breadcrumb (_Breadcrumb.cshtml) */
+.app-breadcrumb {
+    min-width: 0;
 }
+
+    .app-breadcrumb ol {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.9375rem;
+    }
+
+    .app-breadcrumb li {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        color: rgba(255, 255, 255, 0.75);
+        white-space: nowrap;
+    }
+
+        .app-breadcrumb li + li::before {
+            content: "›";
+            padding: 0 0.5rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .app-breadcrumb li[aria-current="page"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+            color: #fff;
+        }
+
+    .app-breadcrumb a {
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+        .app-breadcrumb a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
 
 a.active {
     color: white !important;
-    background-color: #153D77 !important;
+    background-color: var(--primary) !important;
 }
 
 .nav-item.active {
     color: white !important;
-    background-color: #2563EB !important;
+    background-color: var(--primary-hover) !important;
     padding: 2px 5px; /* Add padding: top-bottom 10px, left-right 15px */
     border-radius: 5px; /* Optional: Rounded edges for better appearance */
 }
@@ -612,9 +691,51 @@ label {
         font-size: 0.8rem !important;
     }
 
+/* Section heading inside a form or page (h5.form-subheading) */
 .form-subheading {
-    padding: 10px 15px;
+    padding: 0.625rem 0 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
 }
+
+/* Footer of a page form: Cancel, then the primary action on the right. Below 1200px (tablets) it sticks
+   to the bottom of the scrolling page, so a long form can be saved without scrolling back down. */
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1199.98px) {
+    .form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        padding-bottom: 0.75rem;
+        background-color: #fff;
+    }
+}
+
+/* Bulk-action bar above a list, shown while rows are selected (AssetManagement/Index) */
+.selection-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--status-info-bg);
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+}
+
 
 .selectpicker {
     font-size: 0.8rem !important;
@@ -640,33 +761,39 @@ textarea::placeholder {
     font-size: 0.8rem;
 }
 
-.submit-btn-container {
-    margin: 10px 0 20px;
-}
-
+/* Status pill: tinted background, dark text (see the --status-* tokens) */
 .status-btn {
-    padding: 2px 5px;
+    display: inline-block;
+    padding: 2px 8px;
     text-align: center;
     border-radius: 1rem;
     border: none;
-    color: white;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .status-new {
-    background-color: var(--color-green);
+    background-color: var(--status-success-bg);
+    color: var(--status-success-fg);
 }
 
 .status-info {
-    background-color: var(--color-blue);
+    background-color: var(--status-info-bg);
+    color: var(--status-info-fg);
 }
 
 .status-warning {
-    background-color: var(--color-yellow);
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-fg);
 }
 
 .status-danger {
-    background-color: var(--color-red);
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger-fg);
+}
+
+.status-muted {
+    background-color: var(--status-muted-bg);
+    color: var(--status-muted-fg);
 }
 
 .action-container {
@@ -755,17 +882,14 @@ textarea::placeholder {
 /* ===========================
    Miscellaneous Styles
 =========================== */
-button.btn-primary:hover {
-    background-color: #2563EB !important; /* Darker shade on hover */
-}
-
 a {
-    text-decoration: none; /* Remove underline from links */
-    transition: color 0.3s ease; /* Smooth transition for hover effect */
+    color: var(--primary-hover);
+    text-decoration: none;
+    transition: color 0.15s ease;
 }
 
     a:hover {
-        color: #2563EB; /* Change color on hover */
+        color: var(--primary);
     }
 
 .required-field::after {
@@ -823,7 +947,7 @@ a {
             background-color: var(--primary) !important;
             color: #fff !important;
             font-weight: 600;
-            box-shadow: inset 3px 0 0 #2563EB;
+            box-shadow: inset 3px 0 0 var(--primary-hover);
         }
 @media screen and (min-width: 1200px) {
     #sidebar-nav .list-group-item {
@@ -1031,7 +1155,7 @@ a {
     height: 2.5rem;
     font-size: 1rem;
     color: var(--brand-blue);
-    background: rgba(13, 110, 253, 0.08);
+    background: rgba(37, 99, 235, 0.08);
     border-radius: 0.5rem;
 }
 

@@ -3,9 +3,7 @@
 @using static EMMS.Models.Enumerators
 @model MoveAssetViewModel;
 @{
-    ViewData["Title"] = "Move Assets";
-    ViewData["moveAsset"] = "active";
-    ViewData["JobMovement"] = "active";
+    ViewData["Title"] = "Move Asset";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isManager = ViewBag._currrentUserRole.UserType == Enumerators.UserType.FacilityManager;
     var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(
@@ -13,20 +11,18 @@
 }
 
 <div class="card mb-12">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Movement History</span>
-            <div>
-                <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm me-2 d-none" title="Reset all column filters">
-                    <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
-                </button>
-                <a class="btn btn-outline-primary btn-sm me-2" asp-controller="AssetMovement" asp-action="Queue">
-                    <i class="fa fa-barcode me-1"></i> Movement Queue
-                </a>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
-                    <i class="fa fa-plus me-1"></i> Move Asset
-                </button>
-            </div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>Movement History</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm d-none" title="Reset all column filters">
+                <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
+            </button>
+            <a class="btn btn-outline-primary btn-sm" asp-controller="AssetMovement" asp-action="Queue">
+                <i class="fa fa-barcode me-1"></i> Movement Queue
+            </a>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
+                <i class="fa fa-plus me-1"></i> Move Asset
+            </button>
         </div>
     </div>
     <div class="card-body">
@@ -126,7 +122,7 @@
                                            <i class="fa fa-check-circle"></i> Approve
                                        </a>`;
                             } else {
-                                return '<span class="badge bg-warning">Pending</span>';
+                                return '<span class="badge bg-warning text-dark">Pending</span>';
                             }
                         }
                     },

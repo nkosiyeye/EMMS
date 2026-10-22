@@ -4,8 +4,6 @@
 @model WorkRequestViewModel
 @{
     ViewData["Title"] = "Work Requests";
-    ViewData["workRequest"] = "active";
-    ViewData["JobManagement"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser as User;

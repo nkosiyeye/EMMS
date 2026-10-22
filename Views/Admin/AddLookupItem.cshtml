@@ -1,5 +1,6 @@
 ﻿@model EMMS.ViewModels.Admin.LookupViewModel;
 @{
+    ViewData["Title"] = $"Add {Model.LookupList?.Name} Item";
 }
 <div class="container">
     <div class="d-flex justify-content-center">
@@ -54,8 +55,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Add Item</button>
+                    <div class="form-actions">
+                        <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="LookupList">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Add item</button>
                     </div>
                 </form>
             </div>

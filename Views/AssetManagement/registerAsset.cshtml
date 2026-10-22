@@ -4,7 +4,6 @@
 @{
 
     ViewData["Title"] = "Register Asset";
-    ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
     var currentUser = ViewBag._currentUser as User;
@@ -326,8 +325,9 @@
             }
 
 
-            <div class="d-flex align-center justify-content-center submit-btn-container">
-                <button type="submit" class="btn btn-primary col-md-4">Submit</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Register asset</button>
             </div>
         </form>
 

@@ -2,8 +2,6 @@
 @model EMMS.ViewModels.MovementQueueViewModel
 @{
     ViewData["Title"] = "Movement Queue";
-    ViewData["movementQueue"] = "active";
-    ViewData["JobMovement"] = "active";
     var req = Model.Request;
     // Stolen/missing has its own report; Dispatch only comes from a cylinder order
     var reasons = Enum.GetValues<MovementReason>().Where(r => r != MovementReason.StolenorMissing && r != MovementReason.Dispatch);
@@ -38,7 +36,7 @@
             <!-- Scan panel -->
             <div class="col-lg-4">
                 <div class="border rounded p-3 h-100">
-                    <h5 class="mb-1">Scan</h5>
+                    <h5 class="form-subheading mb-2">Scan</h5>
                     <div class="form-text mb-2">Scan or type the asset tag, then press Enter.</div>
                     <div class="input-group">
                         <input type="text" id="queueScan" class="form-control form-control-lg font-monospace border-success" autocomplete="off" spellcheck="false" placeholder="e.g. S003AS-120" autofocus />

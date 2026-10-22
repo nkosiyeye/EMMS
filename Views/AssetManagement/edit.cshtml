@@ -2,7 +2,6 @@
 @{
 
     ViewData["Title"] = "Edit Asset";
-    ViewData["asset"] = "active";
 }
 
 <div class="card">
@@ -213,8 +212,9 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex align-center justify-content-center submit-btn-container">
-                <button type="submit" class="btn btn-primary col-md-4">Edit</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save changes</button>
             </div>
         </form>
 
