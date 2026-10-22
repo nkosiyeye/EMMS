@@ -1,4 +1,5 @@
 ﻿using ClosedXML.Excel;
+using EMMS.Utility;
 using EMMS.Constants;
 using EMMS.Data;
 using EMMS.Models.Admin;
@@ -321,6 +322,7 @@ namespace EMMS.Service
                 row++;
             }
             overdue.Columns().AdjustToContents();
+            ExcelLetterhead.Apply(workbook);
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);

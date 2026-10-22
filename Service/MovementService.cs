@@ -50,80 +50,82 @@ namespace EMMS.Service
 
                 var userFacilityId = currentUser.FacilityId;
 
-                query = _context.AssetMovement
-                        .Where(x => x.RowState == RowStatus.Active && x.FromId == userFacilityId)
-                        .AsQueryable();
+                // Narrow the query above (keeps its Includes; lazy loading is off)
+                query = query.Where(x => x.FromId == userFacilityId);
             }
 
             int totalCount = query.Count();
 
-            if (!string.IsNullOrEmpty(search))
+            if (!string.IsNullOrWhiteSpace(search))
             {
+                search = search.Trim();
+
+                // Reason is stored as a number; match the search against the enum names in memory
+                var matchingReasons = Enum.GetValues<MovementReason>()
+                    .Where(r => r.ToString().Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
                 query = query.Where(m =>
-                    (m.Asset != null && m.Asset.AssetTagNumber.Contains(search)) ||
+                    (m.Asset != null && (m.Asset.AssetTagNumber.Contains(search) ||
+                                         (m.Asset.SubCategory != null && m.Asset.SubCategory.Name.Contains(search)))) ||
                     (m.From != null && m.From.FacilityName.Contains(search)) ||
                     (m.Facility != null && m.Facility.FacilityName.Contains(search)) ||
                     (m.ServicePoint != null && m.ServicePoint.Name.Contains(search)) ||
-                    m.Reason.ToString().Contains(search) ||
+                    matchingReasons.Contains(m.Reason) ||
                     (m.OtherReason != null && m.OtherReason.Contains(search))
                 );
             }
 
-            // NEW: per-column filters from the header dropdowns.
-            // Applied BEFORE filteredCount and BEFORE paging.
-            // Comparison values must match what the controller puts in the JSON,
-            // since the dropdown options are built from the rendered page.
+            // Per-column filters from the header dropdowns. Values are facility / lookup ids, enum values
+            // or fixed keys (see AssetMovementController.GetFilterOptions). Applied before filteredCount and paging.
             if (columnFilters != null)
             {
                 foreach (var (name, value) in columnFilters)
                 {
+                    int.TryParse(value, out var id);
+
                     switch (name)
                     {
                         case "FromFacility":
-                            // "-" means no From set — not a filterable option unless listed
-                            query = value == "-"
-                                ? query.Where(m => m.From == null)
-                                : query.Where(m => m.From.FacilityName == value);
+                            query = query.Where(m => m.FromId == id);
                             break;
 
                         case "ToFacility":
-                            query = value == "-"
-                                ? query.Where(m => m.Facility == null)
-                                : query.Where(m => m.Facility.FacilityName == value);
+                            query = query.Where(m => m.FacilityId == id);
                             break;
 
                         case "ServicePoint":
-                            // "Unknown" is the display fallback for a null service point
-                            query = value == "Unknown"
-                                ? query.Where(m => m.ServicePoint == null)
-                                : query.Where(m => m.ServicePoint.Name == value);
+                            // "none" = no service point (shown as "Unknown")
+                            query = value == "none"
+                                ? query.Where(m => m.ServicePointId == null)
+                                : query.Where(m => m.ServicePointId == id);
+                            break;
+
+                        case "FunctionalStatus":
+                            if (Enum.TryParse<FunctionalStatus>(value, out var status) && Enum.IsDefined(status))
+                                query = query.Where(m => m.FunctionalStatus == status);
                             break;
 
                         case "Reason":
-                            // SQL-translatable: compare enum constants directly.
-                            // The column shows OtherReason text when Reason == Other; mirror that:
-                            if (value == "Other")
+                            // "Other" covers every free-text OtherReason as well
+                            if (Enum.TryParse<MovementReason>(value, out var reason) && Enum.IsDefined(reason))
+                                query = query.Where(m => m.Reason == reason);
+                            break;
+
+                        case "Approved":
+                            var approved = value == "true";
+                            query = query.Where(m => m.IsApproved == approved);
+                            break;
+
+                        case "Received":
+                            // Mirrors the Received Status column: Rejected wins over Received, else Pending
+                            query = value switch
                             {
-                                // "Other" as rendered in the dropdown is actually the OtherReason text,
-                                // or the literal "Other" fallback when OtherReason is null.
-                                query = query.Where(m => m.Reason == MovementReason.Other
-                                    && (m.OtherReason == null || m.OtherReason == value));
-                            }
-                            else
-                            {
-                                // Parse the display text back into the enum and match the column.
-                                // Enum.TryParse fails silently to false for unmapped strings.
-                                if (Enum.TryParse<MovementReason>(value, out var reason))
-                                {
-                                    query = query.Where(m => m.Reason == reason);
-                                }
-                                else
-                                {
-                                    // Not an enum name — can only be an Other-reason text value
-                                    query = query.Where(m => m.Reason == MovementReason.Other
-                                        && m.OtherReason == value);
-                                }
-                            }
+                                "rejected" => query.Where(m => m.DateRejected != null),
+                                "received" => query.Where(m => m.DateRejected == null && m.DateReceived != null),
+                                "pending" => query.Where(m => m.DateRejected == null && m.DateReceived == null),
+                                _ => query
+                            };
                             break;
                     }
                 }

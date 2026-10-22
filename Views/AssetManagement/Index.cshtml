@@ -8,6 +8,8 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
+    var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.FilterOptions.ToDictionary(f => f.Key, f => f.Value.Select(o => new { text = o.Text, value = o.Value })));
 }
 
 <div class="card mb-4">
@@ -31,7 +33,7 @@
             <button type="button" id="moveSelected" class="btn btn-primary btn-sm me-2 d-none" title="Add the selected assets to the Movement Queue">
                 <i class="fa fa-arrows-alt me-1"></i> Move Selected (<span class="selected-count">0</span>)
             </button>
-            <button type="button" id="printSelected" class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "" : "d-none")" title="Print Stickers" disabled>
+            <button type="button" id="printSelected" class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "" : "d-none")" title="Print Stickers">
                 <i class="fa fa-print me-1"></i> Print Stickers for Selected (<span class="selected-count">0</span>)
             </button>
                 
@@ -66,22 +68,9 @@
 </div>
 
 <style>
-    /* Column filter dropdowns in the dark header */
     #assetTable thead th {
         vertical-align: top;
     }
-
-    #assetTable thead select.column-filter {
-        width: 100%;
-        max-width: 160px;
-        margin-top: 4px;
-        font-size: 0.8rem;
-    }
-
-        #assetTable thead select.column-filter option {
-            background-color: #fff;
-            color: #212529;
-        }
 </style>
 
 <div class="modal fade" id="stolenMissingModal" tabindex="-1" aria-labelledby="stolenMissingLabel" aria-hidden="true">
@@ -152,6 +141,9 @@
 
             var isTabletOrSmaller = window.innerWidth <= 1024;
 
+            // Full option lists per column name, from the lookup lists / enums (AssetManagementController.GetFilterOptions)
+            const filterOptions = @Html.Raw(filterOptionsJson);
+
             function syncSelection() {
                 const boxes = $('#assetTable tbody .asset-checkbox');
                 boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
@@ -168,6 +160,21 @@
                 $('#clearFilters').toggleClass('d-none', !hasFilters);
             }
 
+            const assetColumns = [
+                { data: "checkbox", orderable: false, searchable: false },
+                { data: "tag" },
+                { data: "category", name: "Category" },
+                { data: "itemName", name: "ItemName" },
+                { data: "placement", name: "Placement" },
+                { data: "vendor", name: "Vendor" },
+                { data: "serviceProvider", name: "Service Provider" },
+                { data: "procurement", name: "Procurement" },
+                { data: "facility", name: "Facility" },
+                { data: "servicePoint", name: "ServicePoint" },
+                { data: "status", name: "Status" },
+                { data: "action", orderable: false, searchable: false }
+            ];
+
             $('#assetTable').DataTable({
                 serverSide: true,
                 processing: true,
@@ -177,59 +184,17 @@
                     dataSrc: 'data'
                 },
                 pageLength: 10,
+                searchDelay: 400,
                 responsive: isTabletOrSmaller,
                 drawCallback: function () {
                     syncSelection();
                     syncFilterState();
                 },
-                columns: [
-                    { data: "checkbox", orderable: false, searchable: false },
-                    { data: "tag" },
-                    { data: "category", name: "Category" },
-                    { data: "itemName" },
-                    { data: "placement", name: "Placement" },
-                    { data: "vendor", name: "Vendor" },
-                    { data: "serviceProvider", name: "Service Provider" },
-                    { data: "procurement", name: "Procurement" },
-                    { data: "facility", name: "Facility" },
-                    { data: "servicePoint" },
-                    { data: "status", name: "Status" },
-                    { data: "action", orderable: false, searchable: false }
-                ],
+                columns: assetColumns,
                 initComplete: function () {
-                    this.api()
-                        .columns([2, 4, 5, 6, 8, 10])   // Category, Placement, Vendor, Service Provider, Facility, Status
-                        .every(function () {
-                            const column = this;
-                            const select = document.createElement('select');
-                            select.add(new Option('All', ''));
-                            select.className = 'form-select form-select-sm column-filter';
-                            $(column.header()).append(select);
-
-                            // keep the header click from triggering the column sort
-                            select.addEventListener('click', e => e.stopPropagation());
-
-                            select.addEventListener('change', () => {
-                                const val = select.value;
-                                column
-                                    .search(val ? '^' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$' : '', true, false)
-                                    .draw();
-                            });
-
-                            // NOTE: with serverSide, this only lists values on the current page.
-                            column.data().unique().sort().each(function (d) {
-                                select.add(new Option(d, d));
-                            });
-                        });
-
-            function syncSelection() {
-                const boxes = $('#assetTable tbody .asset-checkbox');
-                boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
-                $('#selectAllAssets').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
-                $('.selected-count').text(selectedAssetTags.size);
-                $('#printSelected, #moveSelected').toggleClass('d-none', selectedAssetTags.size === 0);
-                $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
-            }
+                    emmsColumnFilters(this.api(), filterOptions, '#clearFilters');
+                }
+            });
 
             $('#assetTable').on('change', '.asset-checkbox', function () {
                 this.checked ? selectedAssetTags.add(this.value) : selectedAssetTags.delete(this.value);

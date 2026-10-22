@@ -1,4 +1,5 @@
-﻿using EMMS.Models;
+﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using EMMS.Models;
 using EMMS.Models.Entities;
 
 namespace EMMS.ViewModels
@@ -15,5 +16,8 @@ namespace EMMS.ViewModels
         public IEnumerable<LookupItem>? Conditions { get; set; }
 
         public IEnumerable<LookupItem>? Reasons { get; set; }
+
+        // Header dropdown options on the Movement History table, keyed by DataTables column name
+        public Dictionary<string, List<SelectListItem>> FilterOptions { get; set; } = new();
     }
 }

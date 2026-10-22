@@ -1,139 +1,101 @@
 # Dashboard Redesign (Home/Index)
 
-Goal: replace the one-size-fits-all dashboard with a **role-aware** home page. Every user lands on
-"what needs my attention today" for their role and facility, then the numbers that matter to them.
+Goal: a calm, role-aware home page. It answers two questions for the signed-in user —
+**how is my equipment doing** and **what is waiting on me** — and nothing else.
 
-## What's wrong with the current dashboard
+## Design rules
 
-- Same 4 tiles + 5 bar charts for every role. A Biomed, a Data Collector and a Pharmacist see the same thing.
-- Data Collectors land on charts for features they can't access (sidebar hides movement/jobs for them).
-- Pharmacist / CMS Officer get nothing about cylinders on the home page.
-- `GetDashboardCounts` fetches the top 5 notifications but the page never shows them.
-- Tiles aren't clickable (old clickable version is commented out).
-- The facility dropdown only affects the "Assets By Service Point" chart, and non-admins see every facility in it.
-- `DecommissionedByFacilityCounts` actually holds non-functional + decommissioned counts (name is misleading).
-- "Service Due" shows a signed day count (`-5 day(s)`); should read "due in 5 days" / "12 days overdue".
-- Every chart call loads the full asset view model in memory (`GetAssetIndexViewModel`) and groups in C#.
-- Five large bar charts stacked vertically, most of which are reference data rather than actions.
-
-## New layout (all roles)
+- **Don't repeat the chrome.** The top bar already shows the facility and the notification bell, and the
+  sidebar is the navigation. So: no page header, no notifications panel, no quick-action buttons.
+- **One structure for every role**, top to bottom:
+  1. Up to **4 numbers** — icon, label, number, one line of context. The whole tile opens the list it counts.
+  2. For admins and facility managers only: **2 bar charts** (Chart.js, horizontal, one series each, value at the bar tip).
+     Equipment status uses the status colours (green / red / amber / grey); out-of-service-by-location uses one blue.
+  3. The role's **work table** — its real queue, in the app's standard table style
+     (`fixed-table table-striped table-bordered table-hover`, dark header, DataTables, icon buttons in the Action column).
+- **Colour means "act on this".** Values are neutral by default; amber/red only when something needs attention.
+  Healthy numbers are not painted green.
+- **One source of truth per number.** A tile and the table under it count the same thing
+  (e.g. "Overdue for service: 38" = the red rows in "Due for service").
+- **Admins** get a single "Showing: [facility]" filter that rescopes the whole page, and a one-line banner
+  only when user accounts are waiting for activation.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-
-│ [Quick action] [Quick action] [Quick action]                 │
-├──────────────────────────────────────────────────────────────┤
-│ KPI │ KPI │ KPI │ KPI      ← clickable, link to filtered list │
-├────────────────────────────────────┬─────────────────────────┤
-│ Needs your attention (action list) │ Notifications (top 5)   │
-│                                    │                         │
-├────────────────────────────────────┴─────────────────────────┤
-│ 1–2 role-specific charts / tables                            │
-└──────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────── Showing: [All ▾] ┐  (admin only)
+│ 5 user accounts are waiting for activation.                       Review │  (only when > 0)
+├──────────────┬──────────────┬──────────────┬─────────────────────────────┤
+│ Equipment    │ Functional   │ Open work    │ Overdue for service         │
+│ 123          │ 89%          │ 10           │ 38                          │
+│              │ 110 of 123   │ 2 without job│                             │
+├──────────────┴──────────────┼──────────────┴─────────────────────────────┤
+│ Equipment status            │ Out of service by facility / service point │  (admin, manager)
+│ Functional ████████████ 110 │ Mbabane GH ███ 1                           │
+├─────────────────────────────┴────────────────────────────────────────────┤
+│ Due for service  38                                                      │
+│ Equipment        Location            Service due           [Request service]
+└──────────────────────────────────────────────────────────────────────────┘
 ```
-
-- Header: greeting, user's facility and role, today's date.
-- Quick actions: 2–4 buttons for the most common tasks of that role.
-- KPI tiles: compact, icon + number + short label + trend/subtext, each a link to the filtered page.
-- "Needs your attention": a ranked list of concrete items (overdue service, unassigned requests, approvals...).
-- Notifications panel: the top 5 we already fetch.
-- Each section loads independently with its own skeleton loader (keep the shimmer approach).
 
 ## Content per role
 
-### Administrator (system-wide, with facility filter that applies to the whole page)
-- KPIs: total assets · % functional (availability) · open work requests · assets overdue for service · users awaiting activation
-- Attention: inactive user registrations to approve, assets overdue service (oldest first), work requests open > 14 days, movements in transit too long
-- Charts: functional status (donut), non-functional by facility (top 10, horizontal bar), facility comparison table (assets / % functional / open WRs / overdue service)
-- Technician workload snapshot (top 5 from `WorkloadViewModel`) with link to full Workload page
-- Recent status changes feed (`AssetStatusChange`)
+| Role | Numbers | Breakdowns | Work table(s) |
+|---|---|---|---|
+| Administrator | equipment in service · % functional · open requests (without a job) · overdue for service | equipment status · out of service by facility (by service point when filtered) | due for service |
+| Facility Manager | same, own facility | equipment status · out of service by service point | due for service |
+| Biomed | my jobs in progress · completed this month · requests without a job · overdue for service | — | my jobs in progress · due for service |
+| General User | my open requests · ready for me to close · assets to receive · non-functional at my facility | — | my open requests (Close / Open) |
+| Data Collector | registered today · this week · total · records to complete | — | records to complete |
+| Pharmacist | waiting for my approval · approved / rejected this month | — | cylinder requests waiting for approval |
+| CMS Officer | approved not ordered · orders to dispatch · dispatched not received · plant down this month | — | orders to process (Create order / Dispatch) |
 
-### Facility Manager (own facility)
-- KPIs: facility assets · % functional · open work requests · overdue service
-- Attention: work requests with no job yet, jobs completed awaiting closure, incoming movements to receive, overdue service
-- Charts: functional status donut, assets by service point
-- Technician workload snapshot for their facility
-- Quick actions: Raise work request, Receive asset, Technician workload
-
-### Biomed (personal work queue)
-- KPIs: my open jobs · my jobs in progress · completed by me this month · service due this week
-- Attention: my assigned jobs (oldest first), unassigned work requests at my facility, preventive maintenance due/overdue
-- Chart: my jobs by status, or completed jobs per week (last 8 weeks)
-- Parts used by me this month (`JobPart`)
-- Quick actions: Create job, Work requests, Move asset
-
-### General User
-- KPIs: my open requests · my requests completed this month · non-functional assets at my facility · assets awaiting my receipt
-- Attention: status of my work requests (open / in progress / completed), movements to receive
-- Quick actions: Report a fault (work request), Receive asset, Asset search
-
-### Data Collector
-- KPIs: assets I registered today · this week · total · records with missing data
-- Attention: my assets with gaps (unknown functional status, no location/deployment, missing serial where `RequiresSerial`)
-- Recent registrations table (last 10)
-- Quick actions: Register asset, Asset list
-
-### Pharmacist
-- KPIs: cylinder requests awaiting approval · approved this month · rejected this month
-- Attention: pending requests to approve/reject (inline links)
-- Link to Cylinder Dashboard
-
-### CMS Officer
-- KPIs: approved requests awaiting order · orders to dispatch · dispatched not received · plant-down orders
-- Attention: requests to turn into orders, orders ready to dispatch
-- Link to Cylinder Dashboard
+"Due for service" = serviceable equipment overdue or due within 30 days, most overdue first; rows with an open
+request show "Requested" instead of the "Request service" button.
 
 ## Technical approach
 
-- New `DashboardService` that builds a role-specific `HomeDashboardViewModel`
-  (header info, quick actions, KPI tiles, attention items) from `CurrentUser`.
-- One partial / ViewComponent per widget (`ViewComponents/` already exists), so `Index.cshtml`
-  becomes a role switch that composes widgets.
-- Per-widget JSON endpoints (or ViewComponent AJAX) so slow widgets don't block the page.
-- Scope every query by role + facility on the server; never trust a facility id from non-admins.
-- Push counts/grouping into SQL (EF `GroupBy`/`CountAsync`) instead of loading all assets.
-- Unit tests for the role/scoping rules (same style as `WorkRequestRulesTests`).
+- `DashboardService.BuildAsync(user, facilityId)` builds `HomeDashboardViewModel`
+  (`Notices`, `Stats`, `Breakdowns`, `Tables`), switching on `UserType`.
+- Rendered on the server in one request (no per-widget AJAX, no loaders). Partials: `_StatTile`, `_Breakdown`, `_WorkTable`.
+  Chart data is embedded in each canvas (`data-chart`) and drawn by the script in `Index.cshtml`.
+- Scope enforced on the server: only admins may pass `facilityId`; everyone else is pinned to their own facility / own work.
+- Counts and grouping run in SQL (`vw_AssetCurrentLocation`, `vw_AssetInTransit`), not in memory.
+- Styles: the "Dashboard" section at the end of `wwwroot/css/style.css`.
+- Pure rules unit-tested in `EMMS.Tests/DashboardRulesTests.cs`.
 
 ## Tasks
 
 ### Phase 1 — Foundation
-- [ ] 1. Create `HomeDashboardViewModel` (Header, QuickActions, KpiTiles, AttentionItems, Notifications)
-- [ ] 2. Create `DashboardService` with a `BuildAsync(User)` entry point that switches on `UserType`
-- [ ] 3. Register the service in `Program.cs`; slim down `HomeController.Index` to use it
-- [ ] 4. Add reusable widget partials: `_DashHeader`, `_KpiTile`, `_AttentionList`, `_NotificationsPanel`, `_ChartCard`
-- [ ] 5. New dashboard CSS (tile, attention list, section skeletons) in `site.css`; keep existing status badges
-- [ ] 6. Fix service-due wording ("due in N days" / "N days overdue") and sort overdue first
+- [x] 1. `HomeDashboardViewModel`
+- [x] 2. `DashboardService` with `BuildAsync(User)` switching on `UserType`
+- [x] 3. Register the service; `HomeController.Index` uses it
+- [x] 4. Partials: `_StatTile`, `_Breakdown`, `_WorkTable` (replaced the first header/attention/notifications design)
+- [x] 5. Dashboard CSS in `style.css`
+- [x] 6. Service-due wording ("in N days" / "N days overdue"), most overdue first
 
 ### Phase 2 — Role dashboards
-- [ ] 7. Biomed dashboard (my jobs, unassigned requests, PM due, parts used)
-- [ ] 8. Facility Manager dashboard (facility KPIs, attention list, workload snapshot, service point chart)
-- [ ] 9. Administrator dashboard (system KPIs, page-wide facility filter, facility comparison, user approvals)
-- [ ] 10. General User dashboard (my requests, receive asset, report fault)
-- [ ] 11. Data Collector dashboard (my registrations, data-quality gaps)
-- [ ] 12. Pharmacist dashboard (pending cylinder approvals)
-- [ ] 13. CMS Officer dashboard (orders to create / dispatch / receive)
+- [x] 7–13. First version for every role (see table above) — verified against the dev DB; needs a visual review in the browser
 
 ### Phase 3 — Data & performance
-- [ ] 14. Replace in-memory grouping in `DashboardViewModel` with SQL-side aggregate queries
-- [ ] 15. Rename `DecommissionedByFacilityCounts` → `NonFunctionalByFacilityCounts`
-- [ ] 16. Restrict facility filter to Admins; enforce facility scoping server-side on all dashboard endpoints
-- [ ] 17. Add `[RequireLogin]` (or confirm `BaseController` covers it) on all dashboard JSON endpoints
+- [x] 14. Dashboard counts/grouping in SQL (new service; the old `DashboardViewModel` is no longer used by the page)
+- [x] 16. Facility filter admin-only; scoping enforced server-side
+- [ ] 17. Old JSON endpoints `GetDashboardCounts`, `GetAssetsDueServiceJson`, `GetDashboardChartData` are no longer called — remove in task 21
 
 ### Phase 4 — Polish & tests
-- [ ] 18. Make every KPI tile link to the matching filtered list page
-- [ ] 19. Mobile layout check (tiles 2-up, attention list full width)
-- [ ] 20. Unit tests for role scoping and attention-item rules
-- [ ] 21. Remove dead code (commented-out tiles / old `Index` in `HomeController`, unused `IndexModel` if no longer used)
+- [x] 18. Tiles link to their list (except "Overdue for service": no filtered list page exists yet)
+- [ ] 19. Mobile layout check in the browser (tiles 2-up, tables scroll)
+- [x] 20. Unit tests for scoping, tones and wording
+- [ ] 21. Remove dead code after task 22: old endpoints above, `DashboardViewModel`, `IndexModel`, commented-out old `Index` in `HomeController`.
+      Also fix or drop `AssetManagementRepository.GetAssetsDueService` (its `||` filter matches every asset with a service date).
 
 ### Phase 5 — Move current dashboard to Reports
-- [ ] 22. Turn the current dashboard content into a downloadable **"Asset Summary" report** in `ReportsController`
-      (new `reportType` in `GenerateReport`, Excel via ClosedXML like the existing reports), one sheet each:
-      - Summary: total assets, open requests, completed jobs, pending jobs
-      - Functional Status counts
-      - Procurement Status counts
-      - Movement Reason counts
-      - Non-Functional Assets by Facility
-      - Assets by Service Point (respects facility filter)
-      - Equipment Due for Service (tag, name, procurement status, location, functional status, service due, days overdue)
-      - Scoped by role/facility the same way the dashboard is today; date range from the report form where it applies
-      - Add the option to `Views/Reports/Index.cshtml`; do this **before** removing the old widgets from Home/Index
+- [x] 22. Five downloadable Excel reports on the Reports page, one per old dashboard chart, grouped exactly as the chart was:
+      Functional Status · Procurement Status · Movement Reason · Non-Functional Assets by Facility · Assets by Service Point.
+      - Each workbook: a **Summary** sheet (group, count, % of total, facility, generated date) + **one sheet per group**
+        listing its assets (frozen header, auto-filter).
+      - Same inclusion rules as the old charts (e.g. functional status / movement reason = assets with a location;
+        non-functional by facility = non-functional or decommissioned).
+      - Admins pick a facility (or all) in the download dialog — for every report, including All Assets and Due for Service.
+        Everyone else is pinned to their own facility on the server.
+      - No date range on these (they are a snapshot of current status); the two existing reports keep theirs.
+      - Code: `Service/AssetSummaryReportService.cs`, `ReportsController.GenerateReport`, `Views/Reports/Index.cshtml`;
+        tests in `EMMS.Tests/AssetSummaryReportTests.cs`.

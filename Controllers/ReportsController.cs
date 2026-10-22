@@ -1,4 +1,5 @@
 ﻿using EMMS.Models.Admin;
+using EMMS.Utility;
 using System.Drawing;
 using Microsoft.AspNetCore.Mvc;
 using EMMS.Data;
@@ -7,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.ViewModels;
+using EMMS.Service;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers
@@ -15,23 +18,35 @@ namespace EMMS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AssetManagementRepo _assetManagementRepo;
+        private readonly AssetSummaryReportService _summaryReports;
 
-        public ReportsController(ApplicationDbContext context, AssetManagementRepo assetManagementRepo)
+        public ReportsController(ApplicationDbContext context, AssetManagementRepo assetManagementRepo, AssetSummaryReportService summaryReports)
         {
             _context = context;
             _assetManagementRepo = assetManagementRepo;
+            _summaryReports = summaryReports;
         }
 
         public IActionResult Index()
         {
+            // Only admins choose a facility; everyone else always gets their own.
+            if (isAdmin)
+                ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active).OrderBy(f => f.FacilityName), "FacilityId", "FacilityName");
             return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> GenerateReport(string reportType, DateTime? fromDate, DateTime? toDate)
+        public async Task<IActionResult> GenerateReport(string reportType, DateTime? fromDate, DateTime? toDate, int? facilityId)
         {
             try
             {
+                // Asset summary reports (the old dashboard charts): Summary sheet + one sheet per group
+                if (AssetSummaryReportService.ReportTypes.TryGetValue(reportType?.ToLower() ?? "", out var summaryReport))
+                {
+                    var (content, name) = await _summaryReports.BuildAsync(CurrentUser!, summaryReport, facilityId);
+                    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", name);
+                }
+
                 List<AssetViewModel> assetVMs;
                 string fileName;
                 string sheetName;
@@ -39,8 +54,10 @@ namespace EMMS.Controllers
                 var repo = _assetManagementRepo;
                 var assets = isAdmin ? await repo.GetAssetsWithMovementDb() 
                     : repo.GetAssetsWithMovementDb().Result.Where(a => a.LastMovement?.FacilityId == CurrentUser.FacilityId);
+                if (isAdmin && facilityId != null)
+                    assets = assets.Where(a => a.LastMovement?.FacilityId == facilityId);
 
-                switch (reportType.ToLower())
+                switch (reportType!.ToLower())
                 {
                     case "all-assets":
                         assetVMs = (assets)
@@ -149,6 +166,7 @@ namespace EMMS.Controllers
             }
 
             worksheet.Columns().AdjustToContents();
+            ExcelLetterhead.Apply(workbook);
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);

@@ -1,0 +1,108 @@
+@model EMMS.ViewModels.WorkTable
+@using EMMS.ViewModels
+@{
+    var hasActions = Model.Rows.Any(r => r.Action != null);
+}
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            @Model.Title
+            @if (Model.Rows.Count > 0)
+            {
+                <span class="badge rounded-pill bg-secondary ms-1">@Model.Rows.Count</span>
+            }
+        </span>
+        @if (Model.ViewAll != null)
+        {
+            <a class="small fw-normal" asp-controller="@Model.ViewAll.Controller" asp-action="@Model.ViewAll.Action" asp-route-id="@Model.ViewAll.Id">View all</a>
+        }
+    </div>
+    <div class="card-body">
+        @if (Model.Rows.Count == 0)
+        {
+            <p class="dash-empty">@Model.EmptyText</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table fixed-table table-striped table-bordered table-hover js-dash-table">
+                    <thead class="table-dark">
+                        <tr>
+                            @foreach (var column in Model.Columns)
+                            {
+                                <th>@column</th>
+                            }
+                            @if (hasActions)
+                            {
+                                <th>Action</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row.Cells)
+                                {
+                                    <td>
+                                        @if (cell.Link != null)
+                                        {
+                                            <a asp-controller="@cell.Link.Controller" asp-action="@cell.Link.Action" asp-route-id="@cell.Link.Id">@cell.Text</a>
+                                        }
+                                        else
+                                        {
+                                            @cell.Text
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(cell.Sub))
+                                        {
+                                            <br />
+                                            <small class="@(cell.SubTone == DashTone.Neutral ? "text-muted" : $"text-{cell.SubTone.Css()}")">
+                                                @if (cell.SubTone == DashTone.Neutral)
+                                                {
+                                                    @cell.Sub
+                                                }
+                                                else
+                                                {
+                                                    <strong>@cell.Sub</strong>
+                                                }
+                                            </small>
+                                        }
+                                    </td>
+                                }
+                                @if (hasActions)
+                                {
+                                    <td>
+                                        @if (row.Action is { IsLabel: true })
+                                        {
+                                            <span class="status-btn status-info">@row.Action.Label</span>
+                                        }
+                                        else if (row.Action != null)
+                                        {
+                                            <div class="btn-group">
+                                                @if (row.Action.Link != null)
+                                                {
+                                                    <a class="btn btn-sm btn-@row.Action.Style" title="@row.Action.Label" aria-label="@row.Action.Label"
+                                                       asp-controller="@row.Action.Link.Controller" asp-action="@row.Action.Link.Action" asp-route-id="@row.Action.Link.Id">
+                                                        <i class="@row.Action.Icon"></i>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <a href="#" class="btn btn-sm btn-@row.Action.Style js-service-request" title="@row.Action.Label" aria-label="@row.Action.Label"
+                                                       data-asset-id="@row.Action.ServiceRequestAssetId">
+                                                        <i class="@row.Action.Icon"></i>
+                                                    </a>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

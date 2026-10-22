@@ -29,6 +29,8 @@ builder.Services.AddScoped<AssetTagService>();
 builder.Services.AddScoped<MovementService>();
 builder.Services.AddScoped<CylinderOrderService>();
 builder.Services.AddScoped<WorkRequestService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<AssetSummaryReportService>();
 builder.Services.AddScoped<CylinderReportService>();
 builder.Services.AddScoped<MovementQueueService>();
 builder.Services.AddScoped<NotificationService>();

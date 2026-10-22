@@ -31,6 +31,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Excel exports stamp this letterhead on every sheet (Utility/ExcelLetterhead.cs) -->
+    <EmbeddedResource Include="wwwroot\images\moh-letterhead.png" LogicalName="EMMS.moh-letterhead.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Data\SQL Queries\" />
     <Folder Include="Views\Admin\Dashboard\" />
     <Folder Include="Views\Admin\Lookups\" />

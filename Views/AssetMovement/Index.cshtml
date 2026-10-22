@@ -8,6 +8,8 @@
     ViewData["JobMovement"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isManager = ViewBag._currrentUserRole.UserType == Enumerators.UserType.FacilityManager;
+    var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.FilterOptions.ToDictionary(f => f.Key, f => f.Value.Select(o => new { text = o.Text, value = o.Value })));
 }
 
 <div class="card mb-12">
@@ -52,21 +54,8 @@
 </div>
 
 <style>
-    /* Column filter dropdowns in the dark header */
     #movementHistoryTable thead th {
         vertical-align: top;
-    }
-
-    #movementHistoryTable thead select.column-filter {
-        width: 100%;
-        max-width: 160px;
-        margin-top: 4px;
-        font-size: 0.8rem;
-    }
-
-    #movementHistoryTable thead select.column-filter option {
-        background-color: #fff;
-        color: #212529;
     }
 </style>
 
@@ -83,17 +72,17 @@
                     <div class="table-responsive" id="table-responsive-asset">
                         <table class="table fixed-table table-striped table-bordered table-hover" id="modalAssetTable">
                             <thead>
-                                <tr>
-                                    <th>Tag</th>
-                                    <th>Category</th>
-                                    <th>SubCategory</th>
-                                    <th>Placement</th>
-                                    <th>Location</th>
-                                    <th>Functional Status</th>
-                                    <th>Action</th>
-                                </tr>
+                            <tr>
+                                <th>Tag</th>
+                                <th>Category</th>
+                                <th>SubCategory</th>
+                                <th>Placement</th>
+                                <th>Location</th>
+                                <th>Functional Status</th>
+                                <th>Action</th>
+                            </tr>
                             </thead>
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -117,33 +106,8 @@
                 $('#clearFilters').toggleClass('d-none', !hasFilters);
             }
 
-            // Shared helper: adds header dropdown filters to the given columns
-            function addColumnFilters(api, columnIndexes) {
-                api.columns(columnIndexes).every(function () {
-                    const column = this;
-                    const select = document.createElement('select');
-                    select.add(new Option('All', ''));
-                    select.className = 'form-select form-select-sm column-filter';
-                    $(column.header()).append(select);
-
-                    // keep the header click from triggering the column sort
-                    select.addEventListener('click', e => e.stopPropagation());
-
-                    select.addEventListener('change', () => {
-                        const val = select.value;
-                        column
-                            .search(val ? '^' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$' : '', true, false)
-                            .draw();
-                    });
-
-                    // NOTE: with serverSide, this only lists values on the current page.
-                    column.data().unique().sort().each(function (d) {
-                        select.add(new Option(d, d));
-                    });
-                });
-            }
-
-            const historyFilterColumns = [1, 2, 3, 6];   // From Facility, To Facility, Service Point, Reason
+            // Full option lists per column name, from the facilities / lookup lists / enums (AssetMovementController.GetFilterOptions)
+            const filterOptions = @Html.Raw(filterOptionsJson);
 
             $('#movementHistoryTable').DataTable({
                 serverSide: true,
@@ -154,6 +118,7 @@
                     dataSrc: 'data'
                 },
                 pageLength: 10,
+                searchDelay: 400,
                 responsive: isTabletOrSmaller,
                 drawCallback: syncFilterState,
                 columns: [
@@ -162,13 +127,12 @@
                     { data: "toFacility", name: "ToFacility" },
                     { data: "servicePoint", name: "ServicePoint" },
                     { data: "dateMoved" },
-                    { data: "functionalStatus" },
+                    { data: "functionalStatus", name: "FunctionalStatus" },
                     { data: "reasonForMovement", name: "Reason" },
                     {
                         data: null,
                         name: "Approved",
                         orderable: false,
-                        searchable: false,
                         render: function (data, type, row) {
                             if (row.isApproved) {
                                 return '<span class="badge bg-success">Approved</span>';
@@ -184,8 +148,8 @@
                     },
                     {
                         data: null,
+                        name: "Received",
                         orderable: false,
-                        searchable: false,
                         render: function (data, type, row) {
                             if (row.dateRejected) {
                                 return '<span class="badge bg-danger">Rejected</span>';
@@ -247,16 +211,7 @@
                     }
                 ],
                 initComplete: function () {
-                    addColumnFilters(this.api(), historyFilterColumns);
-
-                    // Clear all column filters at once
-                    $('#clearFilters').on('click', function () {
-                        $('#movementHistoryTable thead select.column-filter').each(function () {
-                            this.value = '';
-                        });
-                        $('#movementHistoryTable').DataTable()
-                            .columns(historyFilterColumns).search('').draw();
-                    });
+                    emmsColumnFilters(this.api(), filterOptions, '#clearFilters');
                 }
             });
 

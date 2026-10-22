@@ -137,89 +137,70 @@ namespace EMMS.Service
 
             int totalCount = query.Count();
 
-            if (!string.IsNullOrEmpty(search))
+            if (!string.IsNullOrWhiteSpace(search))
             {
+                search = search.Trim();
                 query = query.Where(a =>
                     a.AssetTagNumber.Contains(search) ||
+                    a.SerialNumber.Contains(search) ||
+                    a.Model.Contains(search) ||
                     a.SubCategory.Name.Contains(search) ||
-                    a.Category.Name.Contains(search));
+                    a.Category.Name.Contains(search) ||
+                    a.Vendor.Name.Contains(search) ||
+                    a.ServiceProvider.Name.Contains(search) ||
+                    _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && (
+                        _context.Facilities.Any(f => f.FacilityId == l.FacilityId && f.FacilityName.Contains(search)) ||
+                        _context.LookupItems.Any(sp => sp.Id == l.ServicePointId && sp.Name.Contains(search)))));
             }
 
-            // NEW: per-column filters from the header dropdowns.
-            // Applied BEFORE filteredCount and BEFORE paging, so both the count
-            // and the returned page honour them.
+            // Per-column filters from the header dropdowns. Values are lookup/facility ids or enum values
+            // (see AssetManagementController.GetFilterOptions). Applied before filteredCount and paging.
             if (columnFilters != null)
             {
                 foreach (var (name, value) in columnFilters)
                 {
+                    int.TryParse(value, out var id);
+
                     switch (name)
                     {
                         case "Category":
-                            query = query.Where(a => a.Category.Name == value);
+                            query = query.Where(a => a.CategoryId == id);
+                            break;
+
+                        case "ItemName":
+                            query = query.Where(a => a.SubCategoryId == id);
+                            break;
+
+                        case "Placement":
+                            var isPlacement = value == "true";
+                            query = query.Where(a => a.IsPlacement == isPlacement);
                             break;
 
                         case "Vendor":
-                            query = query.Where(a => a.Vendor.Name == value);
+                            query = query.Where(a => a.VendorId == id);
                             break;
 
                         case "Service Provider":
-                            query = query.Where(a => a.ServiceProvider.Name == value);
+                            query = query.Where(a => a.ServiceProviderId == id);
                             break;
 
-                        case "ServicePoint":
-                            var servicePoint = _context.LookupItems.FirstOrDefault(l => l.Name == value );
-                            query = query.Where(a => a.ServicePointId == servicePoint.Id);
+                        case "Procurement":
+                            query = query.Where(a => a.StatusId == id);
                             break;
 
                         case "Facility":
                             // Facility shown in the table = current location's facility
-                            var facility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
                             query = query.Where(a => _context.AssetCurrentLocations
-                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == facility.FacilityId));
+                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == id));
                             break;
 
-                        case "FromFacility":
-                            var fromFacility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
+                        case "ServicePoint":
                             query = query.Where(a => _context.AssetCurrentLocations
-                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == fromFacility.FacilityId));
-                            break;
-
-                        case "ToFacility":
-                            var toFacility = _context.Facilities.FirstOrDefault(f => f.FacilityName == value);
-                            query = query.Where(a => _context.AssetCurrentLocations
-                                .Any(l => l.AssetId == a.AssetId && l.FacilityId == toFacility.FacilityId));
+                                .Any(l => l.AssetId == a.AssetId && l.ServicePointId == id));
                             break;
 
                         case "Status":
-                            // Mirror the controller's status logic:
-                            //   PendingMovement ?? LastMovement drives the functional status;
-                            //   Decommission renders as "Decommissioned".
-                            // Nulls render as "-", which is not a filterable value.
-                            query = query.Where(a =>
-                                (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)          // pending movement row exists
-                                 || _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId))
-                                && (
-                                    // Decommissioned branch
-                                    (
-                                        (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)
-                                            ? _context.AssetMovement.Where(m => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && t.MovementId == m.MovementId))
-                                                .Select(m => m.Reason).FirstOrDefault()
-                                            : _context.AssetMovement.Where(m => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.MovementId == m.MovementId))
-                                                .Select(m => m.Reason).FirstOrDefault()
-                                        ) == MovementReason.Decommission
-                                    )
-                                    && ((int)ProcurementStatus.Decommissioned).ToString() == value
-                                 ||
-                                    // Non-decommissioned branch: functional status text matches
-                                    (
-                                        (_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId)
-                                            ? _context.AssetMovement.Where(m => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && t.MovementId == m.MovementId))
-                                                .Select(m => (int)m.FunctionalStatus).FirstOrDefault()
-                                            : _context.AssetMovement.Where(m => _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.MovementId == m.MovementId))
-                                                .Select(m => (int)m.FunctionalStatus).FirstOrDefault()
-                                        )).ToString() == value
-                                 )
-                                );
+                            query = ApplyStatusFilter(query, value);
                             break;
                     }
                 }
@@ -271,6 +252,35 @@ namespace EMMS.Service
                 FilteredCount = filteredCount,
                 Items = items
             };
+        }
+
+        // Mirrors the Status column in AssetManagementController.GetAssets: the pending movement (else the current
+        // location) decides; a Decommission reason shows "Decommissioned", otherwise the asset's functional status.
+        // Assets with no movement show "-" and match no status.
+        private IQueryable<Asset> ApplyStatusFilter(IQueryable<Asset> query, string value)
+        {
+            if (value == "awaiting")
+                return query.Where(a => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && !t.IsApproved));
+            if (value == "intransit")
+                return query.Where(a => _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId && t.IsApproved));
+
+            if (value == "decommissioned")
+                return query.Where(a =>
+                    _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId &&
+                        _context.AssetMovement.Any(m => m.MovementId == t.MovementId && m.Reason == MovementReason.Decommission)) ||
+                    (!_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId) &&
+                        _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.Reason == MovementReason.Decommission)));
+
+            if (!Enum.TryParse<FunctionalStatus>(value, out var status) || !Enum.IsDefined(status))
+                return query;
+
+            return query.Where(a => a.FunctionalStatus == status &&
+                (
+                    _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId &&
+                        _context.AssetMovement.Any(m => m.MovementId == t.MovementId && m.Reason != MovementReason.Decommission)) ||
+                    (!_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId) &&
+                        _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.Reason != MovementReason.Decommission))
+                ));
         }
 
     }

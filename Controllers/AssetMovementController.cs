@@ -14,6 +14,7 @@ using EMMS.Service;
 using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Drawing.Printing;
@@ -72,7 +73,46 @@ namespace EMMS.Controllers
             var data = new MoveAssetViewModel();
 
             data.Conditions = await repo.GetConditions();
+            data.FilterOptions = await GetFilterOptions(repo);
             return View(data);
+        }
+
+        // Full option lists for the Movement History header filters (not just the values on the current page).
+        // Values are ids / enum values / fixed keys; MovementService.GetPaginatedMovements matches on them.
+        private async Task<Dictionary<string, List<SelectListItem>>> GetFilterOptions(AssetMovementRepo repo)
+        {
+            static List<SelectListItem> FromEnum<T>() where T : struct, Enum => Enum.GetValues<T>()
+                .Select(e => new SelectListItem(e.ToString(), Convert.ToInt32(e).ToString()))
+                .ToList();
+
+            var facilities = await _context.Facilities
+                .AsNoTracking()
+                .Where(f => f.RowState == RowStatus.Active)
+                .OrderBy(f => f.FacilityName)
+                .Select(f => new SelectListItem(f.FacilityName, f.FacilityId.ToString()))
+                .ToListAsync();
+
+            var servicePoints = (await repo.GetServicePoints())
+                .OrderBy(i => i.Name)
+                .Select(i => new SelectListItem(i.Name, i.Id.ToString()))
+                .Append(new SelectListItem("Unknown", "none"))
+                .ToList();
+
+            var options = new Dictionary<string, List<SelectListItem>>
+            {
+                ["ToFacility"] = facilities,
+                ["ServicePoint"] = servicePoints,
+                ["FunctionalStatus"] = FromEnum<FunctionalStatus>(),
+                ["Reason"] = FromEnum<MovementReason>(),
+                ["Approved"] = new() { new("Approved", "true"), new("Pending", "false") },
+                ["Received"] = new() { new("Received", "received"), new("Rejected", "rejected"), new("Pending", "pending") }
+            };
+
+            // Non-admins only see movements leaving their own facility, so a From filter adds nothing for them
+            if (CurrentUser?.UserRole?.UserType == UserType.Administrator)
+                options["FromFacility"] = facilities;
+
+            return options;
         }
 
         [HttpPost]
@@ -89,9 +129,7 @@ namespace EMMS.Controllers
                 bool isAdmin = currentUser.UserRole?.UserType == UserType.Administrator;
                 bool isManager = currentUser.UserRole?.UserType == UserType.FacilityManager;
 
-                // NEW: collect per-column filter values from the header dropdowns.
-                // Front end wraps values in ^...$ (regex anchors) — strip them here;
-                // the service does exact matching.
+                // Per-column filter values (ids / enum values / fixed keys) sent by the header dropdowns
                 var columnFilters = new Dictionary<string, string>();
 
                 foreach (var col in request.Columns ?? new List<DataTablesColumn>())
@@ -100,9 +138,7 @@ namespace EMMS.Controllers
                     if (string.IsNullOrWhiteSpace(val) || !col.Searchable || string.IsNullOrWhiteSpace(col.Name))
                         continue;
 
-                    val = val.Trim('^', '$').Trim();
-                    if (val.Length > 0)
-                        columnFilters[col.Name] = val;
+                    columnFilters[col.Name] = val.Trim();
                 }
 
                 var result = _movementService.GetPaginatedMovements(

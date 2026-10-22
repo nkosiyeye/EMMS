@@ -1,6 +1,17 @@
 ﻿@{
     ViewData["Title"] = "Reports";
     ViewData["Reports"] = "active";
+    var facilities = ViewData["FacilityId"] as SelectList;   // admins only
+
+    // The old dashboard charts, one report each: a Summary sheet plus one sheet per group.
+    var summaryReports = new[]
+    {
+        (Type: "functional-status", Title: "Functional Status", Text: "Assets grouped by functional status (Functional, Non-functional, Under maintenance, Idle, Unknown)."),
+        (Type: "procurement-status", Title: "Procurement Status", Text: "Assets grouped by procurement status (New, Used, Refurbished, Decommissioned)."),
+        (Type: "movement-reason", Title: "Movement Reason", Text: "Assets grouped by the reason of their last movement."),
+        (Type: "non-functional-by-facility", Title: "Non-Functional Assets by Facility", Text: "Non-functional or decommissioned assets, grouped by facility."),
+        (Type: "assets-by-service-point", Title: "Assets by Service Point", Text: "Deployed assets grouped by service point."),
+    };
 }
 
 <div class="card mb-4">
@@ -17,6 +28,7 @@
             <!-- All Assets Report -->
             <div class="col-md-6 col-lg-4">
                 <div class="card shadow-sm h-100 report-card cursor-pointer"
+                     data-has-dates="true"
                      data-report-type="all-assets"
                      data-report-title="All Assets Report"
                      data-report-description="Complete list of all assets with creation date filter">
@@ -31,6 +43,7 @@
             <!-- Assets Due for Service Report -->
             <div class="col-md-6 col-lg-4">
                 <div class="card shadow-sm h-100 report-card cursor-pointer"
+                     data-has-dates="true"
                      data-report-type="due-service"
                      data-report-title="Assets Due for Service"
                      data-report-description="List of assets that are due for servicing, filterable by service date">
@@ -41,6 +54,23 @@
                     </div>
                 </div>
             </div>
+
+            @foreach (var report in summaryReports)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm h-100 report-card cursor-pointer"
+                         data-has-dates="false"
+                         data-report-type="@report.Type"
+                         data-report-title="@report.Title"
+                         data-report-description="@report.Text One sheet per group, plus a summary.">
+                        <div class="card-body">
+                            <h5 class="card-title fw-semibold">@report.Title</h5>
+                            <p class="card-text text-muted">@report.Text</p>
+                            <span class="text-secondary small">Excel Export Available · one sheet per group</span>
+                        </div>
+                    </div>
+                </div>
+            }
 
             <!-- Placeholder -->
             <div class="col-md-6 col-lg-4">
@@ -72,14 +102,30 @@
                 <form id="reportForm">
                     <input type="hidden" id="reportType" name="reportType" />
 
-                    <div class="mb-3">
-                        <label for="fromDate" class="form-label">From Date</label>
-                        <input type="date" id="fromDate" name="fromDate" class="form-control">
-                    </div>
+                    @if (facilities != null)
+                    {
+                        <div class="mb-3">
+                            <label for="facilityId" class="form-label">Facility</label>
+                            <select id="facilityId" name="facilityId" class="form-select">
+                                <option value="">All facilities</option>
+                                @foreach (var f in facilities)
+                                {
+                                    <option value="@f.Value">@f.Text</option>
+                                }
+                            </select>
+                        </div>
+                    }
 
-                    <div class="mb-3">
-                        <label for="toDate" class="form-label">To Date</label>
-                        <input type="date" id="toDate" name="toDate" class="form-control">
+                    <div id="dateFields">
+                        <div class="mb-3">
+                            <label for="fromDate" class="form-label">From Date</label>
+                            <input type="date" id="fromDate" name="fromDate" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="toDate" class="form-label">To Date</label>
+                            <input type="date" id="toDate" name="toDate" class="form-control">
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
@@ -111,6 +157,12 @@
 
                     document.getElementById('fromDate').value = '';
                     document.getElementById('toDate').value = '';
+
+                    // Snapshot reports (the old dashboard charts) have no date range
+                    const hasDates = this.dataset.hasDates === 'true';
+                    document.getElementById('dateFields').classList.toggle('d-none', !hasDates);
+                    document.getElementById('fromDate').disabled = !hasDates;
+                    document.getElementById('toDate').disabled = !hasDates;
 
                     modal.show();
                 });

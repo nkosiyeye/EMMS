@@ -32,6 +32,45 @@ namespace EMMS.Controllers
             return View(await applicationDbContext.ToListAsync());
         }
 
+        [AuthorizeRole("Administrator")]
+        [RequireLogin]
+        public async Task<IActionResult> Export()
+        {
+            var users = await _context.User.Include(u => u.Facility).Include(u => u.UserRole)
+                .OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync();
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var sheet = workbook.Worksheets.Add("Users");
+            var headers = new[] { "First Name", "Last Name", "Date of Birth", "Gender", "Cellphone", "Facility", "Username", "Role", "Status" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                sheet.Cell(1, i + 1).Value = headers[i];
+                sheet.Cell(1, i + 1).Style.Font.Bold = true;
+                sheet.Cell(1, i + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+            }
+            var row = 2;
+            foreach (var u in users)
+            {
+                sheet.Cell(row, 1).Value = u.FirstName ?? "";
+                sheet.Cell(row, 2).Value = u.LastName ?? "";
+                sheet.Cell(row, 3).Value = u.DOB.ToString("yyyy-MM-dd");
+                sheet.Cell(row, 4).Value = u.Gender.ToString();
+                sheet.Cell(row, 5).Value = u.Cellphone ?? "";
+                sheet.Cell(row, 6).Value = u.Facility?.FacilityName ?? "";
+                sheet.Cell(row, 7).Value = u.Username ?? "";
+                sheet.Cell(row, 8).Value = u.UserRole?.Name ?? "";
+                sheet.Cell(row, 9).Value = u.RowState.ToString();
+                row++;
+            }
+            sheet.Columns().AdjustToContents();
+            EMMS.Utility.ExcelLetterhead.Apply(workbook);
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"EMMS_Users_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
+        }
+
         // GET: Users/Details/5
         public async Task<IActionResult> Details(Guid? id)
         {

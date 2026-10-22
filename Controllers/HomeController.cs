@@ -27,13 +27,15 @@ namespace EMMS.Controllers
         private readonly JobManagementRepo _jobRepo;
         private readonly AssetService _assetService;
         private readonly NotificationService _notificationService;
+        private readonly DashboardService _dashboardService;
 
-        public HomeController(AssetManagementRepo assetRepo, JobManagementRepo jobRepo, AssetService assetService, NotificationService notificationService, ApplicationDbContext context)
+        public HomeController(AssetManagementRepo assetRepo, JobManagementRepo jobRepo, AssetService assetService, NotificationService notificationService, DashboardService dashboardService, ApplicationDbContext context)
         {
             _assetRepo = assetRepo;
             _jobRepo = jobRepo;
             _assetService = assetService;
             _notificationService = notificationService;
+            _dashboardService = dashboardService;
             _context = context;
         }
         public IActionResult UserRegistration()
@@ -124,10 +126,14 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(Index));
         }
         [RequireLogin]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? facilityId = null)
         {
-            ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active), "FacilityId", "FacilityName");
-            return View();
+            // The facility filter only applies to admins; DashboardService pins everyone else to their own facility.
+            var model = await _dashboardService.BuildAsync(CurrentUser!, facilityId);
+
+            if (model.Role == UserType.Administrator)
+                ViewData["FacilityId"] = new SelectList(_context.Facilities.Where(f => f.RowState == RowStatus.Active).OrderBy(f => f.FacilityName), "FacilityId", "FacilityName", model.FacilityId);
+            return View(model);
         }
         [HttpGet]
         public async Task<IActionResult> GetDashboardCounts()

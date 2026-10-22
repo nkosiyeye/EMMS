@@ -52,7 +52,7 @@ function printAssetDetail() {
         ? formatDate(asset.nextServiceDate)
         : null;
 
-    const logoPath = '/images/Coat_of_arms_of_Eswatini.svg';
+    const logoPath = '/images/moh-letterhead.png';
 
     const html = `
         <html>
@@ -61,7 +61,8 @@ function printAssetDetail() {
             <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
             <style>
                 body { padding: 20px; font-family: sans-serif; }
-                .logo { max-height: 60px; margin-bottom: 20px; }
+                .letterhead { text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
+                .letterhead img { height: 72px; width: auto; max-width: 100%; }
                 .status-btn {
                     padding: 2px 6px;
                     border-radius: 4px;
@@ -76,10 +77,10 @@ function printAssetDetail() {
             </style>
         </head>
         <body>
-            <div class="text-center">
-                <img src="${logoPath}" alt="Logo" class="logo"/>
-                <h4>EMMS Asset Detail Summary</h4>
+            <div class="letterhead">
+                <img src="${logoPath}" alt="Kingdom of Eswatini, Ministry of Health"/>
             </div>
+            <h4 class="text-center">EMMS Asset Detail Summary</h4>
             <div class="row">
                 <div class="col-12 col-lg-4">
                     <dl class="row small">
@@ -164,8 +165,13 @@ function printAssetDetail() {
     const printWindow = window.open('', '_blank', 'width=900,height=800');
     printWindow.document.write(html);
     printWindow.document.close();
-    printWindow.print();
     printWindow.onafterprint = () => printWindow.close();
+
+    // Print only once the letterhead has loaded, or it can be missing from the first printout
+    const letterhead = printWindow.document.querySelector('.letterhead img');
+    const print = () => printWindow.print();
+    if (letterhead.complete) print();
+    else letterhead.onload = letterhead.onerror = print;
 }
 
 
@@ -294,46 +300,6 @@ document.addEventListener('keydown', function (e) {
     if (next) next.focus();
 });
 
-function fnExcelReport() {
-    var tab_text = "<table border='2px'><tr bgcolor='#87AFC6'>";
-    var tab = document.getElementById('assetTable'); // id of table
-
-    // Loop through each row of the table
-    for (var j = 0; j < tab.rows.length; j++) {
-        tab_text += "<tr>";
-
-        // Loop through each cell in the row, excluding the last cell
-        for (var k = 0; k < tab.rows[j].cells.length - 1; k++) {
-            tab_text += tab.rows[j].cells[k].outerHTML;
-        }
-
-        tab_text += "</tr>";
-    }
-
-    tab_text += "</table>";
-
-    // Remove unwanted elements like links, images, and input fields
-    tab_text = tab_text.replace(/<A[^>]*>|<\/A>/g, ""); // Remove links
-    tab_text = tab_text.replace(/<img[^>]*>/gi, ""); // Remove images
-    tab_text = tab_text.replace(/<input[^>]*>|<\/input>/gi, ""); // Remove input fields
-
-    var msie = window.navigator.userAgent.indexOf("MSIE ");
-
-    // If Internet Explorer
-    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {
-        txtArea1.document.open("txt/html", "replace");
-        txtArea1.document.write(tab_text);
-        txtArea1.document.close();
-        txtArea1.focus();
-
-        sa = txtArea1.document.execCommand("SaveAs", true, "ExportedData.xls");
-    } else {
-        // For other browsers
-        sa = window.open('data:application/vnd.ms-excel,' + encodeURIComponent(tab_text));
-    }
-
-    return sa;
-}
 function exportToExcel() {
     var table = $('#assetTable').DataTable();
     var allRows = table.rows().nodes(); // Get all HTML rows
@@ -401,3 +367,51 @@ document.addEventListener('click', function (event) {
     form.querySelector('input[name="id"]').value = link.dataset.assetId;
     form.submit();
 });
+
+// Searchable header filters for a server-side DataTable.
+// options: { columnName: [{ text, value }] } (built on the server from lookup lists / enums), keyed by the
+// DataTables column `name`. The selected value is sent as that column's search and matched exactly on the server.
+// clearButton: optional selector for a button that resets every filter.
+function emmsColumnFilters(api, options, clearButton) {
+    let clearing = false;   // resetting the pickers fires their change events; draw once at the end instead
+
+    api.columns().every(function () {
+        const column = this;
+        const items = options[api.settings()[0].aoColumns[column.index()].sName];
+        if (!items) return;
+
+        const select = document.createElement('select');
+        select.className = 'column-filter';
+        select.add(new Option('All', ''));
+        items.forEach(o => select.add(new Option(o.text, o.value)));
+
+        // Wrapper stops header clicks (including the open menu) from sorting the column
+        const wrap = $('<div class="column-filter-wrap"></div>')
+            .on('click mousedown keydown', e => e.stopPropagation())
+            .append(select)
+            .appendTo(column.header());
+
+        $(select)
+            .selectpicker({
+                liveSearch: true,
+                liveSearchPlaceholder: 'Search…',
+                size: 8,
+                width: '100%',
+                container: 'body',   // keeps the menu from being clipped by the scrolling table
+                style: 'btn-light btn-sm'
+            })
+            .on('changed.bs.select', () => {
+                column.search(select.value, false, false);
+                if (!clearing) api.draw();
+            });
+    });
+
+    if (clearButton) {
+        $(clearButton).on('click', function () {
+            clearing = true;
+            $(api.table().header()).find('select.column-filter').selectpicker('val', '');
+            clearing = false;
+            api.columns().search('').draw();
+        });
+    }
+}

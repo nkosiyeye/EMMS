@@ -83,8 +83,48 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            //return View(await _assetService.GetAssetIndexViewModel(CurrentUser));
-            return View(new AssetIndexViewModel());
+            return View(new AssetIndexViewModel { FilterOptions = await GetFilterOptions() });
+        }
+
+        // Full option lists for the table's header filters (not just the values on the current page).
+        // Values are ids / enum values; AssetService.GetPaginatedAssets matches on them.
+        private async Task<Dictionary<string, List<SelectListItem>>> GetFilterOptions()
+        {
+            static List<SelectListItem> ToItems(IEnumerable<LookupItem> items) => items
+                .OrderBy(i => i.Name)
+                .Select(i => new SelectListItem(i.Name, i.Id.ToString()))
+                .ToList();
+
+            var options = new Dictionary<string, List<SelectListItem>>
+            {
+                ["Category"] = ToItems(await _repo.GetCategories()),
+                ["ItemName"] = ToItems(await _repo.GetSubCategories()),
+                ["Placement"] = new() { new("Yes", "true"), new("No", "false") },
+                ["Vendor"] = ToItems(await _repo.GetVendors()),
+                ["Service Provider"] = ToItems(await _repo.GetServiceProviders()),
+                ["Procurement"] = Enum.GetValues<ProcurementStatus>()
+                    .Select(e => new SelectListItem(e.ToString(), ((int)e).ToString())).ToList(),
+                ["ServicePoint"] = ToItems(await _repo.GetServicePoints()),
+                ["Status"] = Enum.GetValues<FunctionalStatus>()
+                    .Select(e => new SelectListItem(e.ToString(), ((int)e).ToString()))
+                    .Append(new SelectListItem("Decommissioned", "decommissioned"))
+                    .Append(new SelectListItem("Awaiting approval", "awaiting"))
+                    .Append(new SelectListItem("In transit", "intransit"))
+                    .ToList()
+            };
+
+            // Non-admins only ever see assets at their own facility, so a facility filter adds nothing for them
+            if (CurrentUser?.UserRole?.UserType == Enumerators.UserType.Administrator)
+            {
+                options["Facility"] = await _context.Facilities
+                    .AsNoTracking()
+                    .Where(f => f.RowState == RowStatus.Active)
+                    .OrderBy(f => f.FacilityName)
+                    .Select(f => new SelectListItem(f.FacilityName, f.FacilityId.ToString()))
+                    .ToListAsync();
+            }
+
+            return options;
         }
 
         [HttpPost]
@@ -96,9 +136,7 @@ namespace EMMS.Controllers
             bool isBiomed = currentUser?.UserRole?.UserType == Enumerators.UserType.Biomed;
             bool isDataCollector = currentUser?.UserRole?.UserType == Enumerators.UserType.DataCollector;
 
-            // NEW: collect per-column filter values sent by the header dropdowns.
-            // The front end wraps each value in ^...$ (regex anchors) — strip them here,
-            // the service does exact matching instead.
+            // Per-column filter values (ids / enum values) sent by the header dropdowns
             var columnFilters = new Dictionary<string, string>();
 
             foreach (var col in request.Columns ?? new List<DataTablesColumn>())
@@ -107,14 +145,14 @@ namespace EMMS.Controllers
                 if (string.IsNullOrWhiteSpace(val) || !col.Searchable || string.IsNullOrWhiteSpace(col.Name))
                     continue;
 
-                val = val.Trim('^', '$').Trim();
+                val = val.Trim();
                 if (val.Length > 0)
                     columnFilters[col.Name] = val;
             }
 
             // Pass the filters to the service — it must apply them BEFORE paging
             var result = _assetService.GetPaginatedAssets(
-                request.Start, request.Length, request.Search?.Value, CurrentUser, columnFilters);
+                request.Start, request.Length, request.Search?.Value, currentUser, columnFilters);
 
             var data = result.Items.Select(asset =>
             {
