@@ -195,32 +195,32 @@ namespace EMMS.Service
                 await AddNotificationAsync(message, type, null, admin.UserId, createdBy);
             }
         }
-        public async Task<List<Models.Entities.Notification>> GetNotificationsAsync(User currentUser, UserType role)
+        // The notifications a user may see; also the ones they may mark as read
+        private static IQueryable<Models.Entities.Notification> VisibleTo(IQueryable<Models.Entities.Notification> query, User currentUser, UserType role)
         {
-            IQueryable<Models.Entities.Notification> query = _context.Notifications
-                .Where(n => n.RowState == RowStatus.Active)
-                .Include(n => n.Facility)
-                .OrderByDescending(n => n.DateCreated);
-
             switch (role)
             {
                 case UserType.Administrator:
                     // Admin sees all, no filter
-                    break;
+                    return query;
 
                 case UserType.FacilityManager:
-                    query = query.Where(n => n.FacilityId == currentUser.FacilityId);
-                    break;
+                    return query.Where(n => n.FacilityId == currentUser.FacilityId);
 
                 case UserType.Biomed:
-                    query = query.Where(n => (n.FacilityId == currentUser.FacilityId || n.UserId == currentUser.UserId) &&
+                    return query.Where(n => (n.FacilityId == currentUser.FacilityId || n.UserId == currentUser.UserId) &&
                                              (n.Type == "work" || n.Type == "reception" || (n.Type == "job" && n.UserId == currentUser.UserId)));
-                    break;
 
                 default:
-                    query = query.Where(n => n.UserId == currentUser.UserId);
-                    break;
+                    return query.Where(n => n.UserId == currentUser.UserId);
             }
+        }
+
+        public async Task<List<Models.Entities.Notification>> GetNotificationsAsync(User currentUser, UserType role)
+        {
+            var query = VisibleTo(_context.Notifications.Where(n => n.RowState == RowStatus.Active), currentUser, role)
+                .Include(n => n.Facility)
+                .OrderByDescending(n => n.DateCreated);
 
             // ✅ Deduplicate by Id before returning
             var results = await query.Take(50).ToListAsync(); // fetch a bit more in case duplicates are trimmed
@@ -244,15 +244,21 @@ namespace EMMS.Service
 
 
 
-        public async Task MarkAsReadAsync(int id)
+        // Returns false when the notification doesn't exist or isn't visible to this user
+        public async Task<bool> MarkAsReadAsync(int id, User currentUser)
         {
-            var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id);
-            if (notification != null && !notification.IsRead)
+            var notification = await VisibleTo(_context.Notifications, currentUser, currentUser.UserRole.UserType)
+                .FirstOrDefaultAsync(n => n.Id == id);
+            if (notification == null)
+                return false;
+
+            if (!notification.IsRead)
             {
                 notification.IsRead = true;
                 _context.Notifications.Update(notification);
                 await _context.SaveChangesAsync();
             }
+            return true;
         }
     }
 }

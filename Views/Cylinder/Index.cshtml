@@ -114,13 +114,13 @@
                                 <tbody>
                                     @foreach (var r in Model.ApprovedRequests)
                                     {
-                                        <tr>
+                                        <tr data-focus-id="@r.RequestId">
                                             <td>@r.Facility?.FacilityName</td>
                                             <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
                                             <td>@r.Quantity</td>
                                             <td>@r.DateApproved?.ToString("dd MMM")</td>
                                             <td>
-                                                <button type="button" class="btn btn-sm btn-primary create-order"
+                                                <button type="button" class="btn btn-sm btn-primary create-order" data-focus-act="create"
                                                         data-request-id="@r.RequestId" data-facility="@r.Facility?.FacilityName"
                                                         data-item="@($"{r.Size?.Name} / {r.Content?.Name}")" data-qty="@r.Quantity">
                                                     Create Order &rarr;
@@ -188,7 +188,7 @@
                         bool canDecide = r.Status == CylinderRequestStatus.Requested && (Model.IsAdmin || (Model.IsPharmacist && r.FacilityId == Model.CurrentFacilityId));
                         bool canRevise = (r.Status == CylinderRequestStatus.Rejected || (r.Status == CylinderRequestStatus.Requested && r.DecisionReason != null))
                                          && (Model.IsAdmin || r.FacilityId == Model.CurrentFacilityId);
-                        <tr class="@(r.Status == CylinderRequestStatus.Requested ? "table-warning" : "")">
+                        <tr data-focus-id="@r.RequestId" class="@(r.Status == CylinderRequestStatus.Requested ? "table-warning" : "")">
                             <td>@r.RequisitionNumber<div class="text-muted">@r.RequisitionName</div></td>
                             @if (Model.IsAdmin) { <td>@r.Facility?.FacilityName</td> }
                             <td>@r.Description?.Name · @r.Size?.Name / @r.Content?.Name</td>
@@ -242,7 +242,7 @@
                     {
                         var o = row.Order;
                         bool open = o.Status is not (CylinderOrderStatus.PlantDown or CylinderOrderStatus.Received);
-                        <tr>
+                        <tr data-focus-id="@o.OrderId">
                             <td class="font-monospace">@o.OrderNumber</td>
                             <td>@o.Request?.Facility?.FacilityName</td>
                             <td>@o.Request?.Description?.Name · @o.Request?.Size?.Name / @o.Request?.Content?.Name</td>

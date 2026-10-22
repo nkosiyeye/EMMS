@@ -6,6 +6,7 @@
         labels = Model.Rows.Select(r => r.Label),
         values = Model.Rows.Select(r => r.Count),
         tones = Model.Rows.Select(r => r.Tone.Css()),
+        links = Model.Rows.Select(r => r.Link != null ? Url.Dash(r.Link) : null),
     };
     // Room for every bar at <= 24px plus its gap, so long lists never squash
     var height = Math.Max(160, Model.Rows.Count * 40 + 30);
@@ -28,11 +29,24 @@
                     <ul>
                         @foreach (var row in Model.Rows)
                         {
-                            <li>@row.Label: @row.Count</li>
+                            <li>
+                                @if (row.Link != null)
+                                {
+                                    <a href="@Url.Dash(row.Link)">@row.Label: @row.Count</a>
+                                }
+                                else
+                                {
+                                    @:@row.Label: @row.Count
+                                }
+                            </li>
                         }
                     </ul>
                 </canvas>
             </div>
+            @if (!string.IsNullOrWhiteSpace(Model.More))
+            {
+                <p class="dash-more">@Model.More</p>
+            }
         }
     </div>
 </div>

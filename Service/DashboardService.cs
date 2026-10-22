@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using EMMS.Constants;
 using EMMS.Data;
 using EMMS.Models;
@@ -22,6 +23,7 @@ namespace EMMS.Service
         public const int StaleDays = 14;           // jobs/requests older than this = amber
         public const int TableLimit = 200;         // rows rendered per table (DataTables pages them)
         public const int BreakdownLimit = 8;
+        public const string ServiceDueAnchor = "due-for-service";
 
         private readonly ApplicationDbContext _context;
         private readonly CylinderOrderService _cylinderService;
@@ -39,6 +41,13 @@ namespace EMMS.Service
         /// <summary>Admins may pick a facility (null = all); everyone else is pinned to their own.</summary>
         public static int? ScopeFacility(User user, int? requestedFacilityId) =>
             user.UserRole?.UserType == UserType.Administrator ? requestedFacilityId : user.FacilityId;
+
+        /// <summary>
+        /// A movement waiting for the facility manager: still active, not approved, and not already rejected or
+        /// received at the destination (rejection stamps DateRejected; deleting a movement removes the row).
+        /// </summary>
+        public static readonly Expression<Func<MoveAsset, bool>> AwaitingApproval = m =>
+            m.RowState == RowStatus.Active && !m.IsApproved && m.DateRejected == null && m.DateReceived == null;
 
         public static int Percent(int part, int whole) => whole <= 0 ? 0 : (int)Math.Round(part * 100.0 / whole);
 
@@ -146,7 +155,8 @@ namespace EMMS.Service
                 {
                     Text = $"{Plural(pendingUsers, "user account")} {(pendingUsers == 1 ? "is" : "are")} waiting for activation.",
                     LinkText = "Review",
-                    Link = new DashLink("Users"),
+                    // The Users list with its Status filter set to the same accounts
+                    Link = new DashLink("Users").With("Status", nameof(RowStatus.Inactive)),
                 });
 
             await AddEquipmentOverviewAsync(vm, now);
@@ -154,14 +164,15 @@ namespace EMMS.Service
 
         private async Task BuildFacilityManagerAsync(HomeDashboardViewModel vm, DateTime now)
         {
-            var pendingApprovals = await _context.AssetMovement.CountAsync(a => a.FromId == vm.FacilityId && a.IsApproved != true);
+            var pendingApprovals = await _context.AssetMovement.Where(AwaitingApproval).CountAsync(m => m.FromId == vm.FacilityId);
             if (pendingApprovals > 0)
             {
                 vm.Notices.Add(new DashNotice
                 {
                     Text = $"{Plural(pendingApprovals, "movement")} {(pendingApprovals == 1 ? "is" : "are")} waiting for approval.",
                     LinkText = "Review",
-                    Link = new DashLink("AssetMovement"),
+                    // The Movements list filtered to the same rows (its "Approved: Pending" and "Received: Pending" filters)
+                    Link = new DashLink("AssetMovement").With("Approved", "false").With("Received", "pending"),
                 });
             }
             await AddEquipmentOverviewAsync(vm, now);
@@ -188,13 +199,20 @@ namespace EMMS.Service
             vm.Stats.Add(new StatTile { Label = "Equipment in service", Icon = "fa-solid fa-box-open", Value = total.ToString("N0", CultureInfo.InvariantCulture), Link = new DashLink("AssetManagement") });
             vm.Stats.Add(new StatTile { Label = "Functional", Icon = "fa-solid fa-heart-pulse", Value = $"{pct}%", Context = $"{functional:N0} of {total:N0}", Tone = FunctionalTone(pct, total), Link = new DashLink("AssetManagement") });
             vm.Stats.Add(new StatTile { Label = "Open work requests", Icon = "fa-solid fa-clipboard-list", Value = openRequests.ToString(), Context = noJob > 0 ? $"{noJob} without a job yet" : null, Tone = CountTone(noJob, DashTone.Warning), Link = new DashLink("JobManagement") });
-            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = null });
+            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = DashLink.Anchor(ServiceDueAnchor) });
 
             vm.Breakdowns.Add(new Breakdown
             {
                 Title = "Equipment status",
                 Rows = byStatus.OrderBy(s => s.Status == FunctionalStatus.Unknown ? int.MaxValue : (int)s.Status)
-                    .Select(s => new BreakdownRow { Label = FunctionalLabel(s.Status), Count = s.Count, Tone = FunctionalStatusTone(s.Status) })
+                    .Select(s => new BreakdownRow
+                    {
+                        Label = FunctionalLabel(s.Status),
+                        Count = s.Count,
+                        Tone = FunctionalStatusTone(s.Status),
+                        // Unknown is mostly assets with no location yet, which the asset list cannot filter by status
+                        Link = s.Status == FunctionalStatus.Unknown ? null : AssetList(facilityId).With("Status", (int)s.Status),
+                    })
                     .ToList(),
                 EmptyText = "No equipment recorded yet.",
             });
@@ -219,7 +237,7 @@ namespace EMMS.Service
             vm.Stats.Add(new StatTile { Label = "My jobs in progress", Icon = "fa-solid fa-screwdriver-wrench", Value = inProgressCount.ToString(), Link = new DashLink("JobManagement", "manageJobs") });
             vm.Stats.Add(new StatTile { Label = "Completed this month", Icon = "fa-solid fa-circle-check", Value = completed.ToString(), Link = new DashLink("JobManagement", "manageJobs") });
             vm.Stats.Add(new StatTile { Label = "Requests without a job", Icon = "fa-solid fa-inbox", Value = unassigned.ToString(), Tone = CountTone(unassigned, DashTone.Warning), Link = new DashLink("JobManagement") });
-            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger) });
+            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = DashLink.Anchor(ServiceDueAnchor) });
 
             var jobs = await inProgress
                 .Include(j => j.Asset!).ThenInclude(a => a.SubCategory)
@@ -282,11 +300,9 @@ namespace EMMS.Service
                 .ToListAsync();
 
             var rows = requests.Select(w => (w.RequestDate, Row: RequestRow(
-                    w.Asset != null ? AssetName(w.Asset) : "Equipment", w.Asset?.AssetTagNumber, w.RequestDate, w.WorkStatus?.Name, now,
-                    new DashLink("JobManagement", "workRequest", w.WorkRequestId))))
+                    w.WorkRequestId, w.Asset != null ? AssetName(w.Asset) : "Equipment", w.Asset?.AssetTagNumber, w.RequestDate, w.WorkStatus?.Name, now)))
                 .Concat(infra.Select(w => (w.RequestDate, Row: RequestRow(
-                    w.Description ?? "Infrastructure", "Infrastructure", w.RequestDate, w.WorkStatus?.Name, now,
-                    new DashLink("JobManagement")))))
+                    w.WorkRequestId, w.Description ?? "Infrastructure", "Infrastructure", w.RequestDate, w.WorkStatus?.Name, now))))
                 .OrderBy(r => r.RequestDate)
                 .Select(r => r.Row)
                 .ToList();
@@ -301,9 +317,11 @@ namespace EMMS.Service
             });
         }
 
-        private static TableRow RequestRow(string name, string? sub, DateTime raised, string? status, DateTime now, DashLink link)
+        // Both kinds of request are listed on JobManagement/Index; the link opens it on this row (and its Close dialog).
+        private static TableRow RequestRow(Guid requestId, string name, string? sub, DateTime raised, string? status, DateTime now)
         {
             var readyToClose = status == WorkStatusNames.Completed;
+            var link = new DashLink("JobManagement").Focus(requestId, readyToClose ? "close" : null);
             return new TableRow
             {
                 Cells =
@@ -397,7 +415,7 @@ namespace EMMS.Service
                         new TableCell { Text = $"{r.Requester?.FirstName} {r.Requester?.LastName}".Trim() },
                         new TableCell { Text = r.DateCreated != null ? Date(r.DateCreated.Value) : "—", Sub = r.DateCreated != null ? AgeText(r.DateCreated.Value, now) : null },
                     },
-                    Action = new RowAction { Label = "Review request", Icon = "fa-solid fa-clipboard-check", Style = "primary", Link = new DashLink("Cylinder") },
+                    Action = new RowAction { Label = "Review request", Icon = "fa-solid fa-clipboard-check", Style = "primary", Link = new DashLink("Cylinder").Focus(r.RequestId) },
                 }).ToList(),
             });
         }
@@ -448,14 +466,14 @@ namespace EMMS.Service
 
             var rows = requests.Select(r => (Since: r.DateApproved, Row: Row(
                     r.Facility?.FacilityName ?? "—", $"{r.Quantity} × {r.Size?.Name} {r.Content?.Name}".Trim(), "Approved — create order", r.DateApproved,
-                    new RowAction { Label = "Create order", Icon = "fa-solid fa-plus", Style = "primary", Link = new DashLink("Cylinder") })))
+                    new RowAction { Label = "Create order", Icon = "fa-solid fa-plus", Style = "primary", Link = new DashLink("Cylinder").Focus(r.RequestId, "create") })))
                 .Concat(pendingOrders.Select(o => (Since: o.DateCreated, Row: Row(
                     o.Request?.Facility?.FacilityName ?? "—", $"{o.Quantity} × {o.Request?.Size?.Name} {o.Request?.Content?.Name}".Trim(),
                     o.Status == CylinderOrderStatus.Modified ? $"{o.OrderNumber} — modified, re-submit" : $"{o.OrderNumber} — ready to dispatch",
                     o.DateCreated,
                     o.Status == CylinderOrderStatus.Ordered
                         ? new RowAction { Label = "Dispatch", Icon = "fa-solid fa-truck-fast", Style = "primary", Link = new DashLink("Cylinder", "Dispatch", o.OrderId) }
-                        : new RowAction { Label = "View order", Link = new DashLink("Cylinder") }))))
+                        : new RowAction { Label = "View order", Link = new DashLink("Cylinder").Focus(o.OrderId) }))))
                 .OrderBy(r => r.Since ?? DateTime.MaxValue)
                 .Select(r => r.Row)
                 .ToList();
@@ -475,6 +493,8 @@ namespace EMMS.Service
         // ------------------------------------------------------------------------------------------
 
         // All facilities: out of service per facility. One facility: per service point.
+        // Grouping runs in SQL; the groups (one per facility / service point) are few, so the top N is taken here
+        // and the rest summed into the "+N more" line.
         private async Task<Breakdown> OutOfServiceBreakdownAsync(int? facilityId)
         {
             var down = from a in InServiceAssets(facilityId)
@@ -483,35 +503,62 @@ namespace EMMS.Service
                        select new { a.AssetId, l.FacilityId, l.ServicePointId };
 
             List<BreakdownRow> rows;
-            string title;
+            string title, unit;
             if (facilityId == null)
             {
                 title = "Out of service by facility";
-                rows = await (from d in down
-                              join f in _context.Facilities on d.FacilityId equals f.FacilityId
-                              group d by f.FacilityName into g
-                              orderby g.Count() descending
-                              select new BreakdownRow { Label = g.Key ?? "Unknown facility", Count = g.Count(), Tone = DashTone.Info })
-                    .Take(BreakdownLimit).ToListAsync();
+                unit = "facility";
+                var groups = await (from d in down
+                                    join f in _context.Facilities on d.FacilityId equals f.FacilityId
+                                    group d by new { f.FacilityId, f.FacilityName } into g
+                                    select new { g.Key.FacilityId, g.Key.FacilityName, Count = g.Count() })
+                    .ToListAsync();
+                rows = groups.OrderByDescending(g => g.Count).ThenBy(g => g.FacilityName)
+                    .Select(g => new BreakdownRow
+                    {
+                        Label = g.FacilityName ?? "Unknown facility",
+                        Count = g.Count,
+                        Tone = DashTone.Info,
+                        Link = AssetList(g.FacilityId).With("Status", AssetService.OutOfServiceFilter),
+                    })
+                    .ToList();
             }
             else
             {
                 title = "Out of service by service point";
-                rows = await (from d in down
-                              join sp in _context.LookupItems on d.ServicePointId equals sp.Id into sps
-                              from sp in sps.DefaultIfEmpty()
-                              group d by sp == null ? null : sp.Name into g
-                              orderby g.Count() descending
-                              select new BreakdownRow { Label = g.Key ?? "No service point", Count = g.Count(), Tone = DashTone.Info })
-                    .Take(BreakdownLimit).ToListAsync();
+                unit = "service point";
+                var groups = await (from d in down
+                                    join sp in _context.LookupItems on d.ServicePointId equals sp.Id into sps
+                                    from sp in sps.DefaultIfEmpty()
+                                    group d by new { Id = sp == null ? (int?)null : sp.Id, Name = sp == null ? null : sp.Name } into g
+                                    select new { g.Key.Id, g.Key.Name, Count = g.Count() })
+                    .ToListAsync();
+                rows = groups.OrderByDescending(g => g.Count).ThenBy(g => g.Name)
+                    .Select(g => new BreakdownRow
+                    {
+                        Label = g.Name ?? "No service point",
+                        Count = g.Count,
+                        Tone = DashTone.Info,
+                        // The asset list cannot filter on "no service point", so that bar has no link
+                        Link = g.Id == null ? null : AssetList(facilityId).With("ServicePoint", g.Id).With("Status", AssetService.OutOfServiceFilter),
+                    })
+                    .ToList();
             }
 
             return new Breakdown
             {
                 Title = title,
-                Rows = rows,
+                Rows = rows.Take(BreakdownLimit).ToList(),
+                More = MoreText(rows.Skip(BreakdownLimit).ToList(), unit),
                 EmptyText = "No equipment is out of service.",
             };
+        }
+
+        public static string? MoreText(IReadOnlyCollection<BreakdownRow> hidden, string unit)
+        {
+            if (hidden.Count == 0) return null;
+            var units = hidden.Count == 1 ? unit : unit.EndsWith("y") ? unit[..^1] + "ies" : unit + "s";
+            return $"+{hidden.Count} more {units} ({Plural(hidden.Sum(r => r.Count), "item")})";
         }
 
         // Overdue or due within ServiceHorizonDays, most overdue first. A row with an open request shows "Requested".
@@ -543,6 +590,7 @@ namespace EMMS.Service
             return new WorkTable
             {
                 Title = "Due for service",
+                Anchor = ServiceDueAnchor,
                 Columns = { "Equipment", "Location", "Service due" },
                 EmptyText = $"Nothing is due for service in the next {ServiceHorizonDays} days.",
                 Rows = due.Select(a => new TableRow
@@ -596,6 +644,10 @@ namespace EMMS.Service
         private IQueryable<InfrustructureWorkRequest> OpenInfraRequests(int? facilityId) =>
             _context.InfrustructureWorkRequest.AsNoTracking()
                 .Where(w => w.RowState == RowStatus.Active && w.CloseDate == null && (facilityId == null || w.FacilityId == facilityId));
+
+        // The asset list (AssetManagement/Index) opened with its header filters preset from the query string
+        // (site.js emmsColumnFilters); a null facility leaves that filter off.
+        private static DashLink AssetList(int? facilityId) => new DashLink("AssetManagement").With("Facility", facilityId);
 
         private static string AssetName(Asset a) =>
             string.IsNullOrWhiteSpace(a.ItemName) ? a.SubCategory?.Name ?? a.AssetTagNumber : a.ItemName;

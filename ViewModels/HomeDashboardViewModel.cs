@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.ViewModels
@@ -25,12 +27,17 @@ namespace EMMS.ViewModels
         };
     }
 
-    /// <summary>An MVC route (rendered with asp-controller / asp-action / asp-route-id).</summary>
+    /// <summary>
+    /// An MVC route plus optional query values (rendered with Url.Dash). With no controller it is an in-page
+    /// anchor (#Fragment), so the current query string, e.g. the admin's facility filter, is kept.
+    /// </summary>
     public class DashLink
     {
         public string Controller { get; set; } = "";
         public string Action { get; set; } = "Index";
         public string? Id { get; set; }
+        public Dictionary<string, string?> Query { get; set; } = new();
+        public string? Fragment { get; set; }
 
         public DashLink() { }
         public DashLink(string controller, string action = "Index", object? id = null)
@@ -38,6 +45,37 @@ namespace EMMS.ViewModels
             Controller = controller;
             Action = action;
             Id = id?.ToString();
+        }
+
+        public static DashLink Anchor(string fragment) => new() { Controller = "", Fragment = fragment };
+
+        /// <summary>Adds a query value; null or empty values are left out of the URL.</summary>
+        public DashLink With(string key, object? value)
+        {
+            Query[key] = value?.ToString();
+            return this;
+        }
+
+        /// <summary>
+        /// Opens a list page on one row: the page scrolls to and highlights the element with data-focus-id = id
+        /// and, with act, clicks that row's [data-focus-act] button (site.js, emmsFocusRow).
+        /// </summary>
+        public DashLink Focus(object id, string? act = null) => With("focus", id).With("act", act);
+    }
+
+    public static class DashLinkUrlExtensions
+    {
+        public static string Dash(this IUrlHelper url, DashLink link)
+        {
+            if (string.IsNullOrEmpty(link.Controller))
+                return "#" + link.Fragment;
+
+            var values = new RouteValueDictionary();
+            if (!string.IsNullOrEmpty(link.Id)) values["id"] = link.Id;
+            foreach (var (key, value) in link.Query)
+                if (!string.IsNullOrEmpty(value)) values[key] = value;
+
+            return url.Action(link.Action, link.Controller, values, protocol: null, host: null, fragment: link.Fragment) ?? "#";
         }
     }
 
@@ -65,6 +103,7 @@ namespace EMMS.ViewModels
         public string Label { get; set; } = "";
         public int Count { get; set; }
         public DashTone Tone { get; set; } = DashTone.Info;
+        public DashLink? Link { get; set; }     // clicking the bar opens the asset list filtered to this row
     }
 
     /// <summary>A short ranked list drawn as a horizontal bar chart. Bar colour comes from each row's tone.</summary>
@@ -73,6 +112,7 @@ namespace EMMS.ViewModels
         public string Title { get; set; } = "";
         public List<BreakdownRow> Rows { get; set; } = new();
         public string EmptyText { get; set; } = "Nothing to show.";
+        public string? More { get; set; }       // e.g. "+3 more facilities (5 items)" when Rows was cut short
     }
 
     public class TableCell
@@ -111,6 +151,7 @@ namespace EMMS.ViewModels
         public List<TableRow> Rows { get; set; } = new();
         public string EmptyText { get; set; } = "Nothing waiting.";
         public DashLink? ViewAll { get; set; }
+        public string? Anchor { get; set; }     // element id, so a tile can link to the table (DashLink.Anchor)
     }
 
     public class HomeDashboardViewModel

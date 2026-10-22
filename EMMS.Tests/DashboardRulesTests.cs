@@ -146,5 +146,60 @@ namespace EMMS.Tests
             Assert.False(new RowAction { Label = "Open", Link = new DashLink("Home") }.IsLabel);
             Assert.False(new RowAction { Label = "Request service", ServiceRequestAssetId = Guid.NewGuid() }.IsLabel);
         }
+
+        private static readonly Func<EMMS.Models.MoveAsset, bool> Awaiting = DashboardService.AwaitingApproval.Compile();
+
+        [Fact]
+        public void AwaitingApproval_OnlyActiveUnapprovedNotRejectedOrReceived()
+        {
+            EMMS.Models.MoveAsset M() => new() { RowState = RowStatus.Active, IsApproved = false };
+
+            Assert.True(Awaiting(M()));
+
+            var approved = M(); approved.IsApproved = true;
+            var rejected = M(); rejected.DateRejected = Today;
+            var received = M(); received.DateReceived = Today;
+            var inactive = M(); inactive.RowState = RowStatus.Inactive;
+            Assert.False(Awaiting(approved));
+            Assert.False(Awaiting(rejected));
+            Assert.False(Awaiting(received));
+            Assert.False(Awaiting(inactive));
+        }
+
+        private static List<BreakdownRow> Rows(params int[] counts) =>
+            counts.Select(c => new BreakdownRow { Count = c }).ToList();
+
+        [Fact]
+        public void MoreText_NothingHidden_IsNull()
+        {
+            Assert.Null(DashboardService.MoreText(Rows(), "facility"));
+        }
+
+        [Fact]
+        public void MoreText_CountsHiddenGroupsAndItems()
+        {
+            Assert.Equal("+1 more facility (1 item)", DashboardService.MoreText(Rows(1), "facility"));
+            Assert.Equal("+3 more facilities (6 items)", DashboardService.MoreText(Rows(1, 2, 3), "facility"));
+            Assert.Equal("+2 more service points (4 items)", DashboardService.MoreText(Rows(2, 2), "service point"));
+        }
+
+        [Fact]
+        public void DashLink_FocusAddsQueryValuesAndSkipsEmptyAct()
+        {
+            var id = Guid.NewGuid();
+            var link = new DashLink("Cylinder").Focus(id);
+            Assert.Equal(id.ToString(), link.Query["focus"]);
+            Assert.Null(link.Query["act"]);
+
+            Assert.Equal("close", new DashLink("JobManagement").Focus(id, "close").Query["act"]);
+        }
+
+        [Fact]
+        public void DashLink_AnchorHasNoController()
+        {
+            var link = DashLink.Anchor(DashboardService.ServiceDueAnchor);
+            Assert.Equal("", link.Controller);
+            Assert.Equal("due-for-service", link.Fragment);
+        }
     }
 }

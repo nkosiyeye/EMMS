@@ -24,8 +24,8 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            await _notificationService.MarkAsReadAsync(id);
-            return Ok();
+            // NotFound rather than Forbid, so ids belonging to other users aren't confirmed to exist
+            return await _notificationService.MarkAsReadAsync(id, CurrentUser!) ? Ok() : NotFound();
         }
     }
 }

@@ -21,7 +21,6 @@
     }
     @if (Model.Link != null)
     {
-        <a class="stretched-link" aria-label="@Model.Label: @Model.Value"
-           asp-controller="@Model.Link.Controller" asp-action="@Model.Link.Action" asp-route-id="@Model.Link.Id"></a>
+        <a class="stretched-link" aria-label="@Model.Label: @Model.Value" href="@Url.Dash(Model.Link)"></a>
     }
 </div>

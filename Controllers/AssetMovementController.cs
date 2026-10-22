@@ -1,61 +1,42 @@
-﻿using Azure.Core;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using DocumentFormat.OpenXml.Office2016.Excel;
-using EMMS.Constants;
-using EMMS.CustomAttributes;
-using EMMS.Data;
-using EMMS.Data.Migrations;
+﻿using EMMS.CustomAttributes;
 using EMMS.Data.Repository;
 using EMMS.Models;
-using EMMS.Models.Admin;
-using EMMS.Models.Entities;
 using EMMS.Models.Pagination;
 using EMMS.Service;
 using EMMS.Utility;
 using EMMS.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
-using System.Drawing.Printing;
-using System.Net;
-using System.Threading.Tasks;
 using static EMMS.Models.Enumerators;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace EMMS.Controllers
 {
     public class AssetMovementController : BaseController
     {
-        private readonly ApplicationDbContext _context;
         private readonly AssetService _assetService;
         private readonly MovementService _movementService;
-        private readonly NotificationService _notificationService;
-        private readonly AssetManagementRepo _assetManagementRepo;
+        private readonly AssetMovementRepo _repo;
         private readonly MovementQueueService _queueService;
         private readonly CylinderOrderService _orderService;
 
-        public AssetMovementController(ApplicationDbContext context, NotificationService notificationService, AssetService assetService, 
-            AssetManagementRepo assetManagementRepo, MovementService movementService, MovementQueueService queueService, CylinderOrderService orderService)
+        public AssetMovementController(AssetService assetService, MovementService movementService, AssetMovementRepo repo,
+            MovementQueueService queueService, CylinderOrderService orderService)
         {
-            _orderService = orderService;
-            _queueService = queueService;
-            _context = context;
             _assetService = assetService;
-            _notificationService = notificationService;
-            _assetManagementRepo = assetManagementRepo;
             _movementService = movementService;
+            _repo = repo;
+            _queueService = queueService;
+            _orderService = orderService;
         }
 
-        private AssetMovementRepo GetRepo() => new AssetMovementRepo(_context);
-
-        private async Task<MoveAssetViewModel> LoadViewModel(MoveAsset? moveModel = null)
+        // Receive Asset page (also shown again when a receive / reject form fails)
+        private async Task<MoveAssetViewModel> LoadReceiveViewModel(MoveAsset? moveModel = null)
         {
-            var assets = await _assetService.GetAssetIndexViewModel(CurrentUser);
             return new MoveAssetViewModel
             {
                 MoveAsset = moveModel ?? new MoveAsset(),
-                AssetIndex = assets
+                Conditions = await _repo.GetConditions(),
+                Reasons = await _repo.GetReasons()
             };
         }
 
@@ -63,36 +44,28 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Index()
         {
-            var repo = GetRepo();
-            //var data = await LoadViewModel();
-            //var movements = await repo.GetAssetMovement();
-
-            //data.MoveAssets = isAdmin
-            //    ? movements
-            //    : movements.Where(m => m.FromId == CurrentUser.FacilityId);
-            var data = new MoveAssetViewModel();
-
-            data.Conditions = await repo.GetConditions();
-            data.FilterOptions = await GetFilterOptions(repo);
+            var data = new MoveAssetViewModel
+            {
+                Conditions = await _repo.GetConditions(),
+                FilterOptions = await GetFilterOptions()
+            };
             return View(data);
         }
 
         // Full option lists for the Movement History header filters (not just the values on the current page).
         // Values are ids / enum values / fixed keys; MovementService.GetPaginatedMovements matches on them.
-        private async Task<Dictionary<string, List<SelectListItem>>> GetFilterOptions(AssetMovementRepo repo)
+        private async Task<Dictionary<string, List<SelectListItem>>> GetFilterOptions()
         {
             static List<SelectListItem> FromEnum<T>() where T : struct, Enum => Enum.GetValues<T>()
                 .Select(e => new SelectListItem(e.ToString(), Convert.ToInt32(e).ToString()))
                 .ToList();
 
-            var facilities = await _context.Facilities
-                .AsNoTracking()
-                .Where(f => f.RowState == RowStatus.Active)
+            var facilities = (await _repo.GetFacilities())
                 .OrderBy(f => f.FacilityName)
                 .Select(f => new SelectListItem(f.FacilityName, f.FacilityId.ToString()))
-                .ToListAsync();
+                .ToList();
 
-            var servicePoints = (await repo.GetServicePoints())
+            var servicePoints = (await _repo.GetServicePoints())
                 .OrderBy(i => i.Name)
                 .Select(i => new SelectListItem(i.Name, i.Id.ToString()))
                 .Append(new SelectListItem("Unknown", "none"))
@@ -254,73 +227,26 @@ namespace EMMS.Controllers
         [HttpGet]
         public async Task<IActionResult> GetFacilites(bool isOffSite)
         {
-            var facilities = await _context.Facilities
-                .Where(x => (x.isOffSite ?? false) == isOffSite && x.RowState == RowStatus.Active)
-                .Select(x => new { x.FacilityId, x.FacilityName })
-                .ToListAsync();
-
-            return Json(facilities);
+            var facilities = await _movementService.GetFacilitiesAsync(isOffSite);
+            return Json(facilities.Select(x => new { x.FacilityId, x.FacilityName }));
         }
+
         [HttpGet]
         public async Task<IActionResult> GetServicePoints(int facilityId)
         {
-
-            var query = _context.LookupItems
-                .Include(x => x.LookupList)
-                .Where(x => x.LookupList.Name.ToLower().Contains("service point") && x.RowState == RowStatus.Active);
-
-            // Otherwise filter by facility
-            var servicePoints = await query
-                .Where(x =>
-                    x.ParentFacilityId == null ||
-                    x.ParentFacilityId == facilityId
-                )
-                .ToListAsync();
-
-            return Json(servicePoints);
+            return Json(await _movementService.GetServicePointsForFacilityAsync(facilityId));
         }
 
         [HttpGet]
         [RequireLogin]
         public async Task<IActionResult> MoveAsset(Guid id)
         {
-            var repo = GetRepo();
-            var moveAsset = new MoveAsset();
-            moveAsset.MovementDate = DateTime.Today;
-            var history = await repo.GetLastMovement(id);
-
-            if (history != null)
+            var viewModel = await _movementService.GetMoveFormAsync(id);
+            if (viewModel == null)
             {
-                moveAsset.AssetId = id;
-                moveAsset.FacilityId = history.FacilityId;
-                moveAsset.MovementType = history.MovementType;
-                moveAsset.FromId = history.FacilityId;
-                moveAsset.Asset = history.Asset;
+                TempData["MovementError"] = "Asset not found.";
+                return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                var asset = (await _assetManagementRepo.GetAssetsFromDb())
-                    .FirstOrDefault(a => a.AssetId == id);
-                if (asset == null)
-                {
-                    TempData["MovementError"] = "Asset not found.";
-                    return RedirectToAction(nameof(Index));
-                }
-                moveAsset.AssetId = asset.AssetId;
-                moveAsset.Asset = asset;
-                moveAsset.MovementType = MovementType.Facility;
-            }
-
-            var viewModel = new MoveRequestViewModel
-            {
-                Asset = moveAsset.Asset,
-                MoveAsset = moveAsset,
-                Facilities = await repo.GetFacilities(),
-                ServicePoints = await repo.GetServicePoints(),
-                Reasons = await repo.GetReasons(),
-                FunctionalStatuses = await repo.GetFunctionalStatuses()
-            };
-
             return View(viewModel);
         }
 
@@ -328,170 +254,41 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var repo = GetRepo();
-            var moveAsset = (await repo.GetAssetMovement()).FirstOrDefault(m => m.MovementId == id);
-
-            var viewModel = new MoveRequestViewModel
-            {
-                Asset = moveAsset.Asset,
-                MoveAsset = moveAsset,
-                Facilities = await repo.GetFacilities(),
-                ServicePoints = await repo.GetServicePoints(),
-                Reasons = await repo.GetReasons(),
-                FunctionalStatuses = await repo.GetFunctionalStatuses()
-            };
-
-            if (moveAsset.Reason == MovementReason.Installation)
-            {
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == moveAsset.AssetId);
-                viewModel.WarrantyEndDate = asset.WarrantyEndDate;
-            }
-
-            return View(viewModel);
+            var viewModel = await _movementService.GetEditFormAsync(id);
+            return viewModel == null ? NotFound() : View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
-            var assetMovement = model.MoveAsset;
             if (!ModelState.IsValid)
             {
                 TempData["MovementError"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
-                return RedirectToAction(nameof(Edit), new { id = model.MoveAsset.MovementId });
+                return RedirectToAction(nameof(Edit), new { id = model.MoveAsset?.MovementId });
             }
 
-            UpdateEntity(assetMovement);
-            _context.Update(assetMovement);
-
-            if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
-            {
-                var asset = await _context.Assets.FirstOrDefaultAsync(a => a.AssetId == assetMovement.AssetId);
-                if (asset != null)
-                {
-                    asset.WarrantyStartDate = assetMovement?.MovementDate ?? DateTime.Today;
-                    asset.WarrantyEndDate = model?.WarrantyEndDate ?? DateTime.Today;
-                    UpdateEntity(asset);
-                    _context.Update(asset);
-                }
-                else
-                {
-                    ModelState.AddModelError("", "Asset is null Reselect Asset");
-                }
-            }
-            await _context.SaveChangesAsync();
+            await _movementService.UpdateMovementAsync(model, CurrentUser!);
             return RedirectToAction(nameof(Index));
         }
+
         [HttpPost]
         public async Task<IActionResult> MoveAsset(MoveRequestViewModel model)
         {
-            var repo = GetRepo(); // assuming this returns your repository
+            foreach (var error in await _movementService.ValidateMoveAsync(model))
+                ModelState.AddModelError("", error);
 
-            // 1. Reload the asset (critical!)
-            if (model.MoveAsset?.AssetId != Guid.Empty)
-            {
-                model.Asset = await _context.Assets
-                    .Include(a => a.SubCategory)
-                    .FirstOrDefaultAsync(a => a.AssetId == model.MoveAsset.AssetId);
-
-                if (model.Asset == null)
-                {
-                    ModelState.AddModelError("", "Selected asset not found.");
-                }
-            }
-
-            // 2. Existing validation checks
-            var existing = _context.AssetMovement
-                .OrderByDescending(m => m.DateCreated)
-                .FirstOrDefault(m => m.AssetId == model.MoveAsset.AssetId);
-
-            if (existing != null && existing.DateRejected == null && existing.DateReceived == null)
-            {
-                ModelState.AddModelError("", "Asset already has a movement pending.");
-            }
-
-            var workrequest = _context.WorkRequest
-                .OrderByDescending(m => m.DateCreated)
-                .FirstOrDefault(m => m.AssetId == model.MoveAsset.AssetId);
-
-            if (workrequest != null && workrequest.CloseDate == null)
-            {
-                ModelState.AddModelError("", "Can't move an asset that has a work request in progress.");
-            }
-
-            // Service point flagged RequiresPatient (e.g. Home Based Care): capture the patient
-            bool requiresPatient = false;
-            if (model.MoveAsset?.MovementType == MovementType.ServicePoint && model.MoveAsset.ServicePointId != null)
-            {
-                var servicePoint = await _context.LookupItems.AsNoTracking().FirstOrDefaultAsync(l => l.Id == model.MoveAsset.ServicePointId);
-                requiresPatient = servicePoint?.GetFlag(LookupFlags.RequiresPatient) == true;
-                if (requiresPatient)
-                    foreach (var error in MovementQueueService.ValidatePatient(model.Patient))
-                        ModelState.AddModelError("", error);
-            }
-            if (model.MoveAsset != null) model.MoveAsset.Patient = null;
-
-            // Dispatch only comes from a cylinder order; Return only goes to the central store
-            if (model.MoveAsset != null)
-            {
-                bool toCentralStore = await _context.Facilities.AnyAsync(f => f.FacilityId == model.MoveAsset.FacilityId && f.IsCentralStore);
-                foreach (var error in MovementQueueService.ValidateReason(model.MoveAsset.Reason, toCentralStore, dispatch: false))
-                    ModelState.AddModelError("", error);
-            }
-
-            // 3. If still invalid → repopulate everything and return view
             if (!ModelState.IsValid)
             {
                 TempData["Error"] = string.Join("; ", ModelState.Values
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage));
 
-                // Repopulate dropdowns
-                model.Facilities = await repo.GetFacilities();
-                model.ServicePoints = await repo.GetServicePoints();
-                model.Reasons = await repo.GetReasons();
-                model.FunctionalStatuses = await repo.GetFunctionalStatuses();
-
-                // VERY IMPORTANT: keep the asset loaded
-                // (already done above if AssetId was present)
-
+                // model.Asset was reloaded by the validation, so the form shows it again
+                await _movementService.FillFormLookupsAsync(model);
                 return View("MoveAsset", model);
             }
 
-            // ── Success path ───────────────────────────────────────────────────────
-            var assetMovement = model.MoveAsset;
-
-            assetMovement.FromId = (assetMovement?.FromId != null && assetMovement?.FromId != 0) ? assetMovement.FromId : CurrentUser!.FacilityId;
-
-            assetMovement.MovementDate = assetMovement.MovementDate.Date
-                .AddHours(DateTime.Now.Hour)
-                .AddMinutes(DateTime.Now.Minute)
-                .AddSeconds(DateTime.Now.Second);
-
-            if (requiresPatient)
-                assetMovement.PatientId = await _queueService.UpsertPatientAsync(model.Patient!, CurrentUser!);
-
-            CreateEntity(assetMovement);
-            _context.Add(assetMovement);
-
-            await _notificationService.CreateMovementRequestNotification(
-                assetMovement.FacilityId,
-                CurrentUser.UserId
-            );
-
-            if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
-            {
-                var asset = model.Asset; // now safe because we reloaded it
-                if (asset != null)
-                {
-                    asset.WarrantyStartDate = assetMovement.MovementDate;
-                    asset.WarrantyEndDate = model.WarrantyEndDate;
-                    UpdateEntity(asset);
-                    _context.Update(asset);
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
+            await _movementService.CreateMoveAsync(model, CurrentUser!);
             return RedirectToAction(nameof(Index));
         }
 
@@ -499,63 +296,15 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> RecieveAsset()
         {
-            var repo = GetRepo();
-            var data = new MoveAssetViewModel();
-            //var data = await LoadViewModel();
-            //var movements = await repo.GetAssetMovement();
-
-            //data.MoveAssets = isAdmin
-            //    ? movements
-            //    : movements.Where(m => m.FacilityId == CurrentUser.FacilityId);
-
-            data.Conditions = await repo.GetConditions();
-            data.Reasons = await repo.GetReasons();
-            return View(data);
+            return View(await LoadReceiveViewModel());
         }
+
         [HttpPost]
         public IActionResult GetPendingReceipts([FromForm] DataTablesRequest request)
         {
-            var currentUser = CurrentUser;
-            if (currentUser == null) return JsonError(request);
+            var result = _movementService.GetPendingReceipts(request.Start, request.Length, request.Search?.Value, CurrentUser!);
 
-            var query = _context.AssetMovement
-                .AsNoTracking()
-                .Where(m => m.IsApproved &&
-                            m.DateReceived == null &&
-                            m.DateRejected == null &&
-                            m.RowState == RowStatus.Active);
-
-            if (!isAdmin)
-            {
-                var fid = currentUser.FacilityId;
-                query = query.Where(m => m.FacilityId == fid);
-            }
-
-            int total = query.Count();
-
-            if (!string.IsNullOrWhiteSpace(request.Search?.Value))
-            {
-                var s = request.Search.Value.Trim().ToLower();
-                query = query.Where(m =>
-                    m.Asset.AssetTagNumber.ToLower().Contains(s) ||
-                    m.From.FacilityName.ToLower().Contains(s) ||
-                    (m.ServicePoint != null && m.ServicePoint.Name.ToLower().Contains(s)) ||
-                    m.Reason.ToString().ToLower().Contains(s)
-                );
-            }
-
-            int filtered = query.Count();
-
-            var items = query
-                .Include(m => m.Asset)
-                .Include(m => m.From)
-                .Include(m => m.ServicePoint)
-                .OrderByDescending(m => m.MovementDate)
-                .Skip(request.Start)
-                .Take(request.Length)
-                .ToList();
-
-            var data = items.Select(m => new
+            var data = result.Items.Select(m => new
             {
                 assetTag = m.Asset?.AssetTagNumber ?? "-",
                 fromFacility = m.From?.FacilityName ?? "-",
@@ -570,8 +319,8 @@ namespace EMMS.Controllers
             return Json(new
             {
                 draw = request.Draw,
-                recordsTotal = total,
-                recordsFiltered = filtered,
+                recordsTotal = result.TotalCount,
+                recordsFiltered = result.FilteredCount,
                 data
             });
         }
@@ -579,44 +328,9 @@ namespace EMMS.Controllers
         [HttpPost]
         public IActionResult GetReceiptHistory([FromForm] DataTablesRequest request)
         {
-            var currentUser = CurrentUser;
-            if (currentUser == null) return JsonError(request);
+            var result = _movementService.GetReceiptHistory(request.Start, request.Length, request.Search?.Value, CurrentUser!);
 
-            var query = _context.AssetMovement
-                .AsNoTracking()
-                .Where(m => (m.DateReceived != null || m.DateRejected != null) &&
-                            m.RowState == RowStatus.Active);
-
-            if (!isAdmin)
-            {
-                var fid = currentUser.FacilityId;
-                query = query.Where(m => m.FacilityId == fid);
-            }
-
-            int total = query.Count();
-
-            if (!string.IsNullOrWhiteSpace(request.Search?.Value))
-            {
-                var s = request.Search.Value.Trim().ToLower();
-                query = query.Where(m =>
-                    m.Asset.AssetTagNumber.ToLower().Contains(s) ||
-                    m.From.FacilityName.ToLower().Contains(s) ||
-                    (m.ServicePoint != null && m.ServicePoint.Name.ToLower().Contains(s))
-                );
-            }
-
-            int filtered = query.Count();
-
-            var items = query
-                .Include(m => m.Asset)
-                .Include(m => m.From)
-                .Include(m => m.ServicePoint)
-                .OrderByDescending(m => m.DateReceived ?? m.DateRejected ?? m.MovementDate)
-                .Skip(request.Start)
-                .Take(request.Length)
-                .ToList();
-
-            var data = items.Select(m => new
+            var data = result.Items.Select(m => new
             {
                 assetTag = m.Asset?.AssetTagNumber ?? "-",
                 fromFacility = m.From?.FacilityName ?? "-",
@@ -629,8 +343,8 @@ namespace EMMS.Controllers
             return Json(new
             {
                 draw = request.Draw,
-                recordsTotal = total,
-                recordsFiltered = filtered,
+                recordsTotal = result.TotalCount,
+                recordsFiltered = result.FilteredCount,
                 data
             });
         }
@@ -641,25 +355,14 @@ namespace EMMS.Controllers
             if (!ModelState.IsValid)
             {
                 TempData["Error"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
-                return View("RecieveAsset", await LoadViewModel(model.MoveAsset));
+                return View("RecieveAsset", await LoadReceiveViewModel(model.MoveAsset));
             }
 
-            var movement = await _context.AssetMovement.FindAsync(model.MoveAsset.MovementId);
-            if (movement == null)
+            if (!await _movementService.ReceiveAsync(model.MoveAsset))
             {
                 ModelState.AddModelError("", "Asset movement not found.");
-                return View("RecieveAsset", model);
+                return View("RecieveAsset", await LoadReceiveViewModel(model.MoveAsset));
             }
-
-            movement.DateReceived = model.MoveAsset.DateReceived;
-            movement.Condition = model.MoveAsset.Condition;
-            movement.ReceivedBy = model.MoveAsset.ReceivedBy;
-            movement.Remarks = model.MoveAsset.Remarks;
-
-            _context.Update(movement);
-            await _context.SaveChangesAsync();
-            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
 
@@ -669,110 +372,28 @@ namespace EMMS.Controllers
             if (!ModelState.IsValid)
             {
                 TempData["Error"] = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
-                return View("RecieveAsset", await LoadViewModel(model.MoveAsset));
+                return View("RecieveAsset", await LoadReceiveViewModel(model.MoveAsset));
             }
 
-            var movement = await _context.AssetMovement.FindAsync(model.MoveAsset.MovementId);
-            if (movement == null)
+            if (!await _movementService.RejectAsync(model.MoveAsset))
             {
                 ModelState.AddModelError("", "Asset movement not found.");
-                return View("RecieveAsset", model);
+                return View("RecieveAsset", await LoadReceiveViewModel(model.MoveAsset));
             }
-
-            movement.DateRejected = model.MoveAsset.DateRejected;
-            movement.RejectedReasonId = model.MoveAsset.RejectedReasonId;
-            movement.RejectedBy = model.MoveAsset.RejectedBy;
-            movement.Remarks = model.MoveAsset.Remarks;
-
-            _context.Update(movement);
-            await _context.SaveChangesAsync();
-            await _orderService.RefreshOrdersForMovementsAsync(new[] { movement.MovementId });
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(RecieveAsset));
         }
 
         public async Task<IActionResult> ApproveMovement(Guid id)
         {
-            var movement = await _context.AssetMovement.FindAsync(id);
-            if (movement == null) return RedirectToAction(nameof(Index));
-
-            movement.IsApproved = true;
-            movement.ApprovedBy = CurrentUser.UserId;
-            UpdateEntity(movement);
-
-            var asset = await _context.Assets.FindAsync(movement.AssetId);
-            var notification = new Models.Entities.Notification
-            {
-                Message = $"Receive Asset: {asset?.AssetTagNumber}",
-                Type = "move",
-                DateCreated = DateTime.Now,
-                FacilityId = movement.FacilityId,
-                RowState = RowStatus.Active
-            };
-
-            _context.Notifications.Add(notification);
-            _context.Update(movement);
-
-            await _notificationService.CreateMovementApprovalNotification(movement.FacilityId, CurrentUser.UserId);
-
-            await _context.SaveChangesAsync();
+            await _movementService.ApproveAsync(id, CurrentUser!);
             return RedirectToAction(nameof(Index));
         }
+
         [HttpPost]
         public async Task<IActionResult> ReportStolenMissing(Guid AssetId, string DocketNumber)
         {
-            var asset = await _context.Assets.FindAsync(AssetId);
-            if (asset == null)
-            {
-                TempData["Error"] = "Asset not found.";
-                return RedirectToAction("Index", "AssetManagement");
-            }
-            var repo = GetRepo();
-            var history = await repo.GetLastMovement(AssetId);
-            if (history != null && history.DateRejected == null && history.DateReceived == null)
-            {
-
-
-                TempData["Error"] = $"Asset {asset.AssetTagNumber} has a Movement Pending.";
-            }
-            else
-            {
-
-                //if (history != null)
-                //{
-                //    moveAsset.AssetId = id;
-                //    moveAsset.FacilityId = history.FacilityId;
-                //    moveAsset.MovementType = history.MovementType;
-                //    moveAsset.FromId = history.FacilityId;
-                //    moveAsset.Asset = history.Asset;
-                //}
-
-                var movement = new MoveAsset
-                {
-                    AssetId = AssetId,
-                    MovementDate = DateTime.Now,
-                    Reason = MovementReason.StolenorMissing, // <-- Enum
-                    MovementType = history?.MovementType ?? MovementType.Facility, // <-- Enum
-                    FunctionalStatus = FunctionalStatus.Unknown,
-                    Remarks = $"Reported stolen/missing. Police Docket: {DocketNumber}",
-                    FromId = history?.FromId ?? CurrentUser.FacilityId,
-                    FacilityId = history?.FacilityId ?? CurrentUser.FacilityId,
-                    ServicePointId = history?.ServicePointId,
-                    IsApproved = true,
-                    ApprovedBy = CurrentUser.UserId,
-                    DateReceived = DateTime.Now,
-                    ReceivedBy = CurrentUser.UserId,
-
-                };
-
-                CreateEntity(movement);
-                _context.AssetMovement.Add(movement);
-
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Asset {asset.AssetTagNumber} reported as Stolen/Missing.";
-
-            }
+            var (success, message) = await _movementService.ReportStolenMissingAsync(AssetId, DocketNumber, CurrentUser!);
+            TempData[success ? "Success" : "Error"] = message;
             return RedirectToAction("Index", "AssetManagement");
         }
 
@@ -800,7 +421,7 @@ namespace EMMS.Controllers
             {
                 Items = await _queueService.GetQueueAsync(CurrentUser!.UserId),
                 Request = request,
-                ServicePoints = await GetRepo().GetServicePoints(),
+                ServicePoints = await _repo.GetServicePoints(),
                 Dispatch = order == null ? null : CylinderOrderService.ToRow(order, isCms: true)
             };
         }
@@ -979,34 +600,19 @@ namespace EMMS.Controllers
         [RequireLogin]
         public async Task<IActionResult> GatePass(Guid id)
         {
-            var movement = await _context.AssetMovement
-                .Include(m => m.Asset)
-                .Include(m => m.Facility)
-                .Include(m => m.From)
-                .Include(m => m.ServicePoint)
-                .Include(m => m.ApprovedUser)
-                .ThenInclude(m => m.UserRole)
-                .Include(m => m.ApprovedUser)
-                .ThenInclude(m => m.Designations)
-                .FirstOrDefaultAsync(m => m.MovementId == id);
-
+            var movement = await _movementService.GetGatePassAsync(id);
             return movement == null ? NotFound() : View("GatePass", movement);
         }
 
         [HttpPost]
-        //[ValidateAntiForgeryToken]
-        //[RequireLogin]
         public async Task<IActionResult> deleteMovement(Guid id)
         {
-            var movement = await _context.AssetMovement.FindAsync(id);
-            if (movement == null)
+            if (!await _movementService.DeleteAsync(id))
             {
                 TempData["Error"] = "Asset movement not found.";
                 return RedirectToAction(nameof(Index));
             }
 
-            _context.AssetMovement.Remove(movement);
-            await _context.SaveChangesAsync();
             TempData["MovementSuccess"] = "Asset movement deleted successfully.";
             return RedirectToAction(nameof(Index));
         }

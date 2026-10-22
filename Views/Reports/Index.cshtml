@@ -188,16 +188,8 @@
                     tempForm.appendChild(input);
                 });
 
-                const token = document.querySelector('input[name="__RequestVerificationToken"]');
-                if (token) {
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '__RequestVerificationToken';
-                    tokenInput.value = token.value;
-                    tempForm.appendChild(tokenInput);
-                }
-
                 document.body.appendChild(tempForm);
+                emmsAddCsrfInput(tempForm); // tempForm.submit() skips the submit event (site.js)
                 tempForm.submit();
                 document.body.removeChild(tempForm);
 

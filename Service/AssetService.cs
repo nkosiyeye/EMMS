@@ -4,7 +4,6 @@ using EMMS.Models.Admin;
 using EMMS.Models;
 using EMMS.ViewModels;
 using Microsoft.EntityFrameworkCore;
-using EMMS.Data.Migrations;
 using Microsoft.Extensions.Caching.Memory;
 using EMMS.Models.Pagination;
 using static EMMS.Models.Enumerators;
@@ -22,85 +21,130 @@ namespace EMMS.Service
             _context = context;
             _repo = repo;
         }
-        public async Task<AssetIndexViewModel?> GetAssetIndexViewModel(User currentUser,bool isDashboard=false)
+        // The assets a user may pick from (work request asset picker), newest first, scoped in SQL: admins see every
+        // asset; data collectors only those they registered; everyone else those currently at their facility or
+        // registered by them.
+        public async Task<AssetIndexViewModel> GetAssetIndexViewModel(User currentUser)
         {
-            // Get all active assets
-            var assets = await _repo.GetAssetsFromDb().ConfigureAwait(false);
-            var orderedAssets = assets?.OrderByDescending(a => a.DateCreated).ToList() ?? new List<Asset>();
+            var query = _context.Assets
+                .AsNoTracking()
+                .Where(a => a.RowState == RowStatus.Active);
 
-            // Get latest movements
-            var lastMovements = await _repo.GetAssetMovement().ConfigureAwait(false);
+            var role = currentUser.UserRole?.UserType;
+            var userId = currentUser.UserId;
+            var userFacilityId = currentUser.FacilityId;
 
-            var lastMovementDict = lastMovements?
-                .Where(m => m != null && m.AssetId != Guid.Empty)
-                .GroupBy(m => m.AssetId)
-                .ToDictionary(g => g.Key, g => g.First())
-                ?? new Dictionary<Guid, MoveAsset>();
+            if (role == UserType.DataCollector)
+                query = query.Where(a => a.CreatedBy == userId);
+            else if (role != UserType.Administrator)
+                query = query.Where(a => a.CreatedBy == userId ||
+                    _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.FacilityId == userFacilityId));
 
-            // Create view models safely
-            var assetViewModels = orderedAssets.Select(asset => new AssetViewModel
-            {
-                Asset = asset ?? new Asset(),
-                LastMovement = (asset != null && lastMovementDict.TryGetValue(asset.AssetId, out var move)) ? move : null
-            }).ToList();
+            var assets = await query
+                .Include(x => x.Category)
+                .Include(x => x.SubCategory)
+                .Include(x => x.Department)
+                .Include(x => x.Manufacturer)
+                .Include(x => x.Vendor)
+                .Include(x => x.ServiceProvider)
+                .OrderByDescending(a => a.DateCreated)
+                .ToListAsync();
 
-            // Apply facility restriction
-            if (currentUser?.UserRole?.UserType != Enumerators.UserType.Administrator)
-            {
-                var userFacilityId = currentUser?.FacilityId;
-                var userId = currentUser?.UserId;
-
-                assetViewModels = assetViewModels
-                    .Where(vm =>
-                        (vm.LastMovement != null && vm.LastMovement.FacilityId == userFacilityId) ||
-                        vm.Asset.CreatedBy == userId)
-                    .ToList();
-            }
-            
-            if(currentUser?.UserRole.UserType == Enumerators.UserType.DataCollector)
-            {
-                var userFacilityId = currentUser?.FacilityId;
-                var userId = currentUser?.UserId;
-
-                assetViewModels = isDashboard ? assetViewModels : assetViewModels
-                    .Where(vm => vm.Asset.CreatedBy == userId)
-                    .ToList();
-
-            }
-
-                return new AssetIndexViewModel
-                {
-                    assetViewModels = assetViewModels,
-                    moveAsset = new MoveAsset()
-                };
-        }
-
-
-        public async Task<AssetIndexViewModel?> GetAssetDueServiceViewModel()
-        {
-            // Fetch assets due for service asynchronously
-            var assets = await _repo.GetAssetsDueService()
-                .ConfigureAwait(false);
-
-            var lastMovements = await _repo.GetAssetMovement()
-                .ConfigureAwait(false);
-
-            var lastMovementDict = lastMovements?
-                .Where(m => m != null)
-                .ToDictionary(m => m.AssetId, m => m)
-                ?? new Dictionary<Guid, MoveAsset>();
-
-            var assetViewModels = assets.Select(asset => new AssetViewModel
-            {
-                Asset = asset,
-                LastMovement = lastMovementDict.TryGetValue(asset.AssetId, out var move) ? move : null
-            }).ToList();
+            // Current location of just these assets (the id query runs as a SQL subquery)
+            var locations = await _repo.GetCurrentLocationMovements(query.Select(a => a.AssetId));
 
             return new AssetIndexViewModel
             {
-                assetViewModels = assetViewModels,
+                assetViewModels = assets.Select(asset => new AssetViewModel
+                {
+                    Asset = asset,
+                    LastMovement = locations.GetValueOrDefault(asset.AssetId)
+                }).ToList(),
                 moveAsset = new MoveAsset()
             };
+        }
+
+        // Asset page: the asset, its job and movement history, where it is now / is heading, and its status log
+        public async Task<AssetDetailViewModel?> GetAssetDetailAsync(Guid id)
+        {
+            var asset = await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.Category)
+                .Include(a => a.SubCategory)
+                .Include(a => a.Department)
+                .Include(a => a.Manufacturer)
+                .Include(a => a.Vendor)
+                .Include(a => a.ServiceProvider)
+                .Include(u => u.User)
+                .Include(a => a.CylinderDetail!.Size)
+                .Include(a => a.CylinderDetail!.Content)
+                .FirstOrDefaultAsync(a => a.AssetId == id);
+            if (asset == null) return null;
+
+            var serviceHistory = await _context.Job
+                .AsNoTracking()
+                .Where(j => j.AssetId == id)
+                .Include(j => j.FaultReport)
+                .Include(j => j.Status)
+                .OrderByDescending(j => j.DateCreated)
+                .ToListAsync();
+
+            var movementHistory = await _context.AssetMovement
+                .AsNoTracking()
+                .Where(m => m.AssetId == id && m.RowState == RowStatus.Active)
+                .Where(m => m.DateReceived != null || m.DateRejected != null)
+                .Include(m => m.Facility)
+                .Include(m => m.ServicePoint)
+                .Include(m => m.RecievedUser)
+                .Include(m => m.RejectedUser)
+                .OrderByDescending(m => m.MovementDate)
+                .ToListAsync();
+
+            return new AssetDetailViewModel
+            {
+                Asset = asset,
+                ServiceHistory = serviceHistory,
+                MovementHistory = movementHistory,
+                CurrentLocation = (await _repo.GetCurrentLocationMovements(new[] { id })).GetValueOrDefault(id),
+                PendingMovement = (await _repo.GetInTransitMovements(new[] { id })).GetValueOrDefault(id),
+                StatusHistory = await AssetStatusTracker.GetHistoryAsync(_context, id)
+            };
+        }
+
+        // Active asset with its lookups and cylinder detail, for the edit form
+        public async Task<Asset?> GetAssetForEditAsync(Guid id)
+        {
+            return await _context.Assets
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.SubCategory)
+                .Include(x => x.Department)
+                .Include(x => x.Manufacturer)
+                .Include(x => x.Vendor)
+                .Include(x => x.ServiceProvider)
+                .Include(a => a.CylinderDetail!.Size)
+                .Include(a => a.CylinderDetail!.Content)
+                .FirstOrDefaultAsync(a => a.AssetId == id && a.RowState == RowStatus.Active);
+        }
+
+        // Sticker sheet: active assets with these tags, in the order given (unknown tags are skipped)
+        public async Task<List<Asset>> GetAssetsByTagsAsync(IEnumerable<string?> tags)
+        {
+            var wanted = tags
+                .Select(t => t?.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var assets = await _context.Assets
+                .AsNoTracking()
+                .Include(a => a.SubCategory)
+                .Include(a => a.CylinderDetail!.Size)
+                .Where(a => wanted.Contains(a.AssetTagNumber) && a.RowState == RowStatus.Active)
+                .ToListAsync();
+
+            var byTag = assets.ToDictionary(a => a.AssetTagNumber, StringComparer.OrdinalIgnoreCase);
+            return wanted.Where(byTag.ContainsKey).Select(t => byTag[t!]).ToList();
         }
 
         public PaginatedResult<AssetViewModel> GetPaginatedAssets(
@@ -254,6 +298,9 @@ namespace EMMS.Service
             };
         }
 
+        // Status filter value for non-functional or under maintenance (the dashboard's "out of service" bars link to it)
+        public const string OutOfServiceFilter = "outofservice";
+
         // Mirrors the Status column in AssetManagementController.GetAssets: the pending movement (else the current
         // location) decides; a Decommission reason shows "Decommissioned", otherwise the asset's functional status.
         // Assets with no movement show "-" and match no status.
@@ -271,10 +318,15 @@ namespace EMMS.Service
                     (!_context.AssetsInTransit.Any(t => t.AssetId == a.AssetId) &&
                         _context.AssetCurrentLocations.Any(l => l.AssetId == a.AssetId && l.Reason == MovementReason.Decommission)));
 
-            if (!Enum.TryParse<FunctionalStatus>(value, out var status) || !Enum.IsDefined(status))
+            FunctionalStatus[] statuses;
+            if (value == OutOfServiceFilter)
+                statuses = new[] { FunctionalStatus.NonFunctional, FunctionalStatus.UnderMaintenance };
+            else if (Enum.TryParse<FunctionalStatus>(value, out var status) && Enum.IsDefined(status))
+                statuses = new[] { status };
+            else
                 return query;
 
-            return query.Where(a => a.FunctionalStatus == status &&
+            return query.Where(a => statuses.Contains(a.FunctionalStatus) &&
                 (
                     _context.AssetsInTransit.Any(t => t.AssetId == a.AssetId &&
                         _context.AssetMovement.Any(m => m.MovementId == t.MovementId && m.Reason != MovementReason.Decommission)) ||

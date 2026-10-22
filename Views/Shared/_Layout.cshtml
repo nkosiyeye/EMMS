@@ -1,5 +1,6 @@
 ﻿@inject EMMS.Service.NotificationService NotificationService﻿
 @inject Microsoft.Extensions.Options.IOptions<EMMS.Models.AppSettings> AppSettings
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @using EMMS.Models
 @using EMMS.Models.Admin
 @{
@@ -25,6 +26,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Antiforgery token for script-driven POSTs; site.js attaches it to fetch, jQuery ajax and forms -->
+    <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - EMMS</title>
@@ -249,7 +252,7 @@
     <script src="~/lib/DataTables/datatables.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/notification.js" asp-append-version="true"></script>
-    <script src="~/js/loading.js"></script>
+    <script src="~/js/loading.js" asp-append-version="true"></script>
 
     <script>
 

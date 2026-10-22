@@ -27,47 +27,6 @@ namespace EMMS.Data.Repository
         // ASSET DATA METHODS (NO CACHING - DYNAMIC DATA)
         // ----------------------------------------------------
 
-        public async Task<IEnumerable<Asset>> GetAssetsFromDb()
-        {
-            return await _context.Assets
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Include(x => x.SubCategory)
-                .Include(x => x.Department)
-                .Include(x => x.Manufacturer)
-                .Include(x => x.Vendor)
-                .Include(x => x.ServiceProvider)
-                .Where(a => a.RowState == RowStatus.Active)
-                .OrderByDescending(a => a.DateCreated)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
-
-        public async Task<IEnumerable<AssetViewModel>> GetAssetsWithMovementDb()
-        {
-            var assets = await _context.Assets
-                .AsNoTracking()
-                .Include(x => x.Category)
-                .Include(x => x.SubCategory)
-                .Include(x => x.Department)
-                .Include(x => x.Manufacturer)
-                .Include(x => x.Vendor)
-                .Include(x => x.ServiceProvider)
-                .Include(x => x.User)
-                .Where(a => a.RowState == RowStatus.Active)
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            // Current location from vw_AssetCurrentLocation (latest received movement)
-            var movementDict = await GetCurrentLocationMovements().ConfigureAwait(false);
-
-            return assets.Select(a => new AssetViewModel
-            {
-                Asset = a,
-                LastMovement = movementDict.TryGetValue(a.AssetId, out var move) ? move : null
-            }).ToList();
-        }
-
         public async Task<List<Models.Entities.Notification>> GetNotifications()
         {
             return await _context.Notifications
@@ -90,11 +49,16 @@ namespace EMMS.Data.Repository
         // LOCATION (vw_AssetCurrentLocation / vw_AssetInTransit)
         // ----------------------------------------------------
 
-        // The movement that defines each asset's current location, keyed by AssetId (all assets when ids is null)
+        // The movement that defines each asset's current location, keyed by AssetId (all assets when ids is null).
+        // Pass an IQueryable of ids to keep the filter a SQL subquery instead of a parameter list.
         public async Task<Dictionary<Guid, MoveAsset>> GetCurrentLocationMovements(IEnumerable<Guid>? assetIds = null)
         {
             IQueryable<AssetCurrentLocation> locations = _context.AssetCurrentLocations;
-            if (assetIds != null)
+            if (assetIds is IQueryable<Guid> idQuery)
+            {
+                locations = locations.Where(l => idQuery.Contains(l.AssetId));
+            }
+            else if (assetIds != null)
             {
                 var ids = assetIds.ToList();
                 locations = locations.Where(l => ids.Contains(l.AssetId));
@@ -147,12 +111,6 @@ namespace EMMS.Data.Repository
                 .ToListAsync())
                 .AsEnumerable();
         }
-        // Current-location movement of every asset (vw_AssetCurrentLocation)
-        public async Task<IEnumerable<MoveAsset?>> GetAssetMovement()
-        {
-            return (await GetCurrentLocationMovements().ConfigureAwait(false)).Values;
-        }
-
         public async Task<Asset?> GetAssetBySerialNumber(string serialNum)
         {
             return await _context.Assets
@@ -175,24 +133,6 @@ namespace EMMS.Data.Repository
                 .ConfigureAwait(false);
         }
 
-        public async Task<IEnumerable<Asset>> GetAssetsDueService(int period = 4)
-        {
-            DateTime today = DateTime.Today;
-            DateTime dueDate = today.AddMonths(period);
-
-            //return (await _context.Assets
-            //            .FromSqlRaw("EXEC sp_GetAssetsDueService @Period = {0}", period)
-            //            .ToListAsync())
-            //            .AsEnumerable();
-
-            return await _context.Assets
-                .AsNoTracking()
-                .Include(a => a.SubCategory)
-                .Where(a => a.NextServiceDate >= today || a.NextServiceDate <= dueDate)
-                .OrderByDescending(a => a.NextServiceDate)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
         public async Task<IEnumerable<Facility>> GetFacilities()
         {
             
@@ -201,6 +141,17 @@ namespace EMMS.Data.Repository
                 .ToListAsync();            
 
             return result;
+        }
+
+        // Every active facility (off-site included), by name: facility pickers and filters
+        public async Task<List<Facility>> GetActiveFacilitiesAsync()
+        {
+            return await _context.Facilities
+                .AsNoTracking()
+                .Where(f => f.RowState == RowStatus.Active)
+                .OrderBy(f => f.FacilityName)
+                .ToListAsync()
+                .ConfigureAwait(false);
         }
 
         public async Task<IEnumerable<LookupItem>> GetServicePoints()
@@ -261,6 +212,35 @@ namespace EMMS.Data.Repository
                 .Include(d => d.Size)
                 .Include(d => d.Content)
                 .FirstOrDefaultAsync(d => d.AssetId == assetId)
+                .ConfigureAwait(false);
+        }
+
+        // Active item names (SubCategory list) under a category, for the cascading dropdown
+        public async Task<List<LookupItem>> GetSubCategoriesOf(int categoryId)
+        {
+            return await _context.LookupItems
+                .AsNoTracking()
+                .Where(x => x.LookupList.Name == "SubCategory" && x.ParentId == categoryId && x.RowState == RowStatus.Active)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
+        public async Task<LookupItem?> GetLookupItemAsync(int id)
+        {
+            return await _context.LookupItems
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id)
+                .ConfigureAwait(false);
+        }
+
+        // Lookup items by id (any list, any state), keyed by id
+        public async Task<Dictionary<int, LookupItem>> GetLookupItemsByIds(IEnumerable<int> ids)
+        {
+            var list = ids.Distinct().ToList();
+            return await _context.LookupItems
+                .AsNoTracking()
+                .Where(l => list.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id)
                 .ConfigureAwait(false);
         }
 

@@ -995,6 +995,32 @@ a {
     color: var(--dash-muted);
 }
 
+/* Tables a tile links to (#due-for-service): stop clear of the fixed top bar */
+.dash-anchor {
+    scroll-margin-top: 5rem;
+}
+
+.dash-more {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--dash-muted);
+}
+
+/* Row a dashboard link opened (?focus=id, site.js emmsFocusRow): brief highlight that fades out */
+@keyframes emms-focus-fade {
+    from { background-color: #fde68a; }
+    to { background-color: transparent; }
+}
+
+.emms-focus,
+.emms-focus > td {
+    animation: emms-focus-fade 3s ease-out;
+}
+
+tr.emms-focus > td:first-child {
+    box-shadow: inset 3px 0 0 var(--brand-blue);
+}
+
 @media (max-width: 575.98px) {
     .dash {
         padding: 0.75rem;

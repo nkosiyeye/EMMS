@@ -77,7 +77,7 @@
                     <input type="number" min="1" class="form-control form-control-sm" id="overdueDays" name="overdueDays" value="@Model.OverdueDays" style="width: 7rem" />
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-                <a class="btn btn-outline-secondary btn-sm" asp-action="DashboardExport" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-overdueDays="@Model.OverdueDays">
+                <a class="btn btn-outline-secondary btn-sm" data-no-loading asp-action="DashboardExport" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-overdueDays="@Model.OverdueDays">
                     <i class="fa fa-file-excel me-1"></i> Export
                 </a>
             </form>

@@ -61,7 +61,7 @@
                                 var canEdit = status == WorkStatusNames.Open && request.JobId == null;
                                 var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
                                 var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
-                                <tr>
+                                <tr data-focus-id="@request.WorkRequestId">
                                     <td>@request.Asset?.AssetTagNumber</td>
                                     <td>@request.Asset?.SubCategory?.Name</td>
                                     <td>@request.RequestedByUser?.FirstName</td>
@@ -124,6 +124,7 @@
                                             {
                                                 <button class="btn btn-sm btn-success"
                                                         title="Close Request"
+                                                        data-focus-act="close"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#closeModal"
                                                         data-request-id="@request.WorkRequestId">
@@ -175,7 +176,7 @@
                                 var canEdit = status == WorkStatusNames.Open && request.JobId == null;
                                 var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
                                 var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
-                                <tr>
+                                <tr data-focus-id="@request.WorkRequestId">
                                     <td>@request.TypeOfRequest?.Name</td>
                                     <td>@request.RequestedByUser?.FirstName</td>
                                     <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
@@ -225,6 +226,7 @@
                                             {
                                                 <button class="btn btn-sm btn-success"
                                                         title="Close Request"
+                                                        data-focus-act="close"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#closeModal"
                                                         data-request-id="@request.WorkRequestId">

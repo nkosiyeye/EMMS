@@ -3,6 +3,48 @@
 
 // Write your JavaScript code.
 
+// Antiforgery: the server validates a token on every POST (AutoValidateAntiforgeryToken in Program.cs).
+// The layouts put the token in <meta name="csrf-token">; these hooks attach it to every same-origin POST.
+function emmsCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function emmsIsUnsafeSameOrigin(method, url) {
+    return !/^(GET|HEAD|OPTIONS)$/i.test(method || 'GET')
+        && new URL(url, window.location.href).origin === window.location.origin;
+}
+
+// Adds the hidden token field to a POST form that lacks one (forms built in JS or with a literal action=)
+function emmsAddCsrfInput(form) {
+    if (form.method.toLowerCase() !== 'post' || form.querySelector('input[name="__RequestVerificationToken"]')) return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = '__RequestVerificationToken';
+    input.value = emmsCsrfToken();
+    form.appendChild(input);
+}
+
+// Capture phase so the field is in place before the browser serialises the form
+document.addEventListener('submit', event => emmsAddCsrfInput(event.target), true);
+
+if (window.jQuery) {
+    $(document).ajaxSend((event, xhr, settings) => {
+        if (emmsIsUnsafeSameOrigin(settings.type, settings.url)) xhr.setRequestHeader('RequestVerificationToken', emmsCsrfToken());
+    });
+}
+
+const emmsNativeFetch = window.fetch.bind(window);
+window.fetch = (resource, init = {}) => {
+    const url = resource instanceof Request ? resource.url : String(resource);
+    const method = init.method || (resource instanceof Request ? resource.method : 'GET');
+    if (emmsIsUnsafeSameOrigin(method, url)) {
+        const headers = new Headers(init.headers || (resource instanceof Request ? resource.headers : undefined));
+        if (!headers.has('RequestVerificationToken')) headers.set('RequestVerificationToken', emmsCsrfToken());
+        init = { ...init, headers };
+    }
+    return emmsNativeFetch(resource, init);
+};
+
 
 
 function printAssetDetail() {
@@ -191,6 +233,7 @@ function emmsPostTags(action, tags, target) {
         form.appendChild(input);
     });
     document.body.appendChild(form);
+    emmsAddCsrfInput(form); // form.submit() skips the submit event
     form.submit();
     form.remove();
 }
@@ -365,25 +408,44 @@ document.addEventListener('click', function (event) {
     const form = document.getElementById('serviceRequestForm');
     if (!form) return;
     form.querySelector('input[name="id"]').value = link.dataset.assetId;
+    emmsAddCsrfInput(form);
     form.submit();
 });
 
-// Searchable header filters for a server-side DataTable.
+// Searchable header filters for a DataTable.
 // options: { columnName: [{ text, value }] } (built on the server from lookup lists / enums), keyed by the
-// DataTables column `name`. The selected value is sent as that column's search and matched exactly on the server.
+// DataTables column `name`. Server-side tables send the selected value as that column's search and the server
+// matches it exactly. Client-side tables match it exactly against the cell's search text (its data-search
+// attribute when set, else its text), so for those the option values are the cell values.
 // clearButton: optional selector for a button that resets every filter.
+// A query-string value named like a column (e.g. ?Status=2&Facility=5, from the dashboard charts) presets that filter.
 function emmsColumnFilters(api, options, clearButton) {
     let clearing = false;   // resetting the pickers fires their change events; draw once at the end instead
+    let preset = false;
+    const params = new URLSearchParams(window.location.search);
+    const serverSide = api.settings()[0].oFeatures.bServerSide;
+    const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const applySearch = (column, value) => serverSide
+        ? column.search(value, false, false)
+        : column.search(value ? `^\\s*${escapeRegex(value)}\\s*$` : '', true, false);
 
     api.columns().every(function () {
         const column = this;
-        const items = options[api.settings()[0].aoColumns[column.index()].sName];
+        const name = api.settings()[0].aoColumns[column.index()].sName;
+        const items = options[name];
         if (!items) return;
 
         const select = document.createElement('select');
         select.className = 'column-filter';
         select.add(new Option('All', ''));
         items.forEach(o => select.add(new Option(o.text, o.value)));
+
+        const wanted = params.get(name);
+        if (wanted && items.some(o => o.value === wanted)) {
+            select.value = wanted;
+            applySearch(column, wanted);
+            preset = true;
+        }
 
         // Wrapper stops header clicks (including the open menu) from sorting the column
         const wrap = $('<div class="column-filter-wrap"></div>')
@@ -401,7 +463,7 @@ function emmsColumnFilters(api, options, clearButton) {
                 style: 'btn-light btn-sm'
             })
             .on('changed.bs.select', () => {
-                column.search(select.value, false, false);
+                applySearch(column, select.value);
                 if (!clearing) api.draw();
             });
     });
@@ -414,4 +476,44 @@ function emmsColumnFilters(api, options, clearButton) {
             api.columns().search('').draw();
         });
     }
+
+    if (preset) api.draw();
 }
+
+// Opens a list page on one row: ?focus=<id> scrolls to and highlights the element with data-focus-id=<id>,
+// showing its tab and DataTables page first; &act=<name> then clicks that row's [data-focus-act=<name>] button
+// (e.g. the Close dialog). Used by the dashboard's row buttons. Runs on window load, after the pages'
+// own DataTables set-up in their ready handlers.
+function emmsFocusRow() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('focus');
+    if (!id) return;
+    const act = params.get('act');
+    const actSelector = act ? `[data-focus-act="${CSS.escape(act)}"]` : null;
+
+    // The same id can be listed twice on a page (e.g. a request in two tables); prefer the row that has the action
+    const rows = Array.from(document.querySelectorAll('[data-focus-id]')).filter(el => el.dataset.focusId === id);
+    const row = (actSelector && rows.find(r => r.querySelector(actSelector))) || rows[0];
+    if (!row) return;
+
+    const pane = row.closest('.tab-pane');
+    if (pane && !pane.classList.contains('active') && window.bootstrap) {
+        const tab = document.querySelector(`[data-bs-target="#${pane.id}"]`);
+        if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+    }
+
+    const table = row.closest('table');
+    if (table && window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable(table)) {
+        const dt = $(table).DataTable();
+        const index = dt.rows({ order: 'applied', search: 'applied' }).nodes().toArray().indexOf(row);
+        if (index >= 0) dt.page(Math.floor(index / dt.page.len())).draw('page');
+    }
+
+    row.classList.add('emms-focus');
+    row.scrollIntoView({ block: 'center' });
+
+    const button = actSelector ? row.querySelector(actSelector) : null;
+    if (button) button.click();
+}
+
+window.addEventListener('load', emmsFocusRow);

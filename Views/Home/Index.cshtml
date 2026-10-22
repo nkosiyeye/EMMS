@@ -30,7 +30,7 @@
     {
         <div class="dash-notice">
             <span>@notice.Text</span>
-            <a asp-controller="@notice.Link.Controller" asp-action="@notice.Link.Action" asp-route-id="@notice.Link.Id">@notice.LinkText</a>
+            <a href="@Url.Dash(notice.Link)">@notice.LinkText</a>
         </div>
     }
 
@@ -144,12 +144,23 @@
                         indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
+                        // A bar opens the asset list filtered to that row
+                        onClick: (event, bars) => {
+                            const link = bars.length ? data.links[bars[0].index] : null;
+                            if (link) window.location.href = link;
+                        },
+                        onHover: (event, bars) => {
+                            event.native.target.style.cursor = bars.length && data.links[bars[0].index] ? 'pointer' : 'default';
+                        },
                         layout: { padding: { right: 40 } },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 displayColors: false,
-                                callbacks: { label: c => c.parsed.x.toLocaleString() }
+                                callbacks: {
+                                    label: c => c.parsed.x.toLocaleString(),
+                                    footer: items => items.length && data.links[items[0].dataIndex] ? 'Click to view the list' : ''
+                                }
                             }
                         },
                         scales: {

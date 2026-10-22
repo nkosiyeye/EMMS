@@ -4,7 +4,7 @@
     var hasActions = Model.Rows.Any(r => r.Action != null);
 }
 
-<div class="card shadow-sm">
+<div class="card shadow-sm dash-anchor" id="@Model.Anchor">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>
             @Model.Title
@@ -15,7 +15,7 @@
         </span>
         @if (Model.ViewAll != null)
         {
-            <a class="small fw-normal" asp-controller="@Model.ViewAll.Controller" asp-action="@Model.ViewAll.Action" asp-route-id="@Model.ViewAll.Id">View all</a>
+            <a class="small fw-normal" href="@Url.Dash(Model.ViewAll)">View all</a>
         }
     </div>
     <div class="card-body">
@@ -48,7 +48,7 @@
                                     <td>
                                         @if (cell.Link != null)
                                         {
-                                            <a asp-controller="@cell.Link.Controller" asp-action="@cell.Link.Action" asp-route-id="@cell.Link.Id">@cell.Text</a>
+                                            <a href="@Url.Dash(cell.Link)">@cell.Text</a>
                                         }
                                         else
                                         {
@@ -83,7 +83,7 @@
                                                 @if (row.Action.Link != null)
                                                 {
                                                     <a class="btn btn-sm btn-@row.Action.Style" title="@row.Action.Label" aria-label="@row.Action.Label"
-                                                       asp-controller="@row.Action.Link.Controller" asp-action="@row.Action.Link.Action" asp-route-id="@row.Action.Link.Id">
+                                                       href="@Url.Dash(row.Action.Link)">
                                                         <i class="@row.Action.Icon"></i>
                                                     </a>
                                                 }

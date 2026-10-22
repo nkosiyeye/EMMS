@@ -49,6 +49,21 @@
                     </div>
                 </div>
             </div>
+
+            @* Items without serials (RequiresSerial = false, e.g. ward beds): one staged row with a quantity; the server creates one asset per unit, each identified by its own tag *@
+            <hr class="my-3">
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <label for="noSerialQty" class="form-label fw-bold">No serial numbers? (e.g. ward beds) - enter how many</label>
+                    <input type="number" id="noSerialQty" class="form-control" min="1" max="500" placeholder="Quantity" style="max-width: 12rem;">
+                    <div class="form-text">Each item is registered separately and identified by its own asset tag.</div>
+                </div>
+                <div class="col-lg-4 d-flex flex-column justify-content-end">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" id="addNoSerialRows" disabled>Add 0 items &rarr;</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -349,6 +364,7 @@
             let editIndex = null; // Track which asset is being edited, null if adding
             let isCylinderCategory = false; // Category flag CylinderProfile of the modal's current category
             let bulkSerials = null;         // serials from the list while the modal is the shared template
+            let bulkQuantity = null;        // quantity of items without serials while the modal is the shared template
             let registeredSerials = new Set(); // upper-cased serials the server says are already registered
 
 
@@ -569,6 +585,33 @@
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('assetModal')).show();
             });
 
+            // --- Items without serials: quantity only ---
+            function readNoSerialQty() {
+                const qty = parseInt(document.getElementById('noSerialQty').value);
+                return qty >= 1 && qty <= 500 ? qty : 0;
+            }
+
+            document.getElementById('noSerialQty').addEventListener('input', function () {
+                const qty = readNoSerialQty();
+                const btn = document.getElementById('addNoSerialRows');
+                btn.innerHTML = `Add ${qty} item${qty === 1 ? '' : 's'} &rarr;`;
+                btn.disabled = qty === 0;
+            });
+
+            document.getElementById('addNoSerialRows').addEventListener('click', function () {
+                const qty = readNoSerialQty();
+                if (!qty) return;
+                bulkQuantity = qty;
+                const serialInput = document.getElementById('modalSerialNumber');
+                serialInput.value = '';
+                serialInput.disabled = true;
+                const note = document.getElementById('modalSerialBulkNote');
+                note.textContent = `${qty} item(s) without serial numbers - each gets its own asset tag. Choose an item that does not require a serial.`;
+                note.classList.remove('d-none');
+                document.getElementById('saveAssetToTable').textContent = `Add ${qty} item${qty === 1 ? '' : 's'}`;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('assetModal')).show();
+            });
+
             document.getElementById('isDeployed').addEventListener('change', function () {
                 document.getElementById('deploymentSection').style.display = this.checked ? 'flex' : 'none';
             });
@@ -599,6 +642,8 @@
                     document.getElementById('saveAssetToTable').textContent = 'Add to List';
                 setModalCylinderProfile(false);
                 bulkSerials = null;
+                bulkQuantity = null;
+                delete document.getElementById('modalSerialNumber').dataset.required; // set again by the next item choice
                 document.getElementById('modalSerialNumber').disabled = false;
                 document.getElementById('modalSerialBulkNote').classList.add('d-none');
                 if (!IS_ADMIN) {
@@ -633,9 +678,16 @@
                 });
                 document.getElementById('serialList').value = '';
                 renderSerialListStatus();
+            } else if (bulkQuantity) {
+                // One row with a quantity; the server creates one asset (and tag) per unit
+                assetList.push({ ...asset, SerialNumber: null, Quantity: bulkQuantity });
+                const qtyInput = document.getElementById('noSerialQty');
+                qtyInput.value = '';
+                qtyInput.dispatchEvent(new Event('input'));
             } else if (editIndex !== null) {
                 // Update existing asset
                 asset.AssetId = assetList[editIndex].AssetId; // Preserve original ID
+                if (!asset.SerialNumber) asset.Quantity = assetList[editIndex].Quantity; // the modal has no quantity field
                 assetList[editIndex] = asset;
                 editIndex = null;
                 this.textContent = 'Add to List';
@@ -829,7 +881,10 @@
             function validateAssetClient(asset) {
                 const errs = [];
                 const serialInput = document.getElementById('modalSerialNumber');
-                const isSerialMandatory = !bulkSerials && (serialInput.dataset.required === "true" || isCylinderCategory);
+                const itemNeedsSerial = serialInput.dataset.required === "true" || isCylinderCategory;
+                const isSerialMandatory = !bulkSerials && !bulkQuantity && itemNeedsSerial;
+                if (bulkQuantity && asset.SubCategoryId && itemNeedsSerial)
+                    errs.push({ id: 'v_modalSubCategory', msg: 'This item requires a serial number. Use the serial list, or untick "Requires Serial Number" for this item in Admin > Lookups.' });
                 if (!asset.CategoryId) errs.push({ id: 'v_modalCategory', msg: 'Category is required' });
                 if (!asset.SubCategoryId) errs.push({ id: 'v_modalSubCategory', msg: 'Item name is required' });
                 if (!asset.DepartmentId) errs.push({ id: 'v_modalDepartment', msg: 'Department is required' });

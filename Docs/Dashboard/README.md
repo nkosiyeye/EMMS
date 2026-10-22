@@ -81,7 +81,15 @@ request show "Requested" instead of the "Request service" button.
 - [ ] 17. Old JSON endpoints `GetDashboardCounts`, `GetAssetsDueServiceJson`, `GetDashboardChartData` are no longer called — remove in task 21
 
 ### Phase 4 — Polish & tests
-- [x] 18. Tiles link to their list (except "Overdue for service": no filtered list page exists yet)
+- [x] 18. Tiles link to their list; "Overdue for service" jumps to the Due for service table (`#due-for-service`)
+- [x] 18a. Chart bars open the asset list with its header filters preset from the query string
+      (`?Status=…&Facility=…&ServicePoint=…`, site.js `emmsColumnFilters`). Out-of-service bars use the new
+      `outofservice` status filter (non-functional or under maintenance). No link on "Unknown" (mostly assets with no
+      location, which the list cannot filter) or "No service point". Charts show "+N more …" when cut at 8 rows.
+- [x] 18b. Row buttons open the exact item: `?focus=<id>` scrolls to and highlights `[data-focus-id]` (switching tab and
+      DataTables page), `&act=<name>` clicks that row's `[data-focus-act]` button (site.js `emmsFocusRow`).
+      Used for: my requests → JobManagement (Close dialog when ready), pharmacist → Cylinder request,
+      CMS → Create order form / order row.
 - [ ] 19. Mobile layout check in the browser (tiles 2-up, tables scroll)
 - [x] 20. Unit tests for scoping, tones and wording
 - [ ] 21. Remove dead code after task 22: old endpoints above, `DashboardViewModel`, `IndexModel`, commented-out old `Index` in `HomeController`.
