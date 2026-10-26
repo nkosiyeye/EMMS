@@ -33,6 +33,7 @@ namespace EMMS.Controllers
             _context = context;
         }
         [AllowAnonymous]
+        [NoFacilityData("Sign-up form")]
         public IActionResult UserRegistration()
         {
             ViewData["DesignationId"] = new SelectList(_context.LookupItems.Include(x => x.LookupList).Where(l => l.LookupList.Name.Contains("Desig") && l.RowState == RowStatus.Active), "Id", "Name");
@@ -44,6 +45,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
+        [NoFacilityData("Sign-up; the account waits for an admin to activate it")]
         public async Task<IActionResult> UserRegistration(User user)
         {
             var usernameExists = await _context.User.FirstOrDefaultAsync(u => u.Username == user.Username);
@@ -79,6 +81,7 @@ namespace EMMS.Controllers
 
 
         [AllowAnonymous]
+        [NoFacilityData("Sign-in")]
         public IActionResult Login()
         {
             ClearSession();
@@ -87,6 +90,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [NoFacilityData("Sign-in")]
         public async Task<IActionResult> Login(User user)
         {
             var searchUser = await _context.User
@@ -103,6 +107,7 @@ namespace EMMS.Controllers
         }
         [HttpPost]
         [AllowAnonymous]
+        [NoFacilityData("Password reset request")]
         public async Task<IActionResult> ForgotPasswordRequest(string usernameOrNumber)
         {
             // Find user by username or number
@@ -120,12 +125,14 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(Index));
         }
         [AllowAnonymous]
+        [NoFacilityData("Sign-out")]
         public IActionResult Logout()
         {
             ClearSession();
             return RedirectToAction(nameof(Index));
         }
         [RequireLogin]
+        [FacilityChecked("DashboardService.ScopeFacility pins non-admins to their facility")]
         public async Task<IActionResult> Index(int? facilityId = null)
         {
             // The facility filter only applies to admins; DashboardService pins everyone else to their own facility.
@@ -135,6 +142,7 @@ namespace EMMS.Controllers
                 ViewData["FacilityId"] = new SelectList(await _assetRepo.GetActiveFacilitiesAsync(), "FacilityId", "FacilityName", model.FacilityId);
             return View(model);
         }
+        [NoFacilityData("Static page")]
         public IActionResult Privacy()
         {
             return View();
@@ -142,6 +150,7 @@ namespace EMMS.Controllers
 
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        [NoFacilityData("Error page")]
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });

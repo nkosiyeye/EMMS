@@ -1,0 +1,13 @@
+@* List / Calendar switch for the Service Schedule pages. Model: the facility filter to carry across. *@
+@model int?
+@{
+    var onCalendar = string.Equals(ViewContext.RouteData.Values["action"]?.ToString(), "Calendar", StringComparison.OrdinalIgnoreCase);
+}
+<div class="btn-group btn-group-sm me-auto" role="group" aria-label="Schedule view">
+    <a asp-action="Index" asp-route-facilityId="@Model" class="btn @(onCalendar ? "btn-outline-secondary" : "btn-secondary")" aria-current="@(onCalendar ? null : "page")">
+        <i class="fa-solid fa-list me-1"></i> List
+    </a>
+    <a asp-action="Calendar" asp-route-facilityId="@Model" class="btn @(onCalendar ? "btn-secondary" : "btn-outline-secondary")" aria-current="@(onCalendar ? "page" : null)">
+        <i class="fa-solid fa-calendar-days me-1"></i> Calendar
+    </a>
+</div>

@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EMMS.CustomAttributes;
+using Microsoft.AspNetCore.Mvc;
 using EMMS.Data.Repository;
 using EMMS.Service;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace EMMS.Controllers
 {
+    [FacilityChecked("DashboardService.ScopeFacility pins non-admins to their facility")]
     public class ReportsController : BaseController
     {
         private const string ExcelContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

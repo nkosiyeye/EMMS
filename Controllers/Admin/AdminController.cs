@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using EMMS.Service;
+using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using EMMS.Constants;
@@ -15,6 +16,7 @@ using static EMMS.Models.Enumerators;
 
 namespace EMMS.Controllers.Admin
 {
+    [NoFacilityData("Lookup lists and user roles are shared by every facility")]
     public class AdminController : BaseController
     {
         private readonly ApplicationDbContext _context;
@@ -23,6 +25,7 @@ namespace EMMS.Controllers.Admin
             _context = context;
 
         }
+        [NonAction]
         public async Task<LookupViewModel> loadLookupViewModel(LookupItem lookupItem,int id)
         {
             var lookupList = await _context.LookupLists.FirstOrDefaultAsync(l => l.LookupListId == id);

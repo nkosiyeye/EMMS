@@ -335,11 +335,21 @@ namespace EMMS.Service
         }
 
         // An installation also restarts the asset's warranty from the movement date
+        // Only the fields on the edit form are taken from the post; the source, approval and audit fields stay as stored.
         public async Task UpdateMovementAsync(MoveRequestViewModel model, User user)
         {
-            var assetMovement = model.MoveAsset!;
+            var posted = model.MoveAsset!;
+            var assetMovement = await _context.AssetMovement.FirstOrDefaultAsync(m => m.MovementId == posted.MovementId && m.RowState == RowStatus.Active);
+            if (assetMovement == null) return;
+
+            assetMovement.MovementDate = posted.MovementDate;
+            assetMovement.MovementType = posted.MovementType;
+            assetMovement.FacilityId = posted.FacilityId;
+            assetMovement.ServicePointId = posted.ServicePointId;
+            assetMovement.Reason = posted.Reason;
+            assetMovement.OtherReason = posted.OtherReason;
+            assetMovement.FunctionalStatus = posted.FunctionalStatus;
             EntityStamp.Updated(assetMovement, user.UserId);
-            _context.Update(assetMovement);
 
             if (assetMovement.Reason == MovementReason.Installation && model.WarrantyEndDate != null)
             {

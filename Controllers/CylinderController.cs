@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EMMS.Controllers
 {
     /// <summary>Cylinder requests (facility + pharmacist) and orders (CMS). Dispatch runs through the Movement Queue.</summary>
+    [FacilityChecked("CylinderOrderService / CylinderReportService: requests by facility (CanDecide), orders by CMS officers only")]
     public class CylinderController : BaseController
     {
         private readonly CylinderOrderService _orderService;

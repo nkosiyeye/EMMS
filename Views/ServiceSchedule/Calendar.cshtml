@@ -1,0 +1,142 @@
+@model EMMS.ViewModels.ServiceCalendarViewModel
+@using EMMS.ViewModels
+@using EMMS.Service
+@{
+    ViewData["Title"] = "Service Calendar";
+    var monthLabel = Model.Month.ToString("MMMM yyyy");
+    var isCurrentMonth = Model.Month.Year == Model.Today.Year && Model.Month.Month == Model.Today.Month;
+    const int CellLimit = 3;   // items shown in a day before "+N more"
+    var monthDays = Model.Days.Where(d => d.InMonth && d.Items.Count > 0).ToList();
+    var dueCount = Model.Days.Where(d => d.InMonth).Sum(d => d.Items.Count(i => !i.Projected));
+    var projectedCount = Model.Days.Where(d => d.InMonth).Sum(d => d.Items.Count(i => i.Projected));
+}
+
+<div class="dash">
+
+    <form method="get" asp-action="Calendar" class="dash-filter flex-wrap">
+        <partial name="_ViewSwitch" model="Model.FacilityId" />
+        <input type="hidden" name="month" value="@Model.MonthKey(0)" />
+        @if (Model.Facilities != null)
+        {
+            <label for="calendarFacility">Showing</label>
+            <select id="calendarFacility" name="facilityId" class="form-select form-select-sm" data-dash-autosubmit>
+                <option value="">All facilities</option>
+                @foreach (var f in Model.Facilities)
+                {
+                    <option value="@f.Value" selected="@f.Selected">@f.Text</option>
+                }
+            </select>
+        }
+    </form>
+
+    @if (Model.Overdue > 0 || Model.Unscheduled > 0)
+    {
+        <div class="dash-notice">
+            <span>
+                @if (Model.Overdue > 0)
+                {
+                    <span>@Model.Overdue overdue @(Model.Overdue == 1 ? "item is" : "items are") not on the calendar; @(Model.Overdue == 1 ? "its" : "their") next date depends on when the service is done.</span>
+                }
+                @if (Model.Unscheduled > 0)
+                {
+                    <span>@Model.Unscheduled serviceable @(Model.Unscheduled == 1 ? "item has" : "items have") no service date.</span>
+                }
+            </span>
+            <span class="d-flex gap-3">
+                @if (Model.Overdue > 0)
+                {
+                    <a asp-action="Index" asp-route-show="@ServiceScheduleService.ShowOverdue" asp-route-facilityId="@Model.FacilityId">View overdue</a>
+                }
+                @if (Model.Unscheduled > 0)
+                {
+                    <a asp-action="Index" asp-route-show="@ServiceScheduleService.ShowUnscheduled" asp-route-facilityId="@Model.FacilityId">View unscheduled</a>
+                }
+            </span>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="Calendar" asp-route-month="@Model.MonthKey(-1)" asp-route-facilityId="@Model.FacilityId"
+                   class="btn btn-sm btn-outline-secondary" title="Previous month" aria-label="Previous month"><i class="fa-solid fa-chevron-left"></i></a>
+                <h2 class="h6 m-0 svc-cal-title">@monthLabel</h2>
+                <a asp-action="Calendar" asp-route-month="@Model.MonthKey(1)" asp-route-facilityId="@Model.FacilityId"
+                   class="btn btn-sm btn-outline-secondary" title="Next month" aria-label="Next month"><i class="fa-solid fa-chevron-right"></i></a>
+                @if (!isCurrentMonth)
+                {
+                    <a asp-action="Calendar" asp-route-facilityId="@Model.FacilityId" class="btn btn-sm btn-outline-secondary">Today</a>
+                }
+            </div>
+            <div class="svc-cal-legend small text-muted">
+                <span><span class="svc-cal-swatch"></span> Due (@dueCount)</span>
+                <span><span class="svc-cal-swatch svc-cal-swatch-projected"></span> Projected from interval (@projectedCount)</span>
+                <span><i class="fa-solid fa-circle-check svc-cal-requested-icon"></i> Request raised</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+
+            @* Month grid (tablet and up) *@
+            <div class="svc-cal d-none d-md-grid" role="grid" aria-label="@monthLabel">
+                @foreach (var name in new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" })
+                {
+                    <div class="svc-cal-dow" role="columnheader">@name</div>
+                }
+                @foreach (var day in Model.Days)
+                {
+                    var isToday = day.Date == Model.Today;
+                    <div class="svc-cal-day @(day.InMonth ? "" : "svc-cal-out") @(isToday ? "svc-cal-today" : "")" role="gridcell"
+                         aria-label="@day.Date.ToString("d MMMM"): @day.Items.Count due">
+                        <div class="svc-cal-date">@day.Date.Day</div>
+                        @for (var i = 0; i < day.Items.Count; i++)
+                        {
+                            <partial name="_CalendarChip" model="day.Items[i]" view-data='new ViewDataDictionary(ViewData) { ["Hidden"] = i >= CellLimit }' />
+                        }
+                        @if (day.Items.Count > CellLimit)
+                        {
+                            <button type="button" class="svc-cal-more" data-more="+@(day.Items.Count - CellLimit) more" aria-expanded="false">+@(day.Items.Count - CellLimit) more</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* Agenda (phones): only the days of this month that have something due *@
+            <div class="d-md-none">
+                @if (monthDays.Count == 0)
+                {
+                    <p class="text-muted text-center py-4 m-0">Nothing is due for service in @monthLabel.</p>
+                }
+                @foreach (var day in monthDays)
+                {
+                    <div class="svc-agenda-day @(day.Date == Model.Today ? "svc-cal-today" : "")">
+                        <div class="svc-agenda-date">@day.Date.ToString("ddd d MMM")</div>
+                        @foreach (var item in day.Items)
+                        {
+                            <partial name="_CalendarChip" model="item" />
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (monthDays.Count == 0)
+            {
+                <p class="text-muted text-center py-3 m-0 d-none d-md-block border-top">Nothing is due for service in @monthLabel.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('[data-dash-autosubmit]').on('change', function () { this.form.submit(); });
+
+            // "+N more" opens the rest of that day's list in place
+            $('.svc-cal').on('click', '.svc-cal-more', function () {
+                const day = $(this).closest('.svc-cal-day');
+                const open = day.toggleClass('svc-cal-expanded').hasClass('svc-cal-expanded');
+                $(this).attr('aria-expanded', open).text(open ? 'Show less' : this.dataset.more);
+            });
+        });
+    </script>
+}

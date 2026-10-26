@@ -36,12 +36,6 @@ namespace EMMS.Controllers
         // Admins see every facility; everyone else their own.
         private int? FacilityScope => isAdmin ? null : CurrentUser!.FacilityId;
 
-        private IActionResult AccessDenied()
-        {
-            TempData["Error"] = "You do not have access to that record.";
-            return RedirectToAction("Index", "Home");
-        }
-
         private string? ModelStateErrors()
         {
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
@@ -74,6 +68,7 @@ namespace EMMS.Controllers
         // Work requests
         // ------------------------------------------------------------------------------------------
         [HttpGet]
+        [FacilityChecked("JobManagementRepo lists by FacilityScope")]
         public async Task<IActionResult> Index()
         {
             var data = new WorkRequestViewModel
@@ -90,6 +85,7 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [FacilityScoped(FacilityRecord.Asset, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> workRequest(Guid id)
         {
             var asset = await _context.Assets
@@ -111,6 +107,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityScoped(FacilityRecord.Asset, "workRequestView.WorkRequest.AssetId", FacilityAccessLevel.Change)]
         public async Task<IActionResult> WorkRequest(WorkRequestViewModel workRequestView)
         {
             var work = workRequestView.WorkRequest;
@@ -127,6 +124,7 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [NoFacilityData("Empty request form")]
         public async Task<IActionResult> infrustructureWorkRequest()
         {
             var workAssetViewModel = new WorkRequestViewModel()
@@ -141,6 +139,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService raises it at the user's own facility")]
         public async Task<IActionResult> infrustructureWorkRequest(WorkRequestViewModel workRequestView)
         {
             var work = workRequestView.InfrustructureWorkRequest;
@@ -157,14 +156,13 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [FacilityScoped(FacilityRecord.WorkRequest)]
         public async Task<IActionResult> editWorkRequest(Guid id)
         {
             var workRequest = await _repo.GetWorkRequestForEditAsync(id);
 
             if (workRequest == null)
                 return NotFound();
-            if (!WorkRequestService.CanAccessFacility(CurrentUser!, workRequest.FacilityId))
-                return AccessDenied();
 
             var workAssetViewModel = new WorkRequestViewModel()
             {
@@ -177,6 +175,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityScoped(FacilityRecord.WorkRequest, "model.WorkRequest.WorkRequestId")]
         public async Task<IActionResult> editWorkRequest(WorkRequestViewModel model)
         {
             var posted = model.WorkRequest;
@@ -194,6 +193,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityScoped(FacilityRecord.Asset, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> AutomateServiceRequest(Guid id)
         {
             var error = await _workRequests.CreateServiceRequestAsync(CurrentUser!, id);
@@ -206,6 +206,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.CloseRequestAsync: the requester or an admin")]
         public async Task<IActionResult> closeRequest(WorkRequestViewModel workRequestView, string? returnTo)
         {
             var posted = workRequestView.WorkRequest;
@@ -221,6 +222,7 @@ namespace EMMS.Controllers
         // Admins cancel any request that is not final; requesters withdraw their own before a job exists.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.CancelRequestAsync: the requester or an admin")]
         public async Task<IActionResult> cancelRequest(WorkRequestViewModel workRequestView, string? returnTo)
         {
             var posted = workRequestView.WorkRequest;
@@ -237,6 +239,7 @@ namespace EMMS.Controllers
         // Jobs
         // ------------------------------------------------------------------------------------------
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
+        [FacilityChecked("JobData: own jobs and requests in FacilityScope")]
         public async Task<IActionResult> manageJobs()
         {
             ViewData["Biomed"] = new SelectList(await _context.User.AsNoTracking()
@@ -248,6 +251,7 @@ namespace EMMS.Controllers
 
         // Open jobs per technician. Admins see every facility, facility managers their own.
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        [FacilityChecked("JobManagementRepo by FacilityScope")]
         public async Task<IActionResult> workload()
         {
             var model = WorkloadViewModel.Build(await _repo.GetOpenJobsAsync(FacilityScope), await _repo.GetBiomedsAsync(FacilityScope));
@@ -258,6 +262,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        [FacilityChecked("WorkRequestService.CanReassignJob: admin, or the job facility's manager")]
         public async Task<IActionResult> reassignJob(Guid jobId, Guid? assignedTo)
         {
             var (job, error) = await _workRequests.ReassignJobAsync(CurrentUser!, jobId, assignedTo);
@@ -273,6 +278,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
+        [FacilityChecked("WorkRequestService.CreateJobAsync: CanAccessFacility on the request")]
         public async Task<IActionResult> createJobCard(JobViewModel jobView)
         {
             var job = jobView.Job;
@@ -318,30 +324,29 @@ namespace EMMS.Controllers
             return jobView;
         }
 
+        [FacilityScoped(FacilityRecord.Job)]
         public async Task<IActionResult> jobCard(Guid id)
         {
             var jobView = await LoadJobCard(id);
             if (jobView == null)
                 return NotFound();
-            if (!WorkRequestService.CanViewJob(CurrentUser!, jobView.Job!))
-                return AccessDenied();
 
             return View(jobView);
         }
 
+        [FacilityScoped(FacilityRecord.Job)]
         public async Task<IActionResult> externalJobCard(Guid id)
         {
             var jobView = await LoadJobCard(id);
             if (jobView == null)
                 return NotFound();
-            if (!WorkRequestService.CanViewJob(CurrentUser!, jobView.Job!))
-                return AccessDenied();
 
             return View(jobView);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.UpdateJobAsync: only the assigned Biomed")]
         public async Task<IActionResult> updateJobCard(JobViewModel jobView)
         {
             var posted = jobView.Job;
@@ -386,14 +391,17 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.SaveWorkDoneAsync: only the assigned Biomed")]
         public Task<IActionResult> workDone(JobViewModel wView) => SaveWorkDone(wView.WorkDone);
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.SaveWorkDoneAsync: only the assigned Biomed")]
         public Task<IActionResult> ExWorkDone(JobViewModel wView) => SaveWorkDone(wView.WorkDone);
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.DeleteWorkDoneAsync: only the assigned Biomed")]
         public async Task<IActionResult> deleteWorkDone(Guid id)
         {
             var (job, error) = await _workRequests.DeleteWorkDoneAsync(CurrentUser!, id);
@@ -406,6 +414,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.SaveJobPartAsync: only the assigned Biomed")]
         public async Task<IActionResult> jobPart(JobViewModel jView)
         {
             var posted = jView.JobPart;
@@ -431,6 +440,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [FacilityChecked("WorkRequestService.DeleteJobPartAsync: only the assigned Biomed")]
         public async Task<IActionResult> deleteJobPart(Guid id)
         {
             var (job, error) = await _workRequests.DeleteJobPartAsync(CurrentUser!, id);

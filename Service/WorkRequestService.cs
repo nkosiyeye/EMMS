@@ -178,7 +178,8 @@ namespace EMMS.Service
             return await AddAssetRequestAsync(user, assetId, requestDate, description, user.FacilityId, isServiceRequest: false);
         }
 
-        public async Task<string?> CreateServiceRequestAsync(User user, Guid assetId)
+        /// <param name="notify">False when the caller sends one summary notification for a batch.</param>
+        public async Task<string?> CreateServiceRequestAsync(User user, Guid assetId, bool notify = true)
         {
             if (!await _context.Assets.AnyAsync(a => a.AssetId == assetId && a.RowState == RowStatus.Active))
                 return "Asset not found.";
@@ -186,10 +187,10 @@ namespace EMMS.Service
                 .Where(l => l.AssetId == assetId)
                 .Select(l => (int?)l.FacilityId)
                 .FirstOrDefaultAsync();
-            return await AddAssetRequestAsync(user, assetId, DateTime.Now, ServiceRequestDescription, location ?? user.FacilityId, isServiceRequest: true);
+            return await AddAssetRequestAsync(user, assetId, DateTime.Now, ServiceRequestDescription, location ?? user.FacilityId, isServiceRequest: true, notify);
         }
 
-        private async Task<string?> AddAssetRequestAsync(User user, Guid assetId, DateTime requestDate, string? description, int facilityId, bool isServiceRequest)
+        private async Task<string?> AddAssetRequestAsync(User user, Guid assetId, DateTime requestDate, string? description, int facilityId, bool isServiceRequest, bool notify = true)
         {
             if (string.IsNullOrWhiteSpace(description)) return "Description is required.";
             if (await HasOpenRequestAsync(assetId)) return "An active work request exists for this asset.";
@@ -210,7 +211,8 @@ namespace EMMS.Service
             Stamp(work, user);
             _context.WorkRequest.Add(work);
             await _context.SaveChangesAsync();
-            await _notificationService.CreateWorkRequestNotification(work.FacilityId, user.UserId);
+            if (notify)
+                await _notificationService.CreateWorkRequestNotification(work.FacilityId, user.UserId);
             return null;
         }
 

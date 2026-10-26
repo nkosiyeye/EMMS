@@ -28,6 +28,9 @@
                                     case "job":
                                         <i class="fas fa-briefcase text-success fa-lg"></i>
                                         break;
+                                    case "service":
+                                        <i class="fas fa-calendar-check text-warning fa-lg"></i>
+                                        break;
                                     case "reception":
                                         <i class="fas fa-box text-info fa-lg"></i>
                                         break;
@@ -57,6 +60,7 @@
                                 {
                                 "work" => Url.Action("Index", "JobManagement"),
                                 "job" => Url.Action("manageJobs", "JobManagement"),
+                                "service" => Url.Action("Index", "ServiceSchedule"),
                                 "asset" => Url.Action("Index", "AssetManagement"),
                                 "approval" => Url.Action("Index", "AssetMovement"),
                                 "reception" => Url.Action("recieveAsset", "AssetMovement"),

@@ -199,7 +199,7 @@ namespace EMMS.Service
             vm.Stats.Add(new StatTile { Label = "Equipment in service", Icon = "fa-solid fa-box-open", Value = total.ToString("N0", CultureInfo.InvariantCulture), Link = new DashLink("AssetManagement") });
             vm.Stats.Add(new StatTile { Label = "Functional", Icon = "fa-solid fa-heart-pulse", Value = $"{pct}%", Context = $"{functional:N0} of {total:N0}", Tone = FunctionalTone(pct, total), Link = new DashLink("AssetManagement") });
             vm.Stats.Add(new StatTile { Label = "Open work requests", Icon = "fa-solid fa-clipboard-list", Value = openRequests.ToString(), Context = noJob > 0 ? $"{noJob} without a job yet" : null, Tone = CountTone(noJob, DashTone.Warning), Link = new DashLink("JobManagement") });
-            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = DashLink.Anchor(ServiceDueAnchor) });
+            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = ServiceScheduleLink(facilityId) });
 
             vm.Breakdowns.Add(new Breakdown
             {
@@ -237,7 +237,7 @@ namespace EMMS.Service
             vm.Stats.Add(new StatTile { Label = "My jobs in progress", Icon = "fa-solid fa-screwdriver-wrench", Value = inProgressCount.ToString(), Link = new DashLink("JobManagement", "manageJobs") });
             vm.Stats.Add(new StatTile { Label = "Completed this month", Icon = "fa-solid fa-circle-check", Value = completed.ToString(), Link = new DashLink("JobManagement", "manageJobs") });
             vm.Stats.Add(new StatTile { Label = "Requests without a job", Icon = "fa-solid fa-inbox", Value = unassigned.ToString(), Tone = CountTone(unassigned, DashTone.Warning), Link = new DashLink("JobManagement") });
-            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = DashLink.Anchor(ServiceDueAnchor) });
+            vm.Stats.Add(new StatTile { Label = "Overdue for service", Icon = "fa-solid fa-calendar-xmark", Value = overdue.ToString(), Tone = CountTone(overdue, DashTone.Danger), Link = ServiceScheduleLink(facilityId) });
 
             var jobs = await inProgress
                 .Include(j => j.Asset!).ThenInclude(a => a.SubCategory)
@@ -617,24 +617,9 @@ namespace EMMS.Service
         // Queries
         // ------------------------------------------------------------------------------------------
 
-        // Active assets that are not decommissioned or lost; at a facility = its current (received) location is there.
-        private IQueryable<Asset> InServiceAssets(int? facilityId)
-        {
-            var lost = _context.AssetCurrentLocations
-                .Where(l => l.Reason == MovementReason.Decommission || l.Reason == MovementReason.StolenorMissing)
-                .Select(l => l.AssetId);
-            var assets = _context.Assets.AsNoTracking()
-                .Where(a => a.RowState == RowStatus.Active
-                         && a.StatusId != (int)ProcurementStatus.Decommissioned
-                         && !lost.Contains(a.AssetId));
-            if (facilityId == null) return assets;
+        private IQueryable<Asset> InServiceAssets(int? facilityId) => AssetScopes.InService(_context, facilityId).AsNoTracking();
 
-            var here = _context.AssetCurrentLocations.Where(l => l.FacilityId == facilityId).Select(l => l.AssetId);
-            return assets.Where(a => here.Contains(a.AssetId));
-        }
-
-        private IQueryable<Asset> ServiceableAssets(int? facilityId) =>
-            InServiceAssets(facilityId).Where(a => a.IsServiceable && a.NextServiceDate != null);
+        private IQueryable<Asset> ServiceableAssets(int? facilityId) => AssetScopes.Scheduled(_context, facilityId).AsNoTracking();
 
         // Closing and cancelling both stamp CloseDate, so open = no CloseDate.
         private IQueryable<WorkRequest> OpenAssetRequests(int? facilityId) =>
@@ -648,6 +633,9 @@ namespace EMMS.Service
         // The asset list (AssetManagement/Index) opened with its header filters preset from the query string
         // (site.js emmsColumnFilters); a null facility leaves that filter off.
         private static DashLink AssetList(int? facilityId) => new DashLink("AssetManagement").With("Facility", facilityId);
+
+        private static DashLink ServiceScheduleLink(int? facilityId) =>
+            new DashLink("ServiceSchedule").With("show", ServiceScheduleService.ShowOverdue).With("facilityId", facilityId);
 
         private static string AssetName(Asset a) =>
             string.IsNullOrWhiteSpace(a.ItemName) ? a.SubCategory?.Name ?? a.AssetTagNumber : a.ItemName;

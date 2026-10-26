@@ -62,6 +62,7 @@ namespace EMMS.Utility
                         Label = "Work Requests", Controller = "JobManagement", Action = "Index",
                         Matches = ["JobManagement/Index", "JobManagement/workRequest", "JobManagement/editWorkRequest", "JobManagement/infrustructureWorkRequest"]
                     },
+                    new() { Label = "Service Schedule", Controller = "ServiceSchedule", Action = "Index", Matches = ["ServiceSchedule/*"] },
                     new()
                     {
                         Label = "Create Job", Controller = "JobManagement", Action = "manageJobs", Matches = ["JobManagement/manageJobs"],

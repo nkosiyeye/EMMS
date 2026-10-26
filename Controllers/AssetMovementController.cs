@@ -42,6 +42,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [NoFacilityData("Page shell; its tables load through GetMovements / GetAssets")]
         public async Task<IActionResult> Index()
         {
             var data = new MoveAssetViewModel
@@ -89,6 +90,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityChecked("MovementService.GetPaginatedMovements: non-admins see movements leaving their facility")]
         public IActionResult GetMovements([FromForm] DataTablesRequest request)
         {
             try
@@ -160,6 +162,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityChecked("AssetService.GetPaginatedAssets: non-admins see their facility")]
         public IActionResult GetAssets([FromForm] DataTablesRequest request)
         {
             var currentUser = CurrentUser;
@@ -225,6 +228,7 @@ namespace EMMS.Controllers
             Json(new { draw = request?.Draw ?? 1, recordsTotal = 0, recordsFiltered = 0, data = Array.Empty<object>() });
 
         [HttpGet]
+        [NoFacilityData("Destination picker")]
         public async Task<IActionResult> GetFacilites(bool isOffSite)
         {
             var facilities = await _movementService.GetFacilitiesAsync(isOffSite);
@@ -232,6 +236,7 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [NoFacilityData("Destination picker")]
         public async Task<IActionResult> GetServicePoints(int facilityId)
         {
             return Json(await _movementService.GetServicePointsForFacilityAsync(facilityId));
@@ -239,6 +244,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Asset, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> MoveAsset(Guid id)
         {
             var viewModel = await _movementService.GetMoveFormAsync(id);
@@ -252,6 +258,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Movement, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> Edit(Guid id)
         {
             var viewModel = await _movementService.GetEditFormAsync(id);
@@ -259,6 +266,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Movement, "model.MoveAsset.MovementId", FacilityAccessLevel.Change)]
         public async Task<IActionResult> Edit(MoveRequestViewModel model)
         {
             if (!ModelState.IsValid)
@@ -272,6 +280,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Asset, "model.MoveAsset.AssetId", FacilityAccessLevel.Change)]
         public async Task<IActionResult> MoveAsset(MoveRequestViewModel model)
         {
             foreach (var error in await _movementService.ValidateMoveAsync(model))
@@ -294,12 +303,14 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [NoFacilityData("Page shell; its tables load through GetPendingReceipts / GetReceiptHistory")]
         public async Task<IActionResult> RecieveAsset()
         {
             return View(await LoadReceiveViewModel());
         }
 
         [HttpPost]
+        [FacilityChecked("MovementService.GetPendingReceipts: destination is the user's facility")]
         public IActionResult GetPendingReceipts([FromForm] DataTablesRequest request)
         {
             var result = _movementService.GetPendingReceipts(request.Start, request.Length, request.Search?.Value, CurrentUser!);
@@ -326,6 +337,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityChecked("MovementService.GetReceiptHistory: destination is the user's facility")]
         public IActionResult GetReceiptHistory([FromForm] DataTablesRequest request)
         {
             var result = _movementService.GetReceiptHistory(request.Start, request.Length, request.Search?.Value, CurrentUser!);
@@ -350,6 +362,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Movement, "model.MoveAsset.MovementId", FacilityAccessLevel.Receive)]
         public async Task<IActionResult> ReceiveAsset(MoveAssetViewModel model)
         {
             if (!ModelState.IsValid)
@@ -367,6 +380,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Movement, "model.MoveAsset.MovementId", FacilityAccessLevel.Receive)]
         public async Task<IActionResult> RejectAsset(MoveAssetViewModel model)
         {
             if (!ModelState.IsValid)
@@ -383,6 +397,7 @@ namespace EMMS.Controllers
             return RedirectToAction(nameof(RecieveAsset));
         }
 
+        [FacilityScoped(FacilityRecord.Movement, "id", FacilityAccessLevel.Approve)]
         public async Task<IActionResult> ApproveMovement(Guid id)
         {
             await _movementService.ApproveAsync(id, CurrentUser!);
@@ -390,6 +405,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Asset, "AssetId", FacilityAccessLevel.Change)]
         public async Task<IActionResult> ReportStolenMissing(Guid AssetId, string DocketNumber)
         {
             var (success, message) = await _movementService.ReportStolenMissingAsync(AssetId, DocketNumber, CurrentUser!);
@@ -404,6 +420,7 @@ namespace EMMS.Controllers
         [HttpGet]
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        [FacilityChecked("The queue is per user; CylinderOrderService checks the order")]
         public async Task<IActionResult> Queue(Guid? orderId)
         {
             var (order, error) = await LoadDispatchOrder(orderId);
@@ -441,6 +458,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        [FacilityChecked("MovementQueueService.Classify refuses assets not at the user's facility")]
         public async Task<IActionResult> QueueScan([FromForm] string? tag, [FromForm] Guid? orderId)
         {
             var (order, error) = await LoadDispatchOrder(orderId);
@@ -453,6 +471,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        [FacilityChecked("MovementQueueService.Classify refuses assets not at the user's facility")]
         public async Task<IActionResult> QueueAddSelected(List<string> tags)
         {
             var results = await _queueService.AddManyAsync(tags ?? new List<string>(), CurrentUser!);
@@ -465,6 +484,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [RequireLogin]
+        [FacilityChecked("Removes only from the user's own queue")]
         public async Task<IActionResult> QueueRemove(Guid id)
         {
             var count = await _queueService.RemoveAsync(CurrentUser!.UserId, id);
@@ -473,6 +493,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [RequireLogin]
+        [FacilityChecked("Clears only the user's own queue")]
         public async Task<IActionResult> QueueClear()
         {
             await _queueService.ClearAsync(CurrentUser!.UserId);
@@ -482,6 +503,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed), nameof(UserType.GeneralUser), nameof(UserType.Pharmacist), nameof(UserType.CmsOfficer))]
+        [FacilityChecked("MovementQueueService.SubmitAsync re-checks every item against the user's facility")]
         public async Task<IActionResult> QueueSubmit(MovementQueueViewModel model, Guid? orderId)
         {
             var request = model.Request ?? new BatchMoveRequest();
@@ -518,6 +540,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Batch)]
         public async Task<IActionResult> Batch(Guid id)
         {
             var movements = await _queueService.GetBatchAsync(id);
@@ -538,6 +561,7 @@ namespace EMMS.Controllers
         [HttpPost]
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        [FacilityScoped(FacilityRecord.Batch, "id", FacilityAccessLevel.Approve)]
         public async Task<IActionResult> ApproveBatch(Guid id)
         {
             var count = await _queueService.ApproveBatchAsync(id, CurrentUser!);
@@ -547,6 +571,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Batch)]
         public async Task<IActionResult> BatchGatePass(Guid id)
         {
             var movements = (await _queueService.GetBatchAsync(id)).Where(m => m.IsApproved && m.DateRejected == null).ToList();
@@ -558,6 +583,7 @@ namespace EMMS.Controllers
         // ------------------------------------------------------------------------------------------
         [HttpGet]
         [RequireLogin]
+        [FacilityChecked("MovementQueueService.PendingForUser: destination is the user's facility")]
         public async Task<IActionResult> IncomingBatches()
         {
             return Json(await _queueService.GetIncomingBatchesAsync(CurrentUser!));
@@ -565,6 +591,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityChecked("MovementQueueService.GetBatchForReceiveAsync: destination is the user's facility")]
         public async Task<IActionResult> BatchReceiveItems(Guid id)
         {
             return Json(await _queueService.GetBatchForReceiveAsync(id, CurrentUser!));
@@ -580,6 +607,7 @@ namespace EMMS.Controllers
 
         [HttpPost]
         [RequireLogin]
+        [FacilityChecked("MovementQueueService.ReceiveBatchAsync: only movements pending at the user's facility")]
         public async Task<IActionResult> ReceiveBatch([FromBody] ReceiveBatchRequest? request)
         {
             if (request == null || request.BatchId == Guid.Empty)
@@ -598,6 +626,7 @@ namespace EMMS.Controllers
 
         [HttpGet]
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Movement)]
         public async Task<IActionResult> GatePass(Guid id)
         {
             var movement = await _movementService.GetGatePassAsync(id);
@@ -605,6 +634,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityScoped(FacilityRecord.Movement, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> deleteMovement(Guid id)
         {
             if (!await _movementService.DeleteAsync(id))

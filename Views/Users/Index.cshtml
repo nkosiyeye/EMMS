@@ -117,11 +117,15 @@
                                     <a class="btn btn-sm btn-info" asp-action="Details" asp-route-id="@item.UserId">Details</a>
 									@if (item.RowState == Enumerators.RowStatus.Active)
 									{
-                                        <a class="btn btn-sm btn-warning" asp-action="ActivateUser" asp-route-id="@item.UserId">Deactivate</a>
+                                        <form asp-action="ActivateUser" asp-route-id="@item.UserId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
+                                        </form>
 									}
 									else
 									{
-                                        <a class="btn btn-sm btn-success" asp-action="ActivateUser" asp-route-id="@item.UserId">Activate</a>
+                                        <form asp-action="ActivateUser" asp-route-id="@item.UserId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                        </form>
 									}
                                     @* <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a> *@
                                 </td>

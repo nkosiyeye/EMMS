@@ -1127,6 +1127,183 @@ a {
         box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
 
+/* The tile whose list is showing (Service Schedule filter) */
+.dash-stat-active .dash-stat {
+    border-color: var(--brand-blue);
+    box-shadow: inset 0 -2px 0 var(--brand-blue);
+}
+
+/* ===========================
+   Service calendar (ServiceSchedule/Calendar)
+   A due date is a solid chip, a date projected from the interval a dashed one; colour stays calm.
+=========================== */
+.svc-cal {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+}
+
+.svc-cal-dow {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--dash-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.svc-cal-day {
+    min-height: 7.5rem;
+    min-width: 0;
+    padding: 0.375rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+    .svc-cal-day:nth-child(7n) {
+        border-right: 0;
+    }
+
+.svc-cal-out {
+    background: var(--dash-track);
+}
+
+    .svc-cal-out .svc-cal-date {
+        color: #94a3b8;
+    }
+
+.svc-cal-date {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.svc-cal-today .svc-cal-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 50%;
+    color: #fff;
+    background: var(--brand-blue);
+}
+
+.svc-cal-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: #1e293b;
+    text-decoration: none;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--brand-blue);
+    border-radius: 0.25rem;
+}
+
+    .svc-cal-chip:hover {
+        color: #0f172a;
+        border-color: var(--brand-blue);
+    }
+
+.svc-cal-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.svc-cal-chip-tag {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 0.6875rem;
+    color: var(--dash-muted);
+}
+
+.svc-cal-chip-projected {
+    color: #475569;
+    background: transparent;
+    border: 1px dashed #cbd5e1;
+}
+
+.svc-cal-chip-requested {
+    color: #475569;
+    background: #f8fafc;
+    border-color: var(--border);
+    border-left-color: #16a34a;
+}
+
+.svc-cal-requested-icon {
+    color: #16a34a;
+}
+
+/* Items past the day's limit stay folded until "+N more" (grid only; the agenda lists everything) */
+.svc-cal .svc-cal-chip-extra {
+    display: none;
+}
+
+.svc-cal-expanded .svc-cal-chip-extra {
+    display: flex;
+}
+
+.svc-cal-more {
+    align-self: flex-start;
+    padding: 0;
+    font-size: 0.75rem;
+    color: var(--brand-blue);
+    background: none;
+    border: 0;
+}
+
+    .svc-cal-more:hover {
+        text-decoration: underline;
+    }
+
+.svc-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+}
+
+.svc-cal-swatch {
+    display: inline-block;
+    width: 0.875rem;
+    height: 0.625rem;
+    vertical-align: middle;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--brand-blue);
+    border-radius: 2px;
+}
+
+.svc-cal-swatch-projected {
+    background: transparent;
+    border: 1px dashed #cbd5e1;
+}
+
+.svc-agenda-day {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.svc-agenda-date {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.svc-agenda-day.svc-cal-today .svc-agenda-date {
+    color: var(--brand-blue);
+}
+
 .dash-stat-label,
 .dash-stat-context {
     font-size: 0.8125rem;

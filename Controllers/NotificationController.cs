@@ -1,8 +1,10 @@
-﻿using EMMS.Service;
+﻿using EMMS.CustomAttributes;
+using EMMS.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMMS.Controllers
 {
+    [FacilityChecked("NotificationService.VisibleTo")]
     public class NotificationController : BaseController
     {
         private readonly NotificationService _notificationService;

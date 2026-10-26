@@ -59,6 +59,7 @@ function generateNotificationContent() {
                     case "work": return "fas fa-tools text-primary";
                     case "job": return "fas fa-briefcase text-success";
                     case "asset": return "fas fa-box text-info";
+                    case "service": return "fas fa-calendar-check text-warning";
                     default: return "fas fa-bell text-secondary";
                 }
             }
@@ -72,6 +73,8 @@ function generateNotificationContent() {
                         return `/JobManagement/Index/`;
                     case "asset":
                         return `/AssetManagement/Index/`;
+                    case "service":
+                        return `/ServiceSchedule/Index/`;
                     default:
                         return "#";
                 }

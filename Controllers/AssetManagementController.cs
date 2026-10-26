@@ -26,9 +26,11 @@ namespace EMMS.Controllers
             "Id", "Name");
         private readonly AssetManagementRepo _repo;
         private readonly AssetMovementRepo _mrepo;
+        private readonly FacilityAccess _access;
 
-        public AssetManagementController(AssetManagementRepo repo, AssetMovementRepo mrepo, AssetService assetService, AssetRegistrationService registration)
+        public AssetManagementController(AssetManagementRepo repo, AssetMovementRepo mrepo, AssetService assetService, AssetRegistrationService registration, FacilityAccess access)
         {
+            _access = access;
             _assetService = assetService;
             _registration = registration;
             _repo = repo;
@@ -36,12 +38,14 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [NoFacilityData("Sub-category lookup")]
         public async Task<IActionResult> GetSubCategories(int categoryId)
         {
             var subCategories = await _repo.GetSubCategoriesOf(categoryId);
             return Json(subCategories.Select(x => new { x.Id, x.Name }));
         }
         [HttpGet]
+        [NoFacilityData("Lookup item")]
         public async Task<IActionResult> GetLookupItemDetails(int id)
         {
             try
@@ -75,6 +79,7 @@ namespace EMMS.Controllers
 
 
         [RequireLogin]
+        [FacilityChecked("AssetService.GetAssetIndexViewModel: non-admins see their facility")]
         public async Task<IActionResult> Index()
         {
             return View(new AssetIndexViewModel { FilterOptions = await GetFilterOptions() });
@@ -120,6 +125,7 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [FacilityChecked("AssetService.GetPaginatedAssets: non-admins see their facility")]
         public IActionResult GetAssets([FromForm] DataTablesRequest request)
         {
             var currentUser = CurrentUser;
@@ -296,6 +302,7 @@ namespace EMMS.Controllers
         }
 
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Asset)]
         public async Task<IActionResult> Detail(Guid id)
         {
             var vm = await _assetService.GetAssetDetailAsync(id);
@@ -304,6 +311,7 @@ namespace EMMS.Controllers
 
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed))]
+        [NoFacilityData("Empty registration form")]
         public async Task<IActionResult> registerAsset()
         {
 
@@ -321,6 +329,7 @@ namespace EMMS.Controllers
         }
         [RequireLogin]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.DataCollector), nameof(UserType.Biomed))]
+        [NoFacilityData("Empty quick registration form")]
         public async Task<IActionResult> quickRegisterAsset()
         {
 
@@ -359,6 +368,7 @@ namespace EMMS.Controllers
             };
         }
         [HttpGet]
+        [NoFacilityData("Registration lookups and facility names")]
         public async Task<IActionResult> GetDropdownData()
         {
             var categories = await _repo.GetCategories();
@@ -397,6 +407,7 @@ namespace EMMS.Controllers
 
 
         [RequireLogin]
+        [FacilityScoped(FacilityRecord.Asset, "id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> Edit(Guid id)
         {
             var asset = await _assetService.GetAssetForEditAsync(id);
@@ -411,6 +422,8 @@ namespace EMMS.Controllers
 
         [RequireLogin]
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [FacilityScoped(FacilityRecord.Asset, "Assetmodel.asset.AssetId", FacilityAccessLevel.Change)]
         public async Task<IActionResult> Edit(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
@@ -439,6 +452,8 @@ namespace EMMS.Controllers
         }
 
         [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager), nameof(UserType.Biomed))]
+        [FacilityChecked("AssetRegistrationService: only admins register for another facility")]
         public async Task<IActionResult> RegisterAsset(AssetRegistrationViewModel Assetmodel)
         {
             var asset = Assetmodel.asset;
@@ -484,6 +499,8 @@ namespace EMMS.Controllers
         }
         
         [HttpPost]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.DataCollector), nameof(UserType.Biomed))]
+        [FacilityChecked("Quick registration places each asset at the facility picked for it, by design (field data collection)")]
         public async Task<IActionResult> SaveAssets([FromBody] List<Asset> assets)
         {
             if (assets == null || !assets.Any())
@@ -507,15 +524,23 @@ namespace EMMS.Controllers
         [RequireLogin]
         [HttpPost]
         [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.Biomed))]
+        [FacilityChecked("Only tags FacilityAccess.VisibleAssets allows are printed")]
         public async Task<IActionResult> PrintStickers(List<string> tags)
         {
-            // Keeps the order the user selected them in
-            return View("stickers", await _assetService.GetAssetsByTagsAsync(tags ?? new List<string>()));
+            // Only assets this user may see; keeps the order the user selected them in
+            var wanted = (tags ?? new List<string>()).Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
+            var visible = (await _access.VisibleAssets(CurrentUser!)
+                    .Where(a => wanted.Contains(a.AssetTagNumber))
+                    .Select(a => a.AssetTagNumber)
+                    .ToListAsync())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return View("stickers", await _assetService.GetAssetsByTagsAsync(wanted.Where(visible.Contains)));
         }
 
         // Serial list pre-check for Quick Registration: returns the serials that are already registered
         [RequireLogin]
         [HttpPost]
+        [NoFacilityData("Serials are unique across all facilities; returns only which are taken")]
         public async Task<IActionResult> CheckSerials([FromBody] List<string> serials)
         {
             var normalized = (serials ?? new List<string>())
@@ -536,6 +561,8 @@ namespace EMMS.Controllers
         }
 
         [HttpGet]
+        [AuthorizeRole(nameof(UserType.Administrator), nameof(UserType.FacilityManager))]
+        [FacilityScoped(FacilityRecord.Asset, "Id", FacilityAccessLevel.Change)]
         public async Task<IActionResult> HideAsset(Guid Id)
         {
             await _registration.HideAsync(Id);
