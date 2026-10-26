@@ -2,28 +2,41 @@
 
 @{
 
-    ViewData["Title"] = "Manage Users";
-    ViewData["UserManagement"] = "active";
-    ViewData["userAccounts"] = "active";
+    ViewData["Title"] = "User Accounts";
+
+    const string NoFacility = "No facility";
+    string FacilityOf(EMMS.Models.Admin.User u) => u.Facility?.FacilityName ?? NoFacility;
+    string RoleOf(EMMS.Models.Admin.User u) => u.UserRole?.Name ?? "No role";
+
+    // Header filter options, keyed by DataTables column name. This table is client-side, so each value is the
+    // cell's data-search text (site.js emmsColumnFilters matches it exactly).
+    object Options(IEnumerable<string> values) => values.Distinct().OrderBy(v => v).Select(v => new { text = v, value = v });
+    var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object>
+    {
+        ["Gender"] = Options(Model.Select(u => u.Gender.ToString())),
+        ["Facility"] = Options(Model.Select(FacilityOf)),
+        ["Role"] = Options(Model.Select(RoleOf)),
+        ["Status"] = Options(Model.Select(u => u.RowState.ToString())),
+    });
 }
 
 <div class="card">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>User Accounts</span>
-            <div class="d-flex justify-content-between align-items-center">
-                <a class="btn btn-primary btn-sm" asp-action="Create">
-                    <i class="fa fa-plus me-1"></i> Create New
-                </a>
-                <button class="btn btn-primary btn-sm" style="margin-left:2px;" title="Export to Excel" onclick="fnExcelReport()">
-                    <i class="fa fa-download"></i>
-                </button>
-            </div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>User Accounts</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm d-none" title="Reset all column filters">
+                <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
+            </button>
+            <a class="btn btn-primary btn-sm" asp-action="Create">
+                <i class="fa fa-plus me-1"></i> Create New
+            </a>
+            <a class="btn btn-primary btn-sm" title="Export to Excel" aria-label="Export to Excel" data-no-loading asp-action="Export">
+                <i class="fa fa-download"></i>
+            </a>
         </div>
     </div>
     <div class="card-body">
-        <div class="table-responsive" id="table-responsive-asset">
-            <div class="table-responsive" id="table-responsive-asset">
+        <div class="table-responsive">
                 <table class="table fixed-table table-striped table-bordered table-hover" id="userTable">
                     <thead>
                         <tr>
@@ -54,7 +67,7 @@
                             <th>
                                 @Html.DisplayNameFor(model => model.RowState)
                             </th>
-                            <th></th>
+                            <th data-priority="2"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,22 +83,22 @@
                                 <td>
                                     @Html.DisplayFor(modelItem => item.DOB)
                                 </td>
-                                <td>
+                                <td data-search="@item.Gender">
                                     @Html.DisplayFor(modelItem => item.Gender)
                                 </td>
                                 <td>
                                     @Html.DisplayFor(modelItem => item.Cellphone)
                                 </td>
-                                <td>
+                                <td data-search="@FacilityOf(item)">
                                     @Html.DisplayFor(modelItem => item.Facility.FacilityName)
                                 </td>
                                 <td>
                                     @Html.DisplayFor(modelItem => item.Username)
                                 </td>
-                                <td>
+                                <td data-search="@RoleOf(item)">
                                     @Html.DisplayFor(modelItem => item.UserRole.Name)
                                 </td>
-                                <td>
+                                <td data-search="@item.RowState">
                                     @if (item.RowState == Enumerators.RowStatus.Active)
                                     {
                                         <span class="badge bg-success">
@@ -104,11 +117,15 @@
                                     <a class="btn btn-sm btn-info" asp-action="Details" asp-route-id="@item.UserId">Details</a>
 									@if (item.RowState == Enumerators.RowStatus.Active)
 									{
-                                        <a class="btn btn-sm btn-warning" asp-action="ActivateUser" asp-route-id="@item.UserId">Deactivate</a>
+                                        <form asp-action="ActivateUser" asp-route-id="@item.UserId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-warning">Deactivate</button>
+                                        </form>
 									}
 									else
 									{
-                                        <a class="btn btn-sm btn-success" asp-action="ActivateUser" asp-route-id="@item.UserId">Activate</a>
+                                        <form asp-action="ActivateUser" asp-route-id="@item.UserId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                                        </form>
 									}
                                     @* <a asp-action="Delete" asp-route-id="@item.UserId">Delete</a> *@
                                 </td>
@@ -116,8 +133,6 @@
                         }
                     </tbody>
                 </table>
-
-            </div>
 
         </div>
 
@@ -128,9 +143,24 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            const filterOptions = @Html.Raw(filterOptionsJson);
+
             $('#userTable').DataTable({
-                // Optional: customize page length, language, etc.
-                pageLength: 10
+                pageLength: 10,
+                columns: [
+                    null, null, null,
+                    { name: "Gender" },
+                    null,
+                    { name: "Facility" },
+                    null,
+                    { name: "Role" },
+                    { name: "Status" },
+                    { orderable: false, searchable: false }
+                ],
+                // ?Status=Inactive (the dashboard's "waiting for activation" banner) presets the Status filter
+                initComplete: function () {
+                    emmsColumnFilters(this.api(), filterOptions, '#clearFilters');
+                }
             });
         });
 

@@ -3,7 +3,6 @@
 @{
 
     ViewData["Title"] = "Notifications";
-    ViewData["Notification"] = "active";
 }
 <div class="notification-body">
     <ul class="notification-list" id="notificationList">
@@ -22,6 +21,10 @@
                     else if (item.Type == "asset")
                     {
                         <i class="fas fa-box text-info"></i>
+                    }
+                    else if (item.Type == "service")
+                    {
+                        <i class="fas fa-calendar-check text-warning"></i>
                     }
                     else if (item.Type == "forgotPassword")
                     {
@@ -52,6 +55,13 @@
                     {
                         <a class="notification-action mark-read" title="View Job"
                         href="@Url.Action("Index", "JobManagement")">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    }
+                    else if (item.Type == "service")
+                    {
+                        <a class="notification-action mark-read" title="View Service Schedule"
+                        href="@Url.Action("Index", "ServiceSchedule")">
                             <i class="fas fa-eye"></i>
                         </a>
                     }

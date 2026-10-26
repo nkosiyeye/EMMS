@@ -2,8 +2,6 @@
 @using EMMS.Constants
 @{
     ViewData["Title"] = "Manage Jobs";
-    ViewData["manageJob"] = "active";
-    ViewData["JobManagement"] = "active";
     Model.Job.StartDate = DateTime.Today;
     var openWork = Model.WorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();
     var openInfraWork = Model.InfrastructureWorkRequests!.Where(w => w.WorkStatus?.Name == WorkStatusNames.Open && w.JobId == null).ToList();
@@ -12,15 +10,6 @@
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
 }
 
-
-@if (TempData["JobError"] != null)
-{
-    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-        @TempData["JobError"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-
-}
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -63,7 +52,7 @@
             <div class="tab-pane fade show active" id="asset-requests" role="tabpanel" aria-labelledby="asset-tab">
                 <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="assetWorkRequestTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Asset Tag</th>
                                 <th>Date Requested</th>
@@ -127,7 +116,7 @@
             <div class="tab-pane fade" id="infra-requests" role="tabpanel" aria-labelledby="infra-tab">
                 <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="infraWorkRequestTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Request Type</th>
                                 <th>Date Requested</th>
@@ -197,7 +186,7 @@
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="JobTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Job Type</th>
                                 <th>Asset Tag</th>

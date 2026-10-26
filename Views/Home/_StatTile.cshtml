@@ -1,0 +1,26 @@
+@model EMMS.ViewModels.StatTile
+@using EMMS.ViewModels
+@{
+    var alert = Model.Tone != DashTone.Neutral;
+    var valueClass = alert ? $"text-{Model.Tone.Css()}" : "";
+    var iconClass = alert ? $"dash-stat-icon-{Model.Tone.Css()}" : "";
+}
+
+<div class="dash-stat h-100 @(Model.Link != null ? "dash-stat-link" : "")">
+    <div class="min-w-0">
+        <div class="dash-stat-label">@Model.Label</div>
+        <div class="dash-stat-value @valueClass">@Model.Value</div>
+        @if (!string.IsNullOrWhiteSpace(Model.Context))
+        {
+            <div class="dash-stat-context">@Model.Context</div>
+        }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Icon))
+    {
+        <div class="dash-stat-icon @iconClass" aria-hidden="true"><i class="@Model.Icon"></i></div>
+    }
+    @if (Model.Link != null)
+    {
+        <a class="stretched-link" aria-label="@Model.Label: @Model.Value" href="@Url.Dash(Model.Link)"></a>
+    }
+</div>

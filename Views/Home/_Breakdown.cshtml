@@ -1,0 +1,52 @@
+@model EMMS.ViewModels.Breakdown
+@using EMMS.ViewModels
+@{
+    var chart = new
+    {
+        labels = Model.Rows.Select(r => r.Label),
+        values = Model.Rows.Select(r => r.Count),
+        tones = Model.Rows.Select(r => r.Tone.Css()),
+        links = Model.Rows.Select(r => r.Link != null ? Url.Dash(r.Link) : null),
+    };
+    // Room for every bar at <= 24px plus its gap, so long lists never squash
+    var height = Math.Max(160, Model.Rows.Count * 40 + 30);
+}
+
+<div class="card shadow-sm h-100">
+    <div class="card-header">@Model.Title</div>
+    <div class="card-body">
+        @if (Model.Rows.Count == 0)
+        {
+            <p class="dash-empty">@Model.EmptyText</p>
+        }
+        else
+        {
+            <div class="chart-container" style="height: @(height)px;">
+                <canvas class="js-dash-chart" role="img"
+                        aria-label="@Model.Title: @string.Join(", ", Model.Rows.Select(r => $"{r.Label} {r.Count}"))"
+                        data-chart="@System.Text.Json.JsonSerializer.Serialize(chart)">
+                    @* Fallback / screen-reader view of the same numbers *@
+                    <ul>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <li>
+                                @if (row.Link != null)
+                                {
+                                    <a href="@Url.Dash(row.Link)">@row.Label: @row.Count</a>
+                                }
+                                else
+                                {
+                                    @:@row.Label: @row.Count
+                                }
+                            </li>
+                        }
+                    </ul>
+                </canvas>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.More))
+            {
+                <p class="dash-more">@Model.More</p>
+            }
+        }
+    </div>
+</div>

@@ -2,17 +2,32 @@
    Global Styles
 =========================== */
 :root {
-    --color-green: #228B22;
-    --color-blue: #3b82f6;
-    --color-yellow: #ff7e0d;
-    --color-red: #ff1616;
-    --brand-blue: #0d6efd;
+    /* Brand: one primary blue and one lighter shade for hover, focus and accents. Every blue in the app uses these. */
     --primary: #153D77;
+    --primary-hover: #2563EB;
     --primary-foreground: #ffffff;
+    --brand-blue: var(--primary-hover); /* accent name used by the dashboard styles */
     --sidebar-border: #e2e8f0;
     --border: #e2e8f0;
     --foreground: #0f172a;
-    --muted: #c7bbc9;
+    /* Status colours: tinted background with dark text (readable, and the text still prints).
+       Shared by .status-*, the toasts and the printed asset detail (site.js). */
+    --status-success-bg: #dcfce7;
+    --status-success-fg: #166534;
+    --status-info-bg: #dbeafe;
+    --status-info-fg: #1e40af;
+    --status-warning-bg: #fef3c7;
+    --status-warning-fg: #92400e;
+    --status-danger-bg: #fee2e2;
+    --status-danger-fg: #991b1b;
+    --status-muted-bg: #f1f5f9;
+    --status-muted-fg: #475569;
+    /* Table header theme, used by every .table header (see "Table Styles").
+       Change these three to restyle all tables at once, e.g. a light header:
+       --table-head-bg: #f1f5f9; --table-head-color: var(--foreground); --table-head-border: var(--border); */
+    --table-head-bg: #212529;
+    --table-head-color: #fff;
+    --table-head-border: #373b3e;
 }
 
 .chart-container {
@@ -33,7 +48,7 @@
     width: 36px;
     height: 36px;
     border: 4px solid #e5e7eb;
-    border-top-color: #3b82f6;
+    border-top-color: var(--primary-hover);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -47,31 +62,8 @@
 
 
 
-/* Form section headers */
-h5 {
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: var(--primary) !important;
-    border-bottom: 2px solid var(--primary) !important;
-    padding-bottom: 0.5rem !important;
-    margin-bottom: 1.5rem !important;
-    position: relative;
-}
-
-    h5::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 50px;
-        height: 2px;
-    }
-
 .text-primary {
     color: var(--primary) !important;
-}
-.status-muted{
-    background-color: var(--muted);
 }
 
 /* Spinner Animation (three bouncing dots) */
@@ -84,7 +76,7 @@ h5 {
     .spinner > div {
         width: 16px;
         height: 16px;
-        background-color: #007bff;
+        background-color: var(--primary-hover);
         border-radius: 100%;
         display: inline-block;
         animation: bouncedelay 1.4s infinite ease-in-out both;
@@ -157,86 +149,169 @@ h5 {
     padding: 1rem;
     background-color: #fff;
 }
-/* ===== ALERTS ===== */
-/* Base alert style for positioning and padding */
-.alert {
+/* ===== TOASTS (emmsToast in site.js) =====
+   The app's one message banner, stacked at the top centre. The left border and icon carry the type.
+   In-page .alert boxes are ordinary Bootstrap alerts and stay where they are written. */
+.emms-toasts {
     position: fixed;
-    top: 2rem;
+    top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    min-width: 320px;
-    max-width: 90vw;
-    z-index: 9999;
-    padding: 1rem 2.5rem 1rem 1.25rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1.5px 4px rgba(0,0,0,0.08);
-    font-size: 1rem;
+    z-index: 1090; /* above modals and the offcanvas sidebar */
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    animation: fadeInDown 0.5s;
-    border-left: 4px solid;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: min(32rem, calc(100vw - 2rem));
+    pointer-events: none; /* the gaps between toasts don't block the page */
 }
 
-/* Success alert */
-.alert-success {
-    background-color: #dcfce7;
-    color: #166534;
+.emms-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 1.5px 4px rgba(0, 0, 0, 0.08);
+    font-size: 0.9375rem;
+    animation: emms-toast-in 0.25s ease-out;
+}
+
+    .emms-toast > i {
+        margin-top: 0.2rem;
+    }
+
+    .emms-toast .btn-close {
+        flex-shrink: 0;
+        margin-top: 0.15rem;
+        font-size: 0.75rem;
+    }
+
+.emms-toast-text {
+    flex: 1;
+    min-width: 0;
+    white-space: pre-line; /* multi-line server messages (queue, cylinder errors) */
+    overflow-wrap: anywhere;
+}
+
+.emms-toast-success {
+    background-color: var(--status-success-bg);
+    color: var(--status-success-fg);
     border-left-color: #16a34a;
 }
 
-/* Danger/error alert */
-.alert-danger {
-    background-color: #fee2e2;
-    color: #991b1b;
+.emms-toast-info {
+    background-color: var(--status-info-bg);
+    color: var(--status-info-fg);
+    border-left-color: var(--primary-hover);
+}
+
+.emms-toast-warning {
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-fg);
+    border-left-color: #d97706;
+}
+
+.emms-toast-danger {
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger-fg);
     border-left-color: #dc2626;
 }
 
-@keyframes fadeInDown {
+.emms-toast-out {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+@keyframes emms-toast-in {
     from {
         opacity: 0;
-        transform: translateX(-50%) translateY(-30px);
+        transform: translateY(-0.75rem);
     }
 
     to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: none;
     }
 }
 
-/* Button styling */
+@media (prefers-reduced-motion: reduce) {
+    .emms-toast {
+        animation: none;
+    }
+
+    .emms-toast-out {
+        transition: none;
+    }
+}
+
+/* Confirmation dialog (emmsConfirm in site.js): above a modal it was opened from */
+.emms-confirm {
+    z-index: 1065;
+}
+
+/* Buttons and Bootstrap's own blue bits (links, outline buttons, paging, checkboxes) in the brand colours */
 .btn-primary {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
-    .btn-primary:hover {
-        background-color: #2563EB !important;
-        border-color: #2563EB;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(21, 61, 119, 0.3);
+    .btn-primary:hover,
+    .btn-primary:focus {
+        background-color: var(--primary-hover) !important;
+        border-color: var(--primary-hover) !important;
     }
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary.active {
+        color: #fff;
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+.page-link {
+    color: var(--primary);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Brand bar: the top bar and the sidebar's header, the same height so their edges line up */
+.app-bar {
+    min-height: 3.5rem;
+}
 
 .offcanvas-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: var(--primary) !important; /* Dark blue background */
-    padding: 0rem 1rem;
+    background-color: var(--primary) !important;
+    padding: 0 1rem;
 }
 
-.sidebar-footer {
-    background-color: #f8f9fa; /* Or match sidebar bg */
-    padding: 1rem 1rem 7.5rem 1rem !important;
-}
-
-@media (max-width: 770px) {
-    .sidebar-footer {
-        background-color: #f8f9fa; /* Or match sidebar bg */
-        padding: 1rem 1rem 2rem 1rem !important;
-    }
+.app-logo {
+    width: 35px;
+    height: 35px;
+    padding: 4px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 50%;
 }
 
 .collapse-icon {
@@ -257,69 +332,72 @@ h5 {
 }
 
 body {
-    font-family: 'Montserrat', sans-serif;
-    overflow-y: hidden; /* Prevent vertical scrolling on body */
-}
-
-.container-fluid {
-    height: 100%; /* Ensure the container takes full height */
-}
-
-
-footer.footer {
-    position: sticky;
-    bottom: 0;
-    z-index: 1020;
-    flex-shrink: 0;
-    height: fit-content;
+    overflow-y: hidden; /* the layouts scroll their main area, not the page */
 }
 
 main {
     overflow-y: auto;
     background: whitesmoke;
-    margin-bottom: 80px !important;
 }
 
-/* Phones (portrait + landscape) */
-/* Phones */
-@media screen and (max-device-width: 767px) {
-    .sidebar-footer {
-        margin-bottom: 80px !important;
-    }
+/* ===========================
+   App shell (_Layout)
+   Exactly the visible viewport tall: dvh follows the visible area on iPad / mobile Safari, where
+   100vh reaches behind the browser toolbar and cuts off the bottom of the page. Only the main area
+   and the sidebar menu scroll, so nothing needs extra bottom margins to stay reachable.
+=========================== */
+#main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+}
 
-    footer.footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 1020;
+.app-shell {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+/* The sidebar is a Bootstrap offcanvas (slide-out menu) below 1200px. From 1200px it docks beside the
+   page instead; !important beats the inline visibility Bootstrap leaves after closing it. */
+.app-sidebar.offcanvas {
+    width: 16rem;
+}
+
+@media (min-width: 1200px) {
+    .app-sidebar.offcanvas {
+        position: static;
+        z-index: auto;
         flex-shrink: 0;
-        height: fit-content;
-    }
-
-    .registerCard {
-        margin-bottom: 80px !important;
-        padding-bottom: 80px !important;
+        height: 100%;
+        transform: none;
+        visibility: visible !important;
+        transition: none;
     }
 }
 
-/* Tablets (like Galaxy Tab S9+, iPads, etc.) */
-@media screen and (max-device-width: 2800px) and (pointer: coarse) {
-    /* applies only to touch devices (phones + tablets), not laptops */
-    .sidebar-footer {
-        margin-bottom: 90px !important;
-    }
+.app-sidebar-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
 
-    footer.footer {
-        position: sticky;
-        bottom: 0;
-        z-index: 1020;
-        flex-shrink: 0;
-        height: fit-content;
-    }
+.app-main {
+    flex: 1;
+    min-width: 0;
+}
 
-    .registerCard {
-        margin-bottom: 80px !important;
-        padding-bottom: 80px !important;
-    }
+.app-footer {
+    flex-shrink: 0;
+    padding: 0.25rem 0;
+    background-color: #f5f5f5;
+    border-top: 1px solid var(--border);
+}
+
+/* _FullScreenLayout (login, registration) */
+.viewport-height {
+    height: 100vh;
+    height: 100dvh;
 }
 
 
@@ -327,22 +405,6 @@ main {
     width: 11rem;
 }
 
-
-.notification {
-    padding: 1rem 5rem !important;
-    border-radius: 10px !important;
-    max-width: 60%;
-    text-align: center;
-    font-size: 1rem;
-}
-
-.error-notification {
-    background: #C61D29 !important;
-}
-
-.success-notification {
-    background: #199767 !important;
-}
 
 .badge {
     font-size: small;
@@ -395,7 +457,7 @@ main {
 nav.navbar {
     position: sticky !important; /* Make the navbar sticky */
     top: 0 !important; /* Stick to the top of the viewport */
-    background-color: #153D77 !important; /* Dark blue background */
+    background-color: var(--primary) !important;
     color: white; /* White text color */
 }
 
@@ -410,18 +472,59 @@ a.menu-toggle {
     border: none !important;
 }
 
-.list-group-item a[b-n2pq3b41xv] {
-    color: black !important;
+/* Top-bar breadcrumb (_Breadcrumb.cshtml) */
+.app-breadcrumb {
+    min-width: 0;
 }
+
+    .app-breadcrumb ol {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.9375rem;
+    }
+
+    .app-breadcrumb li {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        color: rgba(255, 255, 255, 0.75);
+        white-space: nowrap;
+    }
+
+        .app-breadcrumb li + li::before {
+            content: "›";
+            padding: 0 0.5rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .app-breadcrumb li[aria-current="page"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+            color: #fff;
+        }
+
+    .app-breadcrumb a {
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+        .app-breadcrumb a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
 
 a.active {
     color: white !important;
-    background-color: #153D77 !important;
+    background-color: var(--primary) !important;
 }
 
 .nav-item.active {
     color: white !important;
-    background-color: #2563EB !important;
+    background-color: var(--primary-hover) !important;
     padding: 2px 5px; /* Add padding: top-bottom 10px, left-right 15px */
     border-radius: 5px; /* Optional: Rounded edges for better appearance */
 }
@@ -484,11 +587,52 @@ th {
 }
 
 td {
-    white-space: nowrap;
     font-size: small;
     padding: 4px 6px;
     border: 1px solid #dee2e6;
     text-align: left;
+}
+
+/* Headers take their colours from the --table-head-* tokens in :root, so views put no
+   table-dark / table-light class on <thead>. Screen only: printouts keep a plain header. */
+@media screen {
+    .table > thead {
+        --bs-table-bg: var(--table-head-bg);
+        color: var(--table-head-color);
+        border-color: var(--table-head-border);
+    }
+
+        .table > thead > tr > th {
+            border-color: var(--table-head-border);
+        }
+}
+
+/* DataTables keep cells on one line so Responsive folds whole columns into the expandable row
+   instead of squeezing them; the folded details wrap. Add .text-wrap to a cell to let it wrap anyway. */
+table.dataTable > tbody > tr > td {
+    white-space: nowrap;
+}
+
+table.dataTable > tbody > tr.child > td,
+table.dataTable .dtr-details {
+    white-space: normal;
+}
+
+/* Touch screens (tablets, phones): larger table text and finger-sized buttons */
+@media (pointer: coarse) {
+    .table td {
+        font-size: 0.875rem;
+    }
+
+    .table .btn-sm,
+    .table .btn-group-sm > .btn,
+    .dt-paging .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+    }
 }
 
 
@@ -509,9 +653,6 @@ td {
 /* ===========================
    Forms and Cards
 =========================== */
-.alert {
-}
-
 .action-header-container {
     column-gap: 10px;
 }
@@ -550,9 +691,51 @@ label {
         font-size: 0.8rem !important;
     }
 
+/* Section heading inside a form or page (h5.form-subheading) */
 .form-subheading {
-    padding: 10px 15px;
+    padding: 0.625rem 0 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
 }
+
+/* Footer of a page form: Cancel, then the primary action on the right. Below 1200px (tablets) it sticks
+   to the bottom of the scrolling page, so a long form can be saved without scrolling back down. */
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 1199.98px) {
+    .form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        padding-bottom: 0.75rem;
+        background-color: #fff;
+    }
+}
+
+/* Bulk-action bar above a list, shown while rows are selected (AssetManagement/Index) */
+.selection-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--status-info-bg);
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+}
+
 
 .selectpicker {
     font-size: 0.8rem !important;
@@ -578,33 +761,39 @@ textarea::placeholder {
     font-size: 0.8rem;
 }
 
-.submit-btn-container {
-    margin: 10px 0 20px;
-}
-
+/* Status pill: tinted background, dark text (see the --status-* tokens) */
 .status-btn {
-    padding: 2px 5px;
+    display: inline-block;
+    padding: 2px 8px;
     text-align: center;
     border-radius: 1rem;
     border: none;
-    color: white;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .status-new {
-    background-color: var(--color-green);
+    background-color: var(--status-success-bg);
+    color: var(--status-success-fg);
 }
 
 .status-info {
-    background-color: var(--color-blue);
+    background-color: var(--status-info-bg);
+    color: var(--status-info-fg);
 }
 
 .status-warning {
-    background-color: var(--color-yellow);
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning-fg);
 }
 
 .status-danger {
-    background-color: var(--color-red);
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger-fg);
+}
+
+.status-muted {
+    background-color: var(--status-muted-bg);
+    color: var(--status-muted-fg);
 }
 
 .action-container {
@@ -693,17 +882,14 @@ textarea::placeholder {
 /* ===========================
    Miscellaneous Styles
 =========================== */
-button.btn-primary:hover {
-    background-color: #2563EB !important; /* Darker shade on hover */
-}
-
 a {
-    text-decoration: none; /* Remove underline from links */
-    transition: color 0.3s ease; /* Smooth transition for hover effect */
+    color: var(--primary-hover);
+    text-decoration: none;
+    transition: color 0.15s ease;
 }
 
     a:hover {
-        color: #2563EB; /* Change color on hover */
+        color: var(--primary);
     }
 
 .required-field::after {
@@ -761,7 +947,7 @@ a {
             background-color: var(--primary) !important;
             color: #fff !important;
             font-weight: 600;
-            box-shadow: inset 3px 0 0 #2563EB;
+            box-shadow: inset 3px 0 0 var(--primary-hover);
         }
 @media screen and (min-width: 1200px) {
     #sidebar-nav .list-group-item {
@@ -868,4 +1054,381 @@ a {
     color: #6c757d; /* Bootstrap muted color */
     border-top: 1px solid rgba(0,0,0,.1); /* subtle divider */
     padding-top: 0.25rem;
+}
+
+/* ===========================
+   Dashboard (Home/Index)
+   Calm by default: colour only marks values that need attention.
+=========================== */
+.dash {
+    --dash-muted: #64748b;
+    --dash-track: #f1f5f9;
+    padding: 1rem;
+}
+
+    /* Bootstrap's yellow is unreadable as text on white */
+    .dash .text-warning {
+        color: #b45309 !important;
+    }
+
+.dash-filter {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+    .dash-filter label {
+        margin: 0;
+        font-weight: 500;
+        color: var(--dash-muted);
+    }
+
+    .dash-filter .form-select {
+        width: auto;
+        min-width: 14rem;
+    }
+
+.dash-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.625rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: #78350f;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 0.5rem;
+}
+
+    .dash-notice a {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+/* Icon is pinned to the top-right corner; the right padding keeps text from running under it */
+.dash-stat {
+    position: relative;
+    padding: 1rem 4.25rem 1rem 1.125rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+.dash-stat-link {
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+    .dash-stat-link:hover {
+        border-color: var(--brand-blue);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+/* The tile whose list is showing (Service Schedule filter) */
+.dash-stat-active .dash-stat {
+    border-color: var(--brand-blue);
+    box-shadow: inset 0 -2px 0 var(--brand-blue);
+}
+
+/* ===========================
+   Service calendar (ServiceSchedule/Calendar)
+   A due date is a solid chip, a date projected from the interval a dashed one; colour stays calm.
+=========================== */
+.svc-cal {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+}
+
+.svc-cal-dow {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--dash-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.svc-cal-day {
+    min-height: 7.5rem;
+    min-width: 0;
+    padding: 0.375rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+    .svc-cal-day:nth-child(7n) {
+        border-right: 0;
+    }
+
+.svc-cal-out {
+    background: var(--dash-track);
+}
+
+    .svc-cal-out .svc-cal-date {
+        color: #94a3b8;
+    }
+
+.svc-cal-date {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.svc-cal-today .svc-cal-date {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 50%;
+    color: #fff;
+    background: var(--brand-blue);
+}
+
+.svc-cal-chip {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: #1e293b;
+    text-decoration: none;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--brand-blue);
+    border-radius: 0.25rem;
+}
+
+    .svc-cal-chip:hover {
+        color: #0f172a;
+        border-color: var(--brand-blue);
+    }
+
+.svc-cal-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.svc-cal-chip-tag {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 0.6875rem;
+    color: var(--dash-muted);
+}
+
+.svc-cal-chip-projected {
+    color: #475569;
+    background: transparent;
+    border: 1px dashed #cbd5e1;
+}
+
+.svc-cal-chip-requested {
+    color: #475569;
+    background: #f8fafc;
+    border-color: var(--border);
+    border-left-color: #16a34a;
+}
+
+.svc-cal-requested-icon {
+    color: #16a34a;
+}
+
+/* Items past the day's limit stay folded until "+N more" (grid only; the agenda lists everything) */
+.svc-cal .svc-cal-chip-extra {
+    display: none;
+}
+
+.svc-cal-expanded .svc-cal-chip-extra {
+    display: flex;
+}
+
+.svc-cal-more {
+    align-self: flex-start;
+    padding: 0;
+    font-size: 0.75rem;
+    color: var(--brand-blue);
+    background: none;
+    border: 0;
+}
+
+    .svc-cal-more:hover {
+        text-decoration: underline;
+    }
+
+.svc-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+}
+
+.svc-cal-swatch {
+    display: inline-block;
+    width: 0.875rem;
+    height: 0.625rem;
+    vertical-align: middle;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 3px solid var(--brand-blue);
+    border-radius: 2px;
+}
+
+.svc-cal-swatch-projected {
+    background: transparent;
+    border: 1px dashed #cbd5e1;
+}
+
+.svc-agenda-day {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.svc-agenda-date {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.svc-agenda-day.svc-cal-today .svc-agenda-date {
+    color: var(--brand-blue);
+}
+
+.dash-stat-label,
+.dash-stat-context {
+    font-size: 0.8125rem;
+    color: var(--dash-muted);
+}
+
+.dash-stat-value {
+    margin-top: 0.25rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Icon: brand blue by default, takes the tile's colour when the value needs attention */
+.dash-stat-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+    color: var(--brand-blue);
+    background: rgba(37, 99, 235, 0.08);
+    border-radius: 0.5rem;
+}
+
+.dash-stat-icon-warning {
+    color: #b45309;
+    background: rgba(250, 178, 25, 0.15);
+}
+
+.dash-stat-icon-danger {
+    color: #d03b3b;
+    background: rgba(208, 59, 59, 0.1);
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.dash-empty {
+    margin: 0;
+    padding: 1.5rem 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--dash-muted);
+}
+
+/* Tables a tile links to (#due-for-service): stop clear of the fixed top bar */
+.dash-anchor {
+    scroll-margin-top: 5rem;
+}
+
+.dash-more {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--dash-muted);
+}
+
+/* Row a dashboard link opened (?focus=id, site.js emmsFocusRow): brief highlight that fades out */
+@keyframes emms-focus-fade {
+    from { background-color: #fde68a; }
+    to { background-color: transparent; }
+}
+
+.emms-focus,
+.emms-focus > td {
+    animation: emms-focus-fade 3s ease-out;
+}
+
+tr.emms-focus > td:first-child {
+    box-shadow: inset 3px 0 0 var(--brand-blue);
+}
+
+@media (max-width: 575.98px) {
+    .dash {
+        padding: 0.75rem;
+    }
+
+    .dash-filter .form-select {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .dash-stat-value {
+        font-size: 1.5rem;
+    }
+}
+
+/* Searchable column filters in a bar above a DataTable (emmsColumnFilters in site.js).
+   Below 1200px the bar folds behind its "Filters" button. */
+.emms-filter-bar {
+    margin-bottom: 0.75rem;
+}
+
+.emms-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 0.5rem 0.75rem;
+    padding-top: 0.5rem;
+}
+
+@media (min-width: 1200px) {
+    .emms-filter-grid {
+        padding-top: 0;
+    }
+}
+
+.emms-filter-field label {
+    display: block;
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.emms-filter-field .bootstrap-select > .dropdown-toggle {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #fff;
+    border: 1px solid var(--border);
 }

@@ -1,7 +1,7 @@
 ﻿@model EMMS.Models.Admin.User
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create User";
 }
 
 <div class="container">
@@ -13,19 +13,11 @@
                 </div>
             </div>
             <div class="card-body">
-                @if (TempData["UserCreationError"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <div>@TempData["UserCreationError"]</div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
                 <form asp-action="Create" method="post">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                     <!-- Personal Information Section -->
-                    <h5 class="mb-3 text-primary border-bottom pb-1">Personal Information</h5>
+                    <h5 class="form-subheading mb-3">Personal Information</h5>
                     <div class="row mb-2">
                         <div class="form-group col-md-4">
                             <label asp-for="FirstName" class="form-label">First Name</label>
@@ -66,7 +58,7 @@
                     </div>
 
                     <!-- Employment Details -->
-                    <h5 class="mt-4 mb-3 text-primary border-bottom pb-1">Employment Details</h5>
+                    <h5 class="form-subheading mt-4 mb-3">Employment Details</h5>
                     <div class="row">
                         <div class="form-group col-md-6">
                             <label asp-for="DesignationId" class="form-label">Designation</label>
@@ -79,7 +71,7 @@
                     </div>
 
                     <!-- Account Credentials -->
-                    <h5 class="mt-4 mb-3 text-primary border-bottom pb-1">Account Credentials</h5>
+                    <h5 class="form-subheading mt-4 mb-3">Account Credentials</h5>
                     <div class="row mb-2">
                         <div class="form-group col-md-6">
                             <label asp-for="Username" class="form-label">Username</label>
@@ -99,7 +91,7 @@
                     </div>
 
                     <!-- RowState -->
-                    <h5 class="mt-4 mb-3 text-primary border-bottom pb-1">Record State</h5>
+                    <h5 class="form-subheading mt-4 mb-3">Record State</h5>
                     <div class="form-group mb-2">
                         <select asp-for="RowState" class="form-select">
                             <option value="1" selected>Active</option>
@@ -109,12 +101,9 @@
                         <span asp-validation-for="RowState" class="text-danger"></span>
                     </div>
 
-                    <!-- Submit Button -->
-                    <div class="form-group mt-4">
-                        <input type="submit" value="Create" class="btn btn-primary px-4" />
-                        <a asp-action="Index" class="btn btn-outline-secondary ms-2">
-                            <i class="bi bi-arrow-left"></i> Back to List
-                        </a>
+                    <div class="form-actions">
+                        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Create user</button>
                     </div>
                 </form>
             </div>

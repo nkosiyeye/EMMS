@@ -1,4 +1,5 @@
-﻿using EMMS.Models.Admin;
+﻿using EMMS.CustomAttributes;
+using EMMS.Models.Admin;
 using EMMS.Models;
 using EMMS.Service;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using EMMS.Utility;
 
 namespace EMMS.Controllers
 {
+    [FacilityChecked("NotificationService.VisibleTo")]
     [Route("api/notifications")]
     public class NotificationApiController : BaseController
     {

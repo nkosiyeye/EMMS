@@ -1,4 +1,5 @@
 ﻿using EMMS.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace EMMS.ViewModels
 {
@@ -8,6 +9,9 @@ namespace EMMS.ViewModels
         public AssetRegistrationViewModel? assetRegistrationViewModel { get; set; }
 
         public MoveAsset? moveAsset { get; set; }
+
+        // Header dropdown options on the Manage Assets table, keyed by DataTables column name
+        public Dictionary<string, List<SelectListItem>> FilterOptions { get; set; } = new();
 
 
     }

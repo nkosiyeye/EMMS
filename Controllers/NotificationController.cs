@@ -1,8 +1,10 @@
-﻿using EMMS.Service;
+﻿using EMMS.CustomAttributes;
+using EMMS.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMMS.Controllers
 {
+    [FacilityChecked("NotificationService.VisibleTo")]
     public class NotificationController : BaseController
     {
         private readonly NotificationService _notificationService;
@@ -24,8 +26,8 @@ namespace EMMS.Controllers
         [HttpPost]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            await _notificationService.MarkAsReadAsync(id);
-            return Ok();
+            // NotFound rather than Forbid, so ids belonging to other users aren't confirmed to exist
+            return await _notificationService.MarkAsReadAsync(id, CurrentUser!) ? Ok() : NotFound();
         }
     }
 }

@@ -4,7 +4,6 @@
 @{
 
     ViewData["Title"] = "Register Asset";
-    ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
     var currentUser = ViewBag._currentUser as User;
@@ -15,14 +14,6 @@
         <span>Register Asset</span>
     </div>
     <div class="card-body">
-        @if (TempData["RegistrationError"] != null)
-        {
-            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                @TempData["RegistrationError"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
-        }
         <form class="row bg-white registrationForm" asp-action="RegisterAsset" asp-controller="AssetManagement" method="post">
             <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">
@@ -334,8 +325,9 @@
             }
 
 
-            <div class="d-flex align-center justify-content-center submit-btn-container">
-                <button type="submit" class="btn btn-primary col-md-4">Submit</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Register asset</button>
             </div>
         </form>
 

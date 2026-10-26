@@ -1,8 +1,9 @@
-using EMMS.Constants;
+﻿using EMMS.Constants;
 using EMMS.Models;
 using EMMS.Models.Admin;
 using EMMS.Models.Entities;
 using EMMS.Service;
+using EMMS.ViewModels;
 using static EMMS.Models.Enumerators;
 
 namespace EMMS.Tests
@@ -138,6 +139,91 @@ namespace EMMS.Tests
             Assert.False(WorkRequestService.CanViewJob(biomed, job));
             job.AssignedTo = biomed.UserId;                 // assigned across facilities
             Assert.True(WorkRequestService.CanViewJob(biomed, job));
+        }
+
+        [Theory]
+        [InlineData("Fuse", 1, 0, null)]
+        [InlineData("Fuse", 2.5, 10, null)]
+        [InlineData("", 1, 10, "Select or enter a part.")]
+        [InlineData("  ", 1, 10, "Select or enter a part.")]
+        [InlineData(null, 1, 10, "Select or enter a part.")]
+        [InlineData("Fuse", 0, 10, "Quantity must be greater than zero.")]
+        [InlineData("Fuse", -1, 10, "Quantity must be greater than zero.")]
+        [InlineData("Fuse", 1, -0.01, "Unit cost cannot be negative.")]
+        public void ValidateJobPart(string? name, double quantity, double unitCost, string? expected)
+        {
+            Assert.Equal(expected, WorkRequestService.ValidateJobPart(name, (decimal)quantity, (decimal)unitCost));
+        }
+
+        [Fact]
+        public void PartsTotal_SumsQuantityTimesUnitCost()
+        {
+            var parts = new[]
+            {
+                new JobPart { Quantity = 2, UnitCost = 12.50m },
+                new JobPart { Quantity = 1.5m, UnitCost = 100m },
+            };
+            Assert.Equal(175m, WorkRequestService.PartsTotal(parts));
+            Assert.Equal(0m, WorkRequestService.PartsTotal(Array.Empty<JobPart>()));
+        }
+
+        [Theory]
+        [InlineData(UserType.Administrator, 2, WorkState.InProgress, true)]     // admin, any facility
+        [InlineData(UserType.FacilityManager, 1, WorkState.InProgress, true)]   // manager, own facility
+        [InlineData(UserType.FacilityManager, 2, WorkState.InProgress, false)]  // manager, other facility
+        [InlineData(UserType.Biomed, 1, WorkState.InProgress, false)]
+        [InlineData(UserType.GeneralUser, 1, WorkState.InProgress, false)]
+        [InlineData(UserType.Administrator, 1, WorkState.Completed, false)]     // awaiting close
+        [InlineData(UserType.Administrator, 1, WorkState.Closed, false)]
+        [InlineData(UserType.Administrator, 1, WorkState.Cancelled, false)]
+        public void CanReassignJob(UserType type, int userFacility, WorkState status, bool expected)
+        {
+            var job = new Job { FacilityId = 1 };
+            Assert.Equal(expected, WorkRequestService.CanReassignJob(MakeUser(type, userFacility), job, status));
+        }
+
+        [Fact]
+        public void CanReassignJob_FalseOnceEndDateSet()
+        {
+            var job = new Job { FacilityId = 1, EndDate = DateTime.Today };
+            Assert.False(WorkRequestService.CanReassignJob(MakeUser(UserType.Administrator, 1), job, WorkState.InProgress));
+        }
+
+        [Fact]
+        public void Workload_GroupsByAssigneeAndCountsStatuses()
+        {
+            var busy = new User { UserId = Guid.NewGuid(), FirstName = "Ann", LastName = "B" };
+            var idle = new User { UserId = Guid.NewGuid(), FirstName = "Zed", LastName = "C" };
+            var former = new User { UserId = Guid.NewGuid(), FirstName = "Old", LastName = "D" }; // no longer an active Biomed
+            var inProgress = new LookupItem { Name = WorkStatusNames.InProgress };
+            var completed = new LookupItem { Name = WorkStatusNames.Completed };
+            var jobs = new[]
+            {
+                new Job { AssignedTo = busy.UserId, User = busy, Status = inProgress },
+                new Job { AssignedTo = busy.UserId, User = busy, Status = inProgress },
+                new Job { AssignedTo = busy.UserId, User = busy, Status = completed },
+                new Job { AssignedTo = former.UserId, User = former, Status = inProgress },
+            };
+
+            var model = WorkloadViewModel.Build(jobs, new[] { idle, busy });
+
+            Assert.Equal(new[] { WorkStatusNames.InProgress, WorkStatusNames.Completed }, model.StatusColumns);
+            Assert.Equal(new[] { "Ann B", "Old D", "Zed C" }, model.Technicians.Select(t => t.Name));
+            var ann = model.Technicians[0];
+            Assert.Equal(3, ann.Total);
+            Assert.Equal(2, ann.CountsByStatus[WorkStatusNames.InProgress]);
+            Assert.Equal(1, ann.CountsByStatus[WorkStatusNames.Completed]);
+            Assert.Equal(0, model.Technicians[2].Total);
+        }
+
+        [Fact]
+        public void CanEditJobEntry_OnlyTheBiomedWhoRecordedIt()
+        {
+            var original = MakeUser(UserType.Biomed, 1);
+            var newAssignee = MakeUser(UserType.Biomed, 1);
+            Assert.True(WorkRequestService.CanEditJobEntry(original, original.UserId));
+            Assert.False(WorkRequestService.CanEditJobEntry(newAssignee, original.UserId)); // job reassigned to them
+            Assert.False(WorkRequestService.CanEditJobEntry(original, null));
         }
     }
 }

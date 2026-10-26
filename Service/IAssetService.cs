@@ -9,7 +9,8 @@ namespace EMMS.Service
 
     public interface IAssetService
     {
-        PaginatedResult<AssetViewModel> GetPaginatedAssets(int start, int length, string search,User currentUser);
+        PaginatedResult<AssetViewModel> GetPaginatedAssets(int start, int length, string search, User currentUser,
+            Dictionary<string, string> columnFilters = null);
     }
 
 }

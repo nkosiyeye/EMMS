@@ -7,6 +7,7 @@ namespace EMMS.Service
 {
     public interface IMovementService
     {
-        PaginatedResult<MoveAsset> GetPaginatedMovements(int start, int length, string search, User currentUser);
+        PaginatedResult<MoveAsset> GetPaginatedMovements(int start, int length, string search, User currentUser,
+            Dictionary<string, string> columnFilters = null);
     }
 }

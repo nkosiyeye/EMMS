@@ -3,6 +3,182 @@
 
 // Write your JavaScript code.
 
+// Antiforgery: the server validates a token on every POST (AutoValidateAntiforgeryToken in Program.cs).
+// The layouts put the token in <meta name="csrf-token">; these hooks attach it to every same-origin POST.
+function emmsCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function emmsIsUnsafeSameOrigin(method, url) {
+    return !/^(GET|HEAD|OPTIONS)$/i.test(method || 'GET')
+        && new URL(url, window.location.href).origin === window.location.origin;
+}
+
+// Adds the hidden token field to a POST form that lacks one (forms built in JS or with a literal action=)
+function emmsAddCsrfInput(form) {
+    if (form.method.toLowerCase() !== 'post' || form.querySelector('input[name="__RequestVerificationToken"]')) return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = '__RequestVerificationToken';
+    input.value = emmsCsrfToken();
+    form.appendChild(input);
+}
+
+// Capture phase so the field is in place before the browser serialises the form
+document.addEventListener('submit', event => emmsAddCsrfInput(event.target), true);
+
+if (window.jQuery) {
+    $(document).ajaxSend((event, xhr, settings) => {
+        if (emmsIsUnsafeSameOrigin(settings.type, settings.url)) xhr.setRequestHeader('RequestVerificationToken', emmsCsrfToken());
+    });
+}
+
+const emmsNativeFetch = window.fetch.bind(window);
+window.fetch = (resource, init = {}) => {
+    const url = resource instanceof Request ? resource.url : String(resource);
+    const method = init.method || (resource instanceof Request ? resource.method : 'GET');
+    if (emmsIsUnsafeSameOrigin(method, url)) {
+        const headers = new Headers(init.headers || (resource instanceof Request ? resource.headers : undefined));
+        if (!headers.has('RequestVerificationToken')) headers.set('RequestVerificationToken', emmsCsrfToken());
+        init = { ...init, headers };
+    }
+    return emmsNativeFetch(resource, init);
+};
+
+// Toasts: the one way the app tells the user something, instead of the browser's alert().
+// type: 'success' | 'info' | 'warning' | 'danger'. Success and info close by themselves (not while hovered);
+// warnings and errors stay until closed, so they can't disappear before they are read.
+// Server messages arrive the same way: _Notification.cshtml turns TempData into the #emms-server-toasts list.
+function emmsToast(message, type = 'info') {
+    let stack = document.getElementById('emms-toasts');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'emms-toasts';
+        stack.className = 'emms-toasts';
+        document.body.appendChild(stack);
+    }
+
+    const icons = { success: 'fa-circle-check', info: 'fa-circle-info', warning: 'fa-triangle-exclamation', danger: 'fa-circle-exclamation' };
+    const urgent = type === 'warning' || type === 'danger';
+    const toast = document.createElement('div');
+    toast.className = `emms-toast emms-toast-${icons[type] ? type : 'info'}`;
+    toast.setAttribute('role', urgent ? 'alert' : 'status');
+    toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info}" aria-hidden="true"></i>
+        <div class="emms-toast-text"></div>
+        <button type="button" class="btn-close" aria-label="Close"></button>`;
+    toast.querySelector('.emms-toast-text').textContent = message;
+
+    const close = () => {
+        toast.classList.add('emms-toast-out');
+        setTimeout(() => toast.remove(), 200);
+    };
+    toast.querySelector('.btn-close').addEventListener('click', close);
+    stack.appendChild(toast);
+
+    if (!urgent) {
+        let timer = setTimeout(close, 5000);
+        toast.addEventListener('mouseenter', () => clearTimeout(timer));
+        toast.addEventListener('mouseleave', () => { timer = setTimeout(close, 2500); });
+    }
+}
+
+// For a script that reloads or navigates right after: the toast is shown on the next page instead.
+function emmsToastAfterReload(message, type = 'info') {
+    try {
+        const queued = JSON.parse(sessionStorage.getItem('emms-toasts') || '[]');
+        queued.push({ message, type });
+        sessionStorage.setItem('emms-toasts', JSON.stringify(queued));
+    } catch (e) {
+        emmsToast(message, type);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    let queued = [];
+    try {
+        queued = JSON.parse(sessionStorage.getItem('emms-toasts') || '[]');
+        sessionStorage.removeItem('emms-toasts');
+    } catch (e) { /* storage unavailable */ }
+
+    const server = document.getElementById('emms-server-toasts');
+    if (server) queued = queued.concat(JSON.parse(server.textContent));
+    queued.forEach(t => emmsToast(t.message, t.type));
+});
+
+// In-app confirmation dialog, used instead of the browser's confirm(). Resolves to true when the user confirms.
+// options: { okText: label of the confirm button, danger: true for a red confirm button (deleting, removing) }
+function emmsConfirm(message, { okText = 'Confirm', danger = false } = {}) {
+    return new Promise(resolve => {
+        const element = document.createElement('div');
+        element.className = 'modal fade emms-confirm';
+        element.tabIndex = -1;
+        element.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body"><p class="mb-0"></p></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-role="ok"></button>
+                    </div>
+                </div>
+            </div>`;
+        element.querySelector('p').textContent = message;
+        const ok = element.querySelector('[data-role="ok"]');
+        ok.textContent = okText;
+        document.body.appendChild(element);
+
+        const dialog = new bootstrap.Modal(element);
+        let confirmed = false;
+        ok.addEventListener('click', () => { confirmed = true; dialog.hide(); });
+        element.addEventListener('shown.bs.modal', () => ok.focus());
+        element.addEventListener('hidden.bs.modal', () => {
+            dialog.dispose();
+            element.remove();
+            resolve(confirmed);
+        });
+        dialog.show();
+    });
+}
+
+// A form, or the button that submits it, with data-confirm="Question?" asks in the in-app dialog first.
+// data-confirm-ok sets the confirm button's label; data-confirm-danger makes it red.
+// {fieldName} in the question is replaced by that form field's value as the user sees it (a select's option text),
+// so the dialog can say what is affected: data-confirm="Reassign JC-0042 to {assignedTo}?".
+// Capture phase, so neither the page's submit handlers nor the loading overlay see the held-back submit.
+document.addEventListener('submit', event => {
+    const form = event.target;
+    const source = [event.submitter, form].find(el => el && el.dataset.confirm);
+    if (!source) return;
+    if (form.dataset.confirmed) {
+        delete form.dataset.confirmed;
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const submitter = event.submitter;
+    const question = source.dataset.confirm.replace(/\{([\w.]+)\}/g, (token, name) => {
+        const field = form.elements[name];
+        if (!field) return token;
+        return field.tagName === 'SELECT' ? (field.selectedOptions[0]?.text ?? '') : field.value;
+    });
+    emmsConfirm(question, {
+        okText: source.dataset.confirmOk || 'Confirm',
+        danger: 'confirmDanger' in source.dataset
+    }).then(confirmed => {
+        if (!confirmed) return;
+        form.dataset.confirmed = '1';
+        if (!form.requestSubmit) {
+            emmsAddCsrfInput(form);
+            form.submit();
+        } else if (submitter) {
+            form.requestSubmit(submitter);
+        } else {
+            form.requestSubmit();
+        }
+    });
+}, true);
+
 
 
 function printAssetDetail() {
@@ -52,7 +228,7 @@ function printAssetDetail() {
         ? formatDate(asset.nextServiceDate)
         : null;
 
-    const logoPath = '/images/Coat_of_arms_of_Eswatini.svg';
+    const logoPath = '/images/moh-letterhead.png';
 
     const html = `
         <html>
@@ -61,25 +237,27 @@ function printAssetDetail() {
             <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css">
             <style>
                 body { padding: 20px; font-family: sans-serif; }
-                .logo { max-height: 60px; margin-bottom: 20px; }
+                .letterhead { text-align: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 16px; }
+                .letterhead img { height: 72px; width: auto; max-width: 100%; }
+                /* Same status colours as the --status-* tokens in style.css (not loaded in this print window) */
                 .status-btn {
-                    padding: 2px 6px;
-                    border-radius: 4px;
+                    padding: 2px 8px;
+                    border-radius: 1rem;
                     display: inline-block;
-                    color: #fff;
+                    font-weight: 600;
                     font-size: 0.85rem;
                 }
-                .status-new { background-color: #198754; }
-                .status-info { background-color: #0dcaf0; }
-                .status-warning { background-color: #ffc107; }
-                .status-danger { background-color: #dc3545; }
+                .status-new { background-color: #dcfce7; color: #166534; }
+                .status-info { background-color: #dbeafe; color: #1e40af; }
+                .status-warning { background-color: #fef3c7; color: #92400e; }
+                .status-danger { background-color: #fee2e2; color: #991b1b; }
             </style>
         </head>
         <body>
-            <div class="text-center">
-                <img src="${logoPath}" alt="Logo" class="logo"/>
-                <h4>EMMS Asset Detail Summary</h4>
+            <div class="letterhead">
+                <img src="${logoPath}" alt="Kingdom of Eswatini, Ministry of Health"/>
             </div>
+            <h4 class="text-center">EMMS Asset Detail Summary</h4>
             <div class="row">
                 <div class="col-12 col-lg-4">
                     <dl class="row small">
@@ -164,8 +342,13 @@ function printAssetDetail() {
     const printWindow = window.open('', '_blank', 'width=900,height=800');
     printWindow.document.write(html);
     printWindow.document.close();
-    printWindow.print();
     printWindow.onafterprint = () => printWindow.close();
+
+    // Print only once the letterhead has loaded, or it can be missing from the first printout
+    const letterhead = printWindow.document.querySelector('.letterhead img');
+    const print = () => printWindow.print();
+    if (letterhead.complete) print();
+    else letterhead.onload = letterhead.onerror = print;
 }
 
 
@@ -185,6 +368,7 @@ function emmsPostTags(action, tags, target) {
         form.appendChild(input);
     });
     document.body.appendChild(form);
+    emmsAddCsrfInput(form); // form.submit() skips the submit event
     form.submit();
     form.remove();
 }
@@ -197,7 +381,7 @@ function printSelectedStickers(tags) {
         .filter(t => t !== '');
 
     if (selected.length === 0) {
-        alert("No assets selected for printing.");
+        emmsToast('Select at least one asset to print stickers for.', 'warning');
         return;
     }
 
@@ -220,8 +404,7 @@ function emmsBeep(ok) {
     } catch (e) { /* audio not available */ }
 }
 
-// Phone/tablet camera scanning (Code 128) where the browser supports BarcodeDetector.
-// Needs HTTPS (or localhost). Calls onCode for every new code until the overlay is closed.
+
 function emmsCameraScanSupported() {
     return 'BarcodeDetector' in window && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
@@ -247,7 +430,7 @@ async function emmsOpenCameraScanner(onCode) {
         await video.play();
     } catch (e) {
         stop();
-        alert('Camera not available: ' + e.message);
+        emmsToast('Camera not available: ' + e.message, 'danger');
         return;
     }
 
@@ -295,46 +478,6 @@ document.addEventListener('keydown', function (e) {
     if (next) next.focus();
 });
 
-function fnExcelReport() {
-    var tab_text = "<table border='2px'><tr bgcolor='#87AFC6'>";
-    var tab = document.getElementById('assetTable'); // id of table
-
-    // Loop through each row of the table
-    for (var j = 0; j < tab.rows.length; j++) {
-        tab_text += "<tr>";
-
-        // Loop through each cell in the row, excluding the last cell
-        for (var k = 0; k < tab.rows[j].cells.length - 1; k++) {
-            tab_text += tab.rows[j].cells[k].outerHTML;
-        }
-
-        tab_text += "</tr>";
-    }
-
-    tab_text += "</table>";
-
-    // Remove unwanted elements like links, images, and input fields
-    tab_text = tab_text.replace(/<A[^>]*>|<\/A>/g, ""); // Remove links
-    tab_text = tab_text.replace(/<img[^>]*>/gi, ""); // Remove images
-    tab_text = tab_text.replace(/<input[^>]*>|<\/input>/gi, ""); // Remove input fields
-
-    var msie = window.navigator.userAgent.indexOf("MSIE ");
-
-    // If Internet Explorer
-    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {
-        txtArea1.document.open("txt/html", "replace");
-        txtArea1.document.write(tab_text);
-        txtArea1.document.close();
-        txtArea1.focus();
-
-        sa = txtArea1.document.execCommand("SaveAs", true, "ExportedData.xls");
-    } else {
-        // For other browsers
-        sa = window.open('data:application/vnd.ms-excel,' + encodeURIComponent(tab_text));
-    }
-
-    return sa;
-}
 function exportToExcel() {
     var table = $('#assetTable').DataTable();
     var allRows = table.rows().nodes(); // Get all HTML rows
@@ -400,5 +543,176 @@ document.addEventListener('click', function (event) {
     const form = document.getElementById('serviceRequestForm');
     if (!form) return;
     form.querySelector('input[name="id"]').value = link.dataset.assetId;
+    emmsAddCsrfInput(form);
     form.submit();
 });
+
+// Every DataTable folds the columns that don't fit into an expandable row (Responsive) instead of scrolling sideways.
+// Responsive drops columns right to left. On a <th>, data-priority="n" keeps a column longer (lower n = kept longer),
+// class="all" always keeps it and class="none" always folds it. By default the first column and an "Action(s)"
+// column are kept, so every row stays identifiable and actionable. Priorities are read when a table is set up,
+// so they are stamped here, before the pages' ready handlers create their tables.
+if (window.jQuery && $.fn.dataTable) {
+    $.extend($.fn.dataTable.defaults, { responsive: true, autoWidth: false });
+
+    document.querySelectorAll('table > thead > tr:last-child').forEach(row => {
+        const cells = Array.from(row.children);
+        const keep = (th, priority) => { if (th && !th.hasAttribute('data-priority')) th.setAttribute('data-priority', priority); };
+        keep(cells[0], 1);
+        keep(cells.find(th => /^actions?$/i.test(th.textContent.trim())), 2);
+    });
+
+    // Tables in hidden tabs, modals and collapses are measured at zero width; fit them again once shown
+    $(document).on('shown.bs.tab shown.bs.modal shown.bs.collapse', () => {
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust().responsive.recalc();
+    });
+
+    // Responsive opens a row's details on a click anywhere in its first cell; a checkbox there (row selection)
+    // should only tick. Capture phase, so Responsive's handler on the table body never sees the click.
+    ['click', 'mousedown', 'mouseup'].forEach(type => document.addEventListener(type, e => {
+        if (e.target.matches('td.dtr-control input[type=checkbox]')) e.stopPropagation();
+    }, true));
+}
+
+// Searchable column filters for a DataTable, in a bar above the table rather than in its header, so they don't
+// widen the table and stay reachable when Responsive folds their column away. Below 1200px the bar folds behind
+// a "Filters" button that shows how many are applied.
+// options: { columnName: [{ text, value }] } (built on the server from lookup lists / enums), keyed by the
+// DataTables column `name`. Server-side tables send the selected value as that column's search and the server
+// matches it exactly. Client-side tables match it exactly against the cell's search text (its data-search
+// attribute when set, else its text), so for those the option values are the cell values.
+// clearButton: optional selector for a button that resets every filter; it is shown only while one is applied.
+// A query-string value named like a column (e.g. ?Status=2&Facility=5, from the dashboard charts) presets that filter.
+function emmsColumnFilters(api, options, clearButton) {
+    let clearing = false;   // resetting the pickers fires their change events; draw once at the end instead
+    let preset = false;
+    const params = new URLSearchParams(window.location.search);
+    const serverSide = api.settings()[0].oFeatures.bServerSide;
+    const escapeRegex = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const applySearch = (column, value) => serverSide
+        ? column.search(value, false, false)
+        : column.search(value ? `^\\s*${escapeRegex(value)}\\s*$` : '', true, false);
+
+    const fieldsId = `${api.table().node().id}-filters`;
+    const bar = $(`
+        <div class="emms-filter-bar">
+            <button type="button" class="btn btn-sm btn-outline-secondary d-xl-none" data-bs-toggle="collapse"
+                    data-bs-target="#${fieldsId}" aria-expanded="false" aria-controls="${fieldsId}">
+                <i class="fa fa-filter me-1"></i> Filters <span class="badge bg-primary ms-1 d-none" data-role="count"></span>
+            </button>
+            <div class="collapse d-xl-block" id="${fieldsId}"><div class="emms-filter-grid"></div></div>
+        </div>`);
+    const grid = bar.find('.emms-filter-grid');
+
+    // Above the table's scroll wrapper, so the bar never scrolls sideways with the table
+    const container = $(api.table().container());
+    const wrapper = container.parents('.table-responsive, .table-wrapper').last();
+    bar.insertBefore(wrapper.length ? wrapper : container);
+
+    const selects = [];
+    api.columns().every(function () {
+        const column = this;
+        const name = api.settings()[0].aoColumns[column.index()].sName;
+        const items = options[name];
+        if (!items) return;
+
+        const select = document.createElement('select');
+        select.className = 'column-filter';
+        select.setAttribute('aria-label', `Filter by ${column.title()}`);
+        select.add(new Option('All', ''));
+        items.forEach(o => select.add(new Option(o.text, o.value)));
+        selects.push(select);
+
+        const wanted = params.get(name);
+        if (wanted && items.some(o => o.value === wanted)) {
+            select.value = wanted;
+            applySearch(column, wanted);
+            preset = true;
+        }
+
+        $('<div class="emms-filter-field"></div>')
+            .append($('<label></label>').text(column.title()))
+            .append(select)
+            .appendTo(grid);
+
+        $(select)
+            .selectpicker({
+                liveSearch: true,
+                liveSearchPlaceholder: 'Search…',
+                size: 8,
+                width: '100%',
+                container: 'body',
+                style: 'btn-light btn-sm'
+            })
+            .on('changed.bs.select', () => {
+                applySearch(column, select.value);
+                if (!clearing) api.draw();
+            });
+    });
+
+    if (selects.length === 0) {
+        bar.remove();
+        return;
+    }
+
+    const syncState = () => {
+        const applied = selects.filter(s => s.value !== '').length;
+        bar.find('[data-role="count"]').text(applied).toggleClass('d-none', applied === 0);
+        if (clearButton) $(clearButton).toggleClass('d-none', applied === 0);
+    };
+    api.on('draw', syncState);
+    syncState();
+
+    if (clearButton) {
+        $(clearButton).on('click', function () {
+            clearing = true;
+            $(selects).selectpicker('val', '');
+            clearing = false;
+            api.columns().search('').draw();
+        });
+    }
+
+    // A filter preset from the link is shown open, so it is clear why the list is narrowed
+    if (preset) {
+        $(`#${fieldsId}`).addClass('show');
+        api.draw();
+    }
+}
+
+// Opens a list page on one row: ?focus=<id> scrolls to and highlights the element with data-focus-id=<id>,
+// showing its tab and DataTables page first; &act=<name> then clicks that row's [data-focus-act=<name>] button
+// (e.g. the Close dialog). Used by the dashboard's row buttons. Runs on window load, after the pages'
+// own DataTables set-up in their ready handlers.
+function emmsFocusRow() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('focus');
+    if (!id) return;
+    const act = params.get('act');
+    const actSelector = act ? `[data-focus-act="${CSS.escape(act)}"]` : null;
+
+    // The same id can be listed twice on a page (e.g. a request in two tables); prefer the row that has the action
+    const rows = Array.from(document.querySelectorAll('[data-focus-id]')).filter(el => el.dataset.focusId === id);
+    const row = (actSelector && rows.find(r => r.querySelector(actSelector))) || rows[0];
+    if (!row) return;
+
+    const pane = row.closest('.tab-pane');
+    if (pane && !pane.classList.contains('active') && window.bootstrap) {
+        const tab = document.querySelector(`[data-bs-target="#${pane.id}"]`);
+        if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+    }
+
+    const table = row.closest('table');
+    if (table && window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable(table)) {
+        const dt = $(table).DataTable();
+        const index = dt.rows({ order: 'applied', search: 'applied' }).nodes().toArray().indexOf(row);
+        if (index >= 0) dt.page(Math.floor(index / dt.page.len())).draw('page');
+    }
+
+    row.classList.add('emms-focus');
+    row.scrollIntoView({ block: 'center' });
+
+    const button = actSelector ? row.querySelector(actSelector) : null;
+    if (button) button.click();
+}
+
+window.addEventListener('load', emmsFocusRow);

@@ -9,15 +9,6 @@
             <div class="card-body p-4">
 
                 <!-- Error Alert -->
-                @if (TempData["UserRegistrationError"] != null)
-                {
-                    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <div>@TempData["UserRegistrationError"]</div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
-
                 <!-- Logo -->
                 <div class="text-center mb-3">
                     <img src="~/images/Coat_of_arms_of_Eswatini.svg"
@@ -40,7 +31,7 @@
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                     <!-- Personal Information Section -->
-                    <h5 class="mb-3"><i class="fas fa-user me-2"></i>Personal Information</h5>
+                    <h5 class="form-subheading mb-3"><i class="fas fa-user me-2"></i>Personal Information</h5>
                     <div class="row mb-2">
                         <div class="form-group col-md-4">
                             <label asp-for="FirstName" class="form-label"></label>
@@ -82,7 +73,7 @@
                     </div>
 
                     <!-- Employment Details -->
-                    <h5 class="mt-4 mb-3"><i class="fas fa-briefcase me-2"></i>Employment Details</h5>
+                    <h5 class="form-subheading mt-4 mb-3"><i class="fas fa-briefcase me-2"></i>Employment Details</h5>
                     <div class="row mb-3">
                         <div class="form-group col-md-6">
                             <label asp-for="DesignationId" class="form-label"></label>
@@ -97,7 +88,7 @@
                     </div>
 
                     <!-- Account Credentials -->
-                    <h5 class="mt-4 mb-3"><i class="fas fa-key me-2"></i>Account Credentials</h5>
+                    <h5 class="form-subheading mt-4 mb-3"><i class="fas fa-key me-2"></i>Account Credentials</h5>
                     <div class="row mb-3">
                         <div class="form-group col-md-6">
                             <label asp-for="Username" class="form-label"></label>

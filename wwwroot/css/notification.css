@@ -49,7 +49,7 @@
 
 .mark-all-read {
     font-size: 0.85rem;
-    color: #2563EB;
+    color: var(--primary-hover);
     cursor: pointer;
     font-weight: 500;
 }
@@ -121,7 +121,7 @@
 
     .notification-icon.info {
         background-color: #dbeafe;
-        color: #2563eb;
+        color: var(--primary-hover);
     }
 
 .notification-content {
@@ -170,7 +170,7 @@
 }
 
     .notification-footer a {
-        color: #2563EB;
+        color: var(--primary-hover);
         text-decoration: none;
         font-size: 0.9rem;
         font-weight: 500;

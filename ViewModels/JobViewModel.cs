@@ -14,6 +14,9 @@ namespace EMMS.ViewModels
         public WorkDone? WorkDone { get; set; }
         public IEnumerable<ExternalWorkDone>? ExWorkDoneList { get; set; }
         public ExternalWorkDone? ExWorkDone { get; set; }
+        public IEnumerable<JobPart>? Parts { get; set; }
+        public JobPart? JobPart { get; set; }
+        public IEnumerable<LookupItem>? SpareParts { get; set; }
         public WorkRequest? WorkRequest { get; set; }
         public InfrustructureWorkRequest? InfraWorkRequest { get; set; }
 

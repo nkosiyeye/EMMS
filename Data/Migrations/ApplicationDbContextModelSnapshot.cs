@@ -184,6 +184,9 @@ namespace EMMS.Data.Migrations
                     b.Property<int>("DepartmentId")
                         .HasColumnType("int");
 
+                    b.Property<byte>("FunctionalStatus")
+                        .HasColumnType("tinyint");
+
                     b.Property<bool>("IsDonated")
                         .HasColumnType("bit");
 
@@ -363,6 +366,49 @@ namespace EMMS.Data.Migrations
                     b.ToTable((string)null);
 
                     b.ToView("vw_AssetInTransit", (string)null);
+                });
+
+            modelBuilder.Entity("EMMS.Models.AssetStatusChange", b =>
+                {
+                    b.Property<Guid>("AssetStatusChangeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ChangedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DateChanged")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte?>("FromStatus")
+                        .HasColumnType("tinyint");
+
+                    b.Property<Guid?>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MovementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Source")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("ToStatus")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("AssetStatusChangeId");
+
+                    b.HasIndex("ChangedBy");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("MovementId");
+
+                    b.HasIndex("AssetId", "DateChanged");
+
+                    b.ToTable("AssetStatusChanges");
                 });
 
             modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
@@ -949,6 +995,57 @@ namespace EMMS.Data.Migrations
                     b.ToTable("Job");
                 });
 
+            modelBuilder.Entity("EMMS.Models.JobPart", b =>
+                {
+                    b.Property<Guid>("JobPartId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BiomedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ModifiedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("PartId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PartName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte>("RowState")
+                        .HasColumnType("tinyint");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("JobPartId");
+
+                    b.HasIndex("BiomedId");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("PartId");
+
+                    b.ToTable("JobPart");
+                });
+
             modelBuilder.Entity("EMMS.Models.MoveAsset", b =>
                 {
                     b.Property<Guid>("MovementId")
@@ -1112,6 +1209,9 @@ namespace EMMS.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BiomedId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -1141,6 +1241,8 @@ namespace EMMS.Data.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("WorkDoneId");
+
+                    b.HasIndex("BiomedId");
 
                     b.HasIndex("JobId");
 
@@ -1529,6 +1631,38 @@ namespace EMMS.Data.Migrations
                     b.Navigation("Size");
                 });
 
+            modelBuilder.Entity("EMMS.Models.AssetStatusChange", b =>
+                {
+                    b.HasOne("EMMS.Models.Asset", "Asset")
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Admin.User", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.Job", "Job")
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.MoveAsset", "Movement")
+                        .WithMany()
+                        .HasForeignKey("MovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Asset");
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("Job");
+
+                    b.Navigation("Movement");
+                });
+
             modelBuilder.Entity("EMMS.Models.CylinderOrder", b =>
                 {
                     b.HasOne("EMMS.Models.Admin.User", "OrderedByUser")
@@ -1765,6 +1899,29 @@ namespace EMMS.Data.Migrations
                     b.Navigation("WorkRequest");
                 });
 
+            modelBuilder.Entity("EMMS.Models.JobPart", b =>
+                {
+                    b.HasOne("EMMS.Models.Admin.User", "Biomed")
+                        .WithMany()
+                        .HasForeignKey("BiomedId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("EMMS.Models.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EMMS.Models.Entities.LookupItem", "Part")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Biomed");
+
+                    b.Navigation("Part");
+                });
+
             modelBuilder.Entity("EMMS.Models.MoveAsset", b =>
                 {
                     b.HasOne("EMMS.Models.Admin.User", "ApprovedUser")
@@ -1864,10 +2021,17 @@ namespace EMMS.Data.Migrations
 
             modelBuilder.Entity("EMMS.Models.WorkDone", b =>
                 {
+                    b.HasOne("EMMS.Models.Admin.User", "Biomed")
+                        .WithMany()
+                        .HasForeignKey("BiomedId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EMMS.Models.Job", null)
                         .WithMany()
                         .HasForeignKey("JobId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Biomed");
                 });
 
             modelBuilder.Entity("EMMS.Models.WorkRequest", b =>

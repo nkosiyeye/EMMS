@@ -24,6 +24,7 @@
         public const string WorkRequestOutcome = "WorkRequestOutcome";
         public const string WorkRequestFaultReport = "WorkRequestFaultReport";
         public const string CancelReason = "CancelReason";
+        public const string SparePart = "SparePart";
     }
 
     // Work request / job statuses (LookupItem names in the WorkRequestStatus list). The workflow is keyed on these

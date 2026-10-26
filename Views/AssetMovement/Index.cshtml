@@ -3,31 +3,32 @@
 @using static EMMS.Models.Enumerators
 @model MoveAssetViewModel;
 @{
-    ViewData["Title"] = "Move Assets";
-    ViewData["moveAsset"] = "active";
-    ViewData["JobMovement"] = "active";
+    ViewData["Title"] = "Move Asset";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isManager = ViewBag._currrentUserRole.UserType == Enumerators.UserType.FacilityManager;
+    var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.FilterOptions.ToDictionary(f => f.Key, f => f.Value.Select(o => new { text = o.Text, value = o.Value })));
 }
 
 <div class="card mb-12">
-    <div class="card-header">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Movement History</span>
-            <div>
-                <a class="btn btn-outline-primary btn-sm me-2" asp-controller="AssetMovement" asp-action="Queue">
-                    <i class="fa fa-barcode me-1"></i> Movement Queue
-                </a>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
-                    <i class="fa fa-plus me-1"></i> Move Asset
-                </button>
-            </div>
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span>Movement History</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm d-none" title="Reset all column filters">
+                <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
+            </button>
+            <a class="btn btn-outline-primary btn-sm" asp-controller="AssetMovement" asp-action="Queue">
+                <i class="fa fa-barcode me-1"></i> Movement Queue
+            </a>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#moveModal">
+                <i class="fa fa-plus me-1"></i> Move Asset
+            </button>
         </div>
     </div>
     <div class="card-body">
         <div class="table-wrapper">
             <table class="table table-striped table-bordered table-hover" id="movementHistoryTable">
-                <thead class="table-dark">
+                <thead>
                     <tr>
                         <th>Asset Tag</th>
                         <th>From Facility</th>
@@ -42,122 +43,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                   @*  @foreach (var movement in Model.MoveAssets)
-                    {
-                        <tr>
-                            <td>@movement.Asset?.AssetTagNumber</td>
-                            <td>@movement.From?.FacilityName</td>
-                            <td>@movement.Facility?.FacilityName</td>
-                            <td>
-                                @if (movement.ServicePoint != null)
-                                {
-                                    @movement.ServicePoint.Name
-                                }
-                                else
-                                {
-                                    <span class="text-muted fst-italic">Unknown</span>
-                                }
-                            </td>
-                            <td>@movement.MovementDate.ToShortDateString()</td>
-                            <td>@Format.DisplayFunctionalStatus(movement.FunctionalStatus)</td>
-                            <td>
-                                @if (movement.Reason == MovementReason.Other)
-                                {
-                                    @movement.OtherReason
-                                }
-                                else
-                                {
-                                    @movement.Reason
-
-                                }
-                            </td>
-
-                            <td>
-                                @if (!movement.IsApproved)
-                                {
-                                    @if (isManager || isAdmin)
-                                    {
-                                        <a class="btn btn-sm btn-success"
-                                           title="Approve Movement"
-                                           asp-controller="AssetMovement"
-                                           asp-action="approveMovement"
-                                           asp-route-id="@movement.MovementId">
-                                            <i class="fa fa-check-circle"></i> Approve
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">Approved</span>
-                                }
-                            </td>
-
-                            <td>
-                                @if (movement.DateRejected != null)
-                                {
-                                    <span class="badge bg-danger">Rejected</span>
-                                }
-                                else if (movement.DateReceived.HasValue)
-                                {
-                                    <span class="badge bg-success">Received</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Pending</span>
-                                }
-                            </td>
-
-                            <td>
-                                <!-- Edit Button -->
-                                @if (!movement.DateReceived.HasValue && !movement.IsApproved)
-                                {
-                                    <a class="btn btn-sm btn-primary me-1"
-                                       title="Edit Movement"
-                                       asp-controller="AssetMovement"
-                                       asp-action="edit"
-                                       asp-route-id="@movement.MovementId">
-                                        <i class="fa fa-edit"></i>
-                                    </a>
-
-                                    <!-- Delete Button -->
-                                    <form asp-action="deleteMovement"
-                                          asp-controller="AssetMovement"
-                                          method="post"
-                                          style="display:inline;"
-                                          onsubmit="return confirm('Are you sure you want to delete this movement?');">
-                                        <input type="hidden" name="id" value="@movement.MovementId" />
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Delete Movement">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </form>
-                                }
-
-                                <!-- Gate Pass Button -->
-                                @if (movement.IsApproved)
-                                {
-                                    <a class="btn btn-sm btn-secondary ms-1"
-                                       title="Print Gate Pass"
-                                       asp-controller="AssetMovement"
-                                       asp-action="GatePass"
-                                       asp-route-id="@movement.MovementId"
-                                       target="_blank">
-                                        <i class="fa fa-print"></i> Pass
-                                    </a>
-                                }
-                            </td>
-                        </tr>
-                    } *@
                 </tbody>
             </table>
-
         </div>
     </div>
 </div>
-
 
 
 <!-- Modal -->
@@ -173,64 +63,17 @@
                     <div class="table-responsive" id="table-responsive-asset">
                         <table class="table fixed-table table-striped table-bordered table-hover" id="modalAssetTable">
                             <thead>
-                                <tr>
-                                    <th>Tag</th>
-                                    <th>Category</th>
-                                    <th>SubCategory</th>
-                                    <th>Placement</th>
-                                    <th>Location</th>
-                                    <th>Functional Status</th>
-                                    <th>Action</th>
-                                </tr>
+                            <tr>
+                                <th>Tag</th>
+                                <th>Category</th>
+                                <th>SubCategory</th>
+                                <th>Placement</th>
+                                <th>Location</th>
+                                <th>Functional Status</th>
+                                <th>Action</th>
+                            </tr>
                             </thead>
-                            <tbody>
-                               @*  @if(Model.AssetIndex.assetViewModels != null)
-                                {
-                                    @foreach (var asset in Model.AssetIndex.assetViewModels!.Where(a => a.LastMovement?.Reason != Enumerators.MovementReason.Decommission))
-                                    {
-
-                                        var lastMove = asset.LastMovement;
-                                        <tr>
-                                            <td width="10%">@asset.Asset.AssetTagNumber</td>
-                                            <td width="10%">@asset.Asset.Category.Name</td>
-                                            <td width="10%">@asset.Asset.SubCategory.Name</td>
-                                            <td width="10%">@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
-                                            <td width="10%">
-                                                @if (lastMove != null)
-                                                {
-                                                    @(lastMove.Facility?.FacilityName ?? lastMove.ServicePoint?.Name ?? "N/A")
-                                                }
-                                                else
-                                                {
-                                                    <span>-</span>
-                                                }
-                                            </td>
-                                            <td width="10%">
-                                                @if (lastMove != null)
-                                                {
-                                                    @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
-
-                                                }
-                                                else
-                                                {
-                                                    <span>-</span>
-                                                }
-                                                </td>
-                                             <td width="10%">@asset.Location</td> // from movement history todo?
-                                <td width="10%">@asset.FunctionalStatus</td> 
-                                            <td width="5%" class="action-container">
-
-                                                <a
-                                                   class="table-cta-btn"
-                                                   title="Move" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
-                                                    <i class="fa fa-arrows-alt"></i> Move Asset
-                                                </a>
-
-                                            </td>
-                                        </tr>
-                                    }
-                                } *@                       
-                                </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
@@ -244,144 +87,133 @@
 
 @section Scripts {
     <script>
-                $(document).ready(function () {
-            // $('#movementHistoryTable').DataTable({
-            //     pageLength: 10,
-            //     order: []
-            // });
+        $(document).ready(function () {
+            // Full option lists per column name, from the facilities / lookup lists / enums (AssetMovementController.GetFilterOptions)
+            const filterOptions = @Html.Raw(filterOptionsJson);
 
-
-
-            //console.log("hello");
-            var isTabletOrSmaller = window.innerWidth <= 1024;
-                  $('#movementHistoryTable').DataTable({
-            serverSide: true,
-            processing: true,
-            ajax: {
-                url: '@Url.Action("GetMovements", "AssetMovement")',
-                type: 'POST',
-                dataSrc: 'data'
-            },
-            pageLength: 10,
-            responsive: window.innerWidth <= 1024,
-            columns: [
-                { data: "tag" },
-                { data: "fromFacility" },
-                { data: "toFacility" },
-                { data: "servicePoint" },
-                { data: "dateMoved" },
-                { data: "functionalStatus" },
-                { data: "reasonForMovement" },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    render: function (data, type, row) {
-                        if (row.isApproved) {
-                            return '<span class="badge bg-success">Approved</span>';
-                        } else if(row.canApprove) {
-                            // You can add role check here if you pass isManager/isAdmin from server
-                            // For simplicity assuming the user can approve if not approved
-                            return `<a class="btn btn-sm btn-success"
-                                       href="/AssetMovement/approveMovement/${row.movementId}">
-                                       <i class="fa fa-check-circle"></i> Approve
-                                   </a>`;
-                        }else{
-                            return '<span class="badge bg-warning">Pending</span>';
-                        }
-                    }
+            $('#movementHistoryTable').DataTable({
+                serverSide: true,
+                processing: true,
+                ajax: {
+                    url: '@Url.Action("GetMovements", "AssetMovement")',
+                    type: 'POST',
+                    dataSrc: 'data'
                 },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    render: function (data, type, row) {
-                        if (row.dateRejected) {
-                            return '<span class="badge bg-danger">Rejected</span>';
-                        } else if (row.dateReceived) {
-                            return '<span class="badge bg-success">Received</span>';
-                        } else {
-                            return '<span class="badge bg-secondary">Pending</span>';
+                pageLength: 10,
+                searchDelay: 400,
+                columns: [
+                    { data: "tag", name: "AssetTag" },
+                    { data: "fromFacility", name: "FromFacility" },
+                    { data: "toFacility", name: "ToFacility" },
+                    { data: "servicePoint", name: "ServicePoint" },
+                    { data: "dateMoved" },
+                    { data: "functionalStatus", name: "FunctionalStatus" },
+                    { data: "reasonForMovement", name: "Reason" },
+                    {
+                        data: null,
+                        name: "Approved",
+                        orderable: false,
+                        render: function (data, type, row) {
+                            if (row.isApproved) {
+                                return '<span class="badge bg-success">Approved</span>';
+                            } else if(row.canApprove) {
+                                return `<a class="btn btn-sm btn-success"
+                                           href="/AssetMovement/approveMovement/${row.movementId}">
+                                           <i class="fa fa-check-circle"></i> Approve
+                                       </a>`;
+                            } else {
+                                return '<span class="badge bg-warning text-dark">Pending</span>';
+                            }
+                        }
+                    },
+                    {
+                        data: null,
+                        name: "Received",
+                        orderable: false,
+                        render: function (data, type, row) {
+                            if (row.dateRejected) {
+                                return '<span class="badge bg-danger">Rejected</span>';
+                            } else if (row.dateReceived) {
+                                return '<span class="badge bg-success">Received</span>';
+                            } else {
+                                return '<span class="badge bg-secondary">Pending</span>';
+                            }
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            let html = '<div class="btn-group btn-group-sm">';
+
+                            // Edit & Delete — only if not received and not approved
+                            if (!row.dateReceived && !row.isApproved) {
+                                html += `
+                                    <a class="btn btn-primary"
+                                       href="/AssetMovement/edit/${row.movementId}"
+                                       title="Edit">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    <form action="/AssetMovement/deleteMovement" method="post" style="display:inline;"
+                                          data-confirm="Delete this movement?" data-confirm-ok="Delete" data-confirm-danger>
+                                        <input type="hidden" name="id" value="${row.movementId}" />
+                                        <button type="submit" class="btn btn-danger" title="Delete">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>`;
+                            }
+
+                            // Gate Pass — only if approved
+                            if (row.isApproved) {
+                                html += `
+                                    <a class="btn btn-secondary ms-1"
+                                       href="/AssetMovement/GatePass/${row.movementId}"
+                                       target="_blank"
+                                       title="Print Gate Pass">
+                                        <i class="fa fa-print"></i> Pass
+                                    </a>`;
+                            }
+
+                            // Batch — movements submitted together from the Movement Queue
+                            if (row.batchId) {
+                                html += `
+                                    <a class="btn btn-outline-dark ms-1"
+                                       href="/AssetMovement/Batch/${row.batchId}"
+                                       title="View batch">
+                                        <i class="fa fa-layer-group"></i> Batch
+                                    </a>`;
+                            }
+
+                            html += '</div>';
+                            return html;
                         }
                     }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    render: function (data, type, row) {
-                        let html = '<div class="btn-group btn-group-sm">';
-
-                        // Edit & Delete — only if not received and not approved
-                        if (!row.dateReceived && !row.isApproved) {
-                            html += `
-                                <a class="btn btn-primary"
-                                   href="/AssetMovement/edit/${row.movementId}"
-                                   title="Edit">
-                                    <i class="fa fa-edit"></i>
-                                </a>
-                                <form action="/AssetMovement/deleteMovement" method="post" style="display:inline;"
-                                      onsubmit="return confirm('Delete this movement?');">
-                                    <input type="hidden" name="id" value="${row.movementId}" />
-                                    <button type="submit" class="btn btn-danger" title="Delete">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>`;
-                        }
-
-                        // Gate Pass — only if approved
-                        if (row.isApproved) {
-                            html += `
-                                <a class="btn btn-secondary ms-1"
-                                   href="/AssetMovement/GatePass/${row.movementId}"
-                                   target="_blank"
-                                   title="Print Gate Pass">
-                                    <i class="fa fa-print"></i> Pass
-                                </a>`;
-                        }
-
-                        // Batch — movements submitted together from the Movement Queue
-                        if (row.batchId) {
-                            html += `
-                                <a class="btn btn-outline-dark ms-1"
-                                   href="/AssetMovement/Batch/${row.batchId}"
-                                   title="View batch">
-                                    <i class="fa fa-layer-group"></i> Batch
-                                </a>`;
-                        }
-
-                        html += '</div>';
-                        return html;
-                    }
+                ],
+                initComplete: function () {
+                    emmsColumnFilters(this.api(), filterOptions, '#clearFilters');
                 }
-            ]
-        });
+            });
 
-                         $('#modalAssetTable').DataTable({
-            serverSide: true,
-            processing: true,
-            ajax: {
-                url: '@Url.Action("GetAssets", "AssetMovement")',
-                type: 'POST',
-                dataSrc: 'data'
-            },
-            pageLength: 10,
-            responsive: isTabletOrSmaller,
-            columns: [
-                { data: "tag" },                // Asset Tag
-                { data: "category" },           // Category
-                { data: "subCategory" },        // SubCategory / Item name
-                { data: "placement" },          // Placement (Yes/No)
-                { data: "location" },           // Location (Facility or Service Point)
-                { data: "functionalStatus" },   // Functional Status
-                { data: "action", orderable: false, searchable: false }  // Move Asset button
-            ]
+            $('#modalAssetTable').DataTable({
+                serverSide: true,
+                processing: true,
+                ajax: {
+                    url: '@Url.Action("GetAssets", "AssetMovement")',
+                    type: 'POST',
+                    dataSrc: 'data'
+                },
+                pageLength: 10,
+                columns: [
+                    { data: "tag" },                // Asset Tag
+                    { data: "category" },           // Category
+                    { data: "subCategory" },        // SubCategory / Item name
+                    { data: "placement" },          // Placement (Yes/No)
+                    { data: "location" },           // Location (Facility or Service Point)
+                    { data: "functionalStatus" },   // Functional Status
+                    { data: "action", orderable: false, searchable: false }  // Move Asset button
+                ]
+            });
         });
-
-        //     $('#modalAssetTable').DataTable({
-        //         pageLength: 10,
-        //         order: []
-        //     });
-         });
     </script>
 }

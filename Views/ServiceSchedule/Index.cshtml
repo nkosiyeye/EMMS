@@ -1,0 +1,213 @@
+@model EMMS.ViewModels.ServiceScheduleViewModel
+@using EMMS.Service
+@using EMMS.ViewModels
+@{
+    ViewData["Title"] = "Service Schedule";
+    var showLabel = ServiceScheduleService.ShowOptions.First(o => o.Value == Model.Show).Label;
+    // Which tile the current filter corresponds to (tiles are in ShowOptions order after "due")
+    var tileShows = new[] { ServiceScheduleService.ShowOverdue, ServiceScheduleService.ShowWeek, ServiceScheduleService.ShowMonth, ServiceScheduleService.ShowUnscheduled };
+}
+
+<div class="dash">
+
+    <form method="get" asp-action="Index" class="dash-filter flex-wrap">
+        <partial name="_ViewSwitch" model="Model.FacilityId" />
+        <label for="scheduleShow">Showing</label>
+        <select id="scheduleShow" name="show" class="form-select form-select-sm" data-dash-autosubmit>
+            @foreach (var (value, label) in ServiceScheduleService.ShowOptions)
+            {
+                <option value="@value" selected="@(value == Model.Show)">@label</option>
+            }
+        </select>
+        @if (Model.Facilities != null)
+        {
+            <select name="facilityId" class="form-select form-select-sm" aria-label="Facility" data-dash-autosubmit>
+                <option value="">All facilities</option>
+                @foreach (var f in Model.Facilities)
+                {
+                    <option value="@f.Value" selected="@f.Selected">@f.Text</option>
+                }
+            </select>
+        }
+    </form>
+
+    <div class="row g-3 mb-3">
+        @for (var i = 0; i < Model.Stats.Count; i++)
+        {
+            <div class="col-6 col-xl @(tileShows[i] == Model.Show ? "dash-stat-active" : "")">
+                <partial name="~/Views/Home/_StatTile.cshtml" model="Model.Stats[i]" />
+            </div>
+        }
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><strong><i class="fa-solid fa-calendar-check me-2"></i>@showLabel</strong></span>
+            @if (Model.CanRaise)
+            {
+                <form id="raiseBulkForm" asp-action="Raise" method="post" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="show" value="@Model.Show" />
+                    <input type="hidden" name="facilityId" value="@Model.FacilityId" />
+                    <span class="text-muted small" id="pickedCount"></span>
+                    <button type="submit" class="btn btn-sm btn-primary" id="raiseBulk" disabled
+                            data-confirm="Raise service requests for the selected equipment?" data-confirm-ok="Raise">
+                        <i class="fa-solid fa-toolbox me-1"></i> Raise service requests
+                    </button>
+                </form>
+            }
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="serviceSchedule">
+                    <thead>
+                        <tr>
+                            @if (Model.CanRaise)
+                            {
+                                <th class="all" style="width:2rem">
+                                    <input type="checkbox" class="form-check-input" id="pickAll" aria-label="Select all equipment that can be requested" />
+                                </th>
+                            }
+                            <th>Equipment</th>
+                            <th>Location</th>
+                            <th>Service Due</th>
+                            <th class="text-end">Interval</th>
+                            <th>Last Serviced</th>
+                            <th>Request</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            var dueTone = row.Window switch
+                            {
+                                ServiceWindow.Overdue => "text-danger",
+                                ServiceWindow.ThisWeek => "text-warning",
+                                _ => "text-muted",
+                            };
+                            <tr>
+                                @if (Model.CanRaise)
+                                {
+                                    <td>
+                                        @if (row.CanRaise)
+                                        {
+                                            <input type="checkbox" class="form-check-input pick" value="@row.AssetId" aria-label="Select @row.Tag" />
+                                        }
+                                    </td>
+                                }
+                                <td>
+                                    <a asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@row.AssetId">@(row.Name ?? row.Tag)</a>
+                                    <div class="small text-muted">@row.Tag</div>
+                                </td>
+                                <td>
+                                    @(row.Facility ?? "Not deployed")
+                                    @if (!string.IsNullOrWhiteSpace(row.ServicePoint))
+                                    {
+                                        <div class="small text-muted">@row.ServicePoint</div>
+                                    }
+                                </td>
+                                <td data-order="@(row.Due?.ToString("yyyy-MM-dd") ?? "9999-12-31")">
+                                    @if (row.Due is DateTime due)
+                                    {
+                                        @due.ToString("d MMM yyyy")
+                                        <div class="small @dueTone">@DashboardService.OverdueText(due, Model.Today)</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">Not scheduled</span>
+                                        <div class="small"><a asp-controller="AssetManagement" asp-action="Edit" asp-route-id="@row.AssetId">Set a date</a></div>
+                                    }
+                                </td>
+                                <td class="text-end" data-order="@(row.IntervalMonths ?? 0)">
+                                    @if (row.IntervalMonths is > 0)
+                                    {
+                                        @($"{row.IntervalMonths} mo")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning" title="Without an interval, closing a service will not schedule the next one">Not set</span>
+                                    }
+                                </td>
+                                <td data-order="@(row.LastServiced?.ToString("yyyy-MM-dd") ?? "")">
+                                    @(row.LastServiced?.ToString("d MMM yyyy") ?? "—")
+                                </td>
+                                <td>
+                                    @if (row.OpenRequest is OpenRequestInfo open)
+                                    {
+                                        <span>@(open.IsService ? "Service" : "Repair") · @open.Status</span>
+                                        @if (open.JobId != null)
+                                        {
+                                            <div class="small">
+                                                <a asp-controller="JobManagement" asp-action="@(open.IsExternal == true ? "externalJobCard" : "jobCard")" asp-route-id="@open.JobId">@open.JobNumber</a>
+                                            </div>
+                                        }
+                                    }
+                                    else if (Model.CanRaise)
+                                    {
+                                        <button type="submit" form="raiseOneForm" name="assetIds" value="@row.AssetId" class="btn btn-sm btn-outline-primary"
+                                                title="Raise a service request for @row.Tag">
+                                            <i class="fa-solid fa-toolbox me-1"></i> Raise
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">None</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.CanRaise)
+    {
+        @* The per-row Raise buttons submit this form with their own asset id *@
+        <form id="raiseOneForm" asp-action="Raise" method="post" class="d-none">
+            <input type="hidden" name="show" value="@Model.Show" />
+            <input type="hidden" name="facilityId" value="@Model.FacilityId" />
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('[data-dash-autosubmit]').on('change', function () { this.form.submit(); });
+
+            const canRaise = @Json.Serialize(Model.CanRaise);
+            const table = $('#serviceSchedule').DataTable({
+                pageLength: 25,
+                order: [[canRaise ? 3 : 2, 'asc']],
+                columnDefs: canRaise ? [{ targets: 0, orderable: false, searchable: false }] : [],
+                language: { emptyTable: 'No equipment matches this filter.' }
+            });
+            if (!canRaise) return;
+
+            // Checkboxes on other pages are not in the DOM, so read them through DataTables.
+            const picks = () => table.$('input.pick');
+            const bulk = $('#raiseBulk');
+            function refresh() {
+                const n = picks().filter(':checked').length;
+                bulk.prop('disabled', n === 0);
+                bulk.attr('data-confirm', `Raise service requests for ${n} item${n === 1 ? '' : 's'} of equipment?`);
+                $('#pickedCount').text(n ? `${n} selected` : '');
+            }
+
+            $('#pickAll').on('change', function () {
+                // Only the rows the current search shows
+                $(table.rows({ search: 'applied' }).nodes()).find('input.pick').prop('checked', this.checked);
+                refresh();
+            });
+            $('#serviceSchedule').on('change', 'input.pick', refresh);
+
+            $('#raiseBulkForm').on('submit', function () {
+                $(this).find('input[name="assetIds"]').remove();
+                picks().filter(':checked').each((_, box) =>
+                    $('<input type="hidden" name="assetIds">').val(box.value).appendTo(this));
+            });
+            refresh();
+        });
+    </script>
+}

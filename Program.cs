@@ -4,6 +4,7 @@ using EMMS.Data.Repository;
 using EMMS.Models;
 using EMMS.Service;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,10 +19,13 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
-builder.Services.AddTransient<SessionController>();
-builder.Services.AddControllersWithViews();
+// Every unsafe request (POST/PUT/DELETE) must carry an antiforgery token; GETs are exempt
+builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+// The header site.js sends on fetch / jQuery ajax POSTs
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<AssetManagementRepo>();
+builder.Services.AddScoped<AssetMovementRepo>();
 builder.Services.AddScoped<JobManagementRepo>();
 builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<IAssetTagSequence, AssetTagSequenceRepo>();
@@ -29,10 +33,17 @@ builder.Services.AddScoped<AssetTagService>();
 builder.Services.AddScoped<MovementService>();
 builder.Services.AddScoped<CylinderOrderService>();
 builder.Services.AddScoped<WorkRequestService>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<AssetSummaryReportService>();
+builder.Services.AddScoped<AssetListReportService>();
+builder.Services.AddScoped<AssetRegistrationService>();
 builder.Services.AddScoped<CylinderReportService>();
 builder.Services.AddScoped<MovementQueueService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ServiceScheduleService>();
+builder.Services.AddScoped<FacilityAccess>();
+builder.Services.AddHostedService<ServiceReminderWorker>();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 var app = builder.Build();

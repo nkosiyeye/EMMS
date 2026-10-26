@@ -8,6 +8,7 @@
 <html>
 <head>
     <title>Batch Gate Pass</title>
+    <partial name="_Favicon" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <style>
         body { font-family: Arial, sans-serif; }
@@ -21,9 +22,7 @@
 <body>
     <div class="no-print text-end p-2"><button class="btn btn-primary btn-sm" onclick="window.print()">Print</button></div>
     <div class="gate-pass">
-        <div class="text-center mb-3">
-            <img src="~/images/Coat_of_arms_of_Eswatini.svg" alt="Ministry Coat of Arms" style="width: 60px; height: 60px;">
-        </div>
+        <partial name="_PrintLetterhead" />
         <h2>EMMS Gate Pass</h2>
         <p class="text-center text-muted small mb-3">Batch @first.BatchId.ToString()![..8] · @Model.Count asset(s)</p>
         <table class="table table-sm mb-3">

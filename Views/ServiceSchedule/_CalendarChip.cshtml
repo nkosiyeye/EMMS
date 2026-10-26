@@ -1,0 +1,25 @@
+@* One piece of equipment on a calendar day: links to the asset; dashed when projected, ticked once a request is raised.
+   ViewData["Hidden"] = true keeps it folded under the day's "+N more". *@
+@model EMMS.ViewModels.ServiceCalendarItem
+@{
+    var row = Model.Row;
+    var requested = !Model.Projected && row.OpenRequest != null;
+    var name = row.Name ?? row.Tag;
+    var place = string.Join(" · ", new[] { row.Facility, row.ServicePoint }.Where(s => !string.IsNullOrWhiteSpace(s)));
+    var title = $"{name} ({row.Tag})"
+        + (place.Length > 0 ? $" — {place}" : "")
+        + (Model.Projected ? $" — projected, every {row.IntervalMonths} months" : "")
+        + (requested ? $" — {(row.OpenRequest!.IsService ? "service" : "repair")} request {row.OpenRequest.Status}" : "");
+    var classes = "svc-cal-chip"
+        + (Model.Projected ? " svc-cal-chip-projected" : "")
+        + (requested ? " svc-cal-chip-requested" : "")
+        + (ViewData["Hidden"] is true ? " svc-cal-chip-extra" : "");
+}
+<a class="@classes" asp-controller="AssetManagement" asp-action="Detail" asp-route-id="@row.AssetId" title="@title">
+    @if (requested)
+    {
+        <i class="fa-solid fa-circle-check svc-cal-requested-icon" aria-label="Request raised"></i>
+    }
+    <span class="svc-cal-chip-name">@name</span>
+    <span class="svc-cal-chip-tag">@row.Tag</span>
+</a>

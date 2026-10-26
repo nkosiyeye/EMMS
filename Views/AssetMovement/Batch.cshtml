@@ -3,8 +3,6 @@
 @model EMMS.ViewModels.BatchViewModel
 @{
     ViewData["Title"] = "Movement Batch";
-    ViewData["moveAsset"] = "active";
-    ViewData["JobMovement"] = "active";
     var first = Model.Movements.First();
     var pending = Model.Movements.Count(m => !m.IsApproved && m.DateRejected == null);
     var approved = Model.Movements.Count(m => m.IsApproved && m.DateRejected == null);
@@ -50,7 +48,7 @@
 
         <div class="table-responsive">
             <table class="table table-striped table-bordered table-hover align-middle">
-                <thead class="table-dark">
+                <thead>
                     <tr>
                         <th>Asset Tag</th>
                         <th>Serial</th>

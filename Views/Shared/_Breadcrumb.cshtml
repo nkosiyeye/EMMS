@@ -1,0 +1,44 @@
+@using EMMS.Utility
+@*
+    Top-bar trail: Section › Link › Page title, from where the current route sits in AppNavigation.
+    The page title (ViewData["Title"]) is added only on a sub-page, so a menu page isn't named twice.
+    On phones only the last crumb shows.
+*@
+@{
+    var controller = ViewContext.RouteData.Values["controller"] as string;
+    var action = ViewContext.RouteData.Values["action"] as string;
+    var here = AppNavigation.Locate(controller, action);
+    var title = ViewData["Title"] as string;
+
+    var onLinkPage = here.Link != null
+        && string.Equals(here.Link.Controller, controller, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(here.Link.Action, action, StringComparison.OrdinalIgnoreCase);
+
+    var crumbs = new List<(string Label, NavItem? Link)>();
+    if (here.Section != null) crumbs.Add((here.Section.Label, null));
+    if (here.Link != null) crumbs.Add((here.Link.Label, onLinkPage ? null : here.Link));
+    if (!onLinkPage && !string.IsNullOrWhiteSpace(title)) crumbs.Add((title, null));
+    if (crumbs.Count == 0 && !string.IsNullOrWhiteSpace(title)) crumbs.Add((title, null));
+}
+@if (crumbs.Count > 0)
+{
+    <nav class="app-breadcrumb" aria-label="Breadcrumb">
+        <ol>
+            @for (var i = 0; i < crumbs.Count; i++)
+            {
+                var (label, link) = crumbs[i];
+                var last = i == crumbs.Count - 1;
+                <li class="@(last ? "" : "d-none d-sm-flex")" aria-current="@(last ? "page" : null)">
+                    @if (link != null)
+                    {
+                        <a asp-controller="@link.Controller" asp-action="@link.Action">@label</a>
+                    }
+                    else
+                    {
+                        @label
+                    }
+                </li>
+            }
+        </ol>
+    </nav>
+}

@@ -2,7 +2,6 @@
 @{
 
     ViewData["Title"] = "Edit Asset";
-    ViewData["asset"] = "active";
 }
 
 <div class="card">
@@ -10,18 +9,6 @@
         <span>Edit Asset</span>
     </div>
     <div class="card-body">
-        @if (TempData["Error"] != null)
-        {
-            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-
-                @* <svg class="bi flex-shrink-0 me-2" role="img" aria-label="Info:"><use xlink:href="#info-fill" /></svg> *@
-
-                @TempData["Error"]
-
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
-        }
         <form class="row bg-white" asp-action="edit" asp-controller="AssetManagement" method="post">
             <h5 class="mb-3 mt-3 form-subheading">General Information</h5>
             <div class="row mb-3">
@@ -225,8 +212,9 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex align-center justify-content-center submit-btn-container">
-                <button type="submit" class="btn btn-primary col-md-4">Edit</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save changes</button>
             </div>
         </form>
 

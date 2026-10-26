@@ -1,9 +1,7 @@
 ﻿@using EMMS.ViewModels
 @model WorkRequestViewModel
 @{
-    ViewData["Title"] = "Work Request";
-    ViewData["workRequest"] = "active";
-    ViewData["JobManagement"] = "active";
+    ViewData["Title"] = "New Work Request";
     Model.WorkRequest.RequestDate = DateTime.Today;
 }
 
@@ -14,14 +12,6 @@
         </div>
     </div>
     <div class="card-body">
-        @if (TempData["WorkRequestError"] != null)
-        {
-            <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                @TempData["WorkRequestError"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-
-        }
         <form asp-action="WorkRequest" asp-controller="JobManagement" method="post">
             <div class="row mb-2">
 
@@ -56,8 +46,10 @@
                 <span asp-validation-for="WorkRequest.Description" class="text-danger"></span>
             </div>
 
-            <!-- Submit Button -->
-            <button type="submit" class="btn btn-primary">Request</button>
+            <div class="form-actions">
+                <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                <button type="submit" class="btn btn-primary">Submit request</button>
+            </div>
         </form>
     </div>
 </div>

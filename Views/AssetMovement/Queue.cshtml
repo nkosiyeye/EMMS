@@ -2,8 +2,6 @@
 @model EMMS.ViewModels.MovementQueueViewModel
 @{
     ViewData["Title"] = "Movement Queue";
-    ViewData["movementQueue"] = "active";
-    ViewData["JobMovement"] = "active";
     var req = Model.Request;
     // Stolen/missing has its own report; Dispatch only comes from a cylinder order
     var reasons = Enum.GetValues<MovementReason>().Where(r => r != MovementReason.StolenorMissing && r != MovementReason.Dispatch);
@@ -29,18 +27,6 @@
         </a>
     </div>
     <div class="card-body">
-        @if (TempData["QueueInfo"] != null)
-        {
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                @TempData["QueueInfo"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        }
-        @if (TempData["QueueErrors"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert" style="white-space: pre-line;">@TempData["QueueErrors"]<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>
-        }
-
         @if (order != null && Model.Items.Any())
         {
             <div class="alert alert-warning small">Your queue already held @Model.Items.Count asset(s) before this dispatch. Each must match order @order.OrderNumber, or remove it.</div>
@@ -50,7 +36,7 @@
             <!-- Scan panel -->
             <div class="col-lg-4">
                 <div class="border rounded p-3 h-100">
-                    <h5 class="mb-1">Scan</h5>
+                    <h5 class="form-subheading mb-2">Scan</h5>
                     <div class="form-text mb-2">Scan or type the asset tag, then press Enter.</div>
                     <div class="input-group">
                         <input type="text" id="queueScan" class="form-control form-control-lg font-monospace border-success" autocomplete="off" spellcheck="false" placeholder="e.g. S003AS-120" autofocus />
@@ -74,7 +60,7 @@
             <div class="col-lg-8">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover align-middle" id="queueTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Tag</th>
                                 <th>Serial</th>
@@ -115,8 +101,8 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
-                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker">
+                                <label asp-for="Request.FunctionalStatus" class="form-label required-field col-md-12"></label>
+                                <select asp-for="Request.FunctionalStatus" class="form-select selectpicker col-md-12">
                                     @foreach (var status in Enum.GetValues<FunctionalStatus>())
                                     {
                                         <option value="@((int)status)">@status</option>
@@ -139,11 +125,11 @@
                     }
                     else
                     {
-                    <h5 class="mb-3 mt-2 form-subheading">Destination (chosen once for the batch)</h5>
+                    <h5 class="mb-3 mt-2 form-subheading">Destination</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.MovementType" class="form-label required-field"></label>
-                            <select asp-for="Request.MovementType" id="movementType" class="form-select selectpicker">
+                            <label asp-for="Request.MovementType" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.MovementType" id="movementType" class="form-select selectpicker col-md-12">
                                 @foreach (var type in Enum.GetValues<MovementType>())
                                 {
                                     <option value="@((int)type)">@type</option>
@@ -151,24 +137,24 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Request.FacilityId" class="form-label required-field"></label>
-                            <select asp-for="Request.FacilityId" id="facility" class="form-select selectpicker" data-live-search="true" data-selected="@req.FacilityId">
+                            <label asp-for="Request.FacilityId" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.FacilityId" id="facility" class="form-select selectpicker col-md-12" data-live-search="true" data-selected="@req.FacilityId">
                                 <option selected disabled value="">Select Facility</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3 d-none" id="servicePointRow">
                         <div class="col-md-6">
-                            <label asp-for="Request.ServicePointId" class="form-label required-field"></label>
-                            <select asp-for="Request.ServicePointId" id="servicePoint" class="form-select selectpicker" data-live-search="true" data-selected="@req.ServicePointId">
+                            <label asp-for="Request.ServicePointId" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.ServicePointId" id="servicePoint" class="form-select selectpicker col-md-12" data-live-search="true" data-selected="@req.ServicePointId">
                                 <option selected disabled value="">Select Service Point</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.Reason" class="form-label required-field">Movement Reason</label>
-                            <select asp-for="Request.Reason" id="movementReason" class="form-select selectpicker" data-live-search="true">
+                            <label asp-for="Request.Reason" class="form-label required-field col-md-12">Movement Reason</label>
+                            <select asp-for="Request.Reason" id="movementReason" class="form-select selectpicker col-md-12" data-live-search="true">
                                 <option selected disabled value="">Select Movement Reason</option>
                                 @foreach (var reason in reasons)
                                 {
@@ -177,8 +163,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Request.FunctionalStatus" class="form-label required-field"></label>
-                            <select asp-for="Request.FunctionalStatus" id="functionalStatus" class="form-select selectpicker">
+                            <label asp-for="Request.FunctionalStatus" class="form-label required-field col-md-12"></label>
+                            <select asp-for="Request.FunctionalStatus" id="functionalStatus" class="form-select selectpicker col-md-12">
                                 <option selected disabled value="">Select Functional Status</option>
                                 @foreach (var status in Enum.GetValues<FunctionalStatus>())
                                 {
@@ -189,8 +175,8 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Request.MovementDate" class="form-label required-field"></label>
-                            <input asp-for="Request.MovementDate" type="date" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <label asp-for="Request.MovementDate" class="form-label required-field col-md-12"></label>
+                            <input asp-for="Request.MovementDate" type="date" class="form-control col-md-12" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                         <div class="col-md-6 d-none" id="otherReasonField">
                             <label asp-for="Request.OtherReason" class="form-label required-field"></label>
@@ -233,7 +219,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
-                        <button type="submit" class="btn btn-outline-danger btn-sm" form="queueClearForm" onclick="return confirm('Remove every asset from the queue?');">Clear queue</button>
+                        <button type="submit" class="btn btn-outline-danger btn-sm" form="queueClearForm" data-confirm="Remove every asset from the queue?" data-confirm-ok="Clear queue" data-confirm-danger>Clear queue</button>
                         <button type="submit" class="btn btn-primary" id="submitBatch" @(Model.Items.Any() ? "" : "disabled")>Submit Batch (<span class="queue-count">@Model.Items.Count</span>)</button>
                     </div>
                     }

@@ -19,13 +19,6 @@
                 </div>
             </div>
             <div class="card-body">
-                @if (TempData["Error"] != null)
-                {
-                    <div class="row alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
-                        @TempData["Error"]
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
                 <form asp-controller="Admin" asp-action="createUserRole" method="post">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -104,7 +97,10 @@
                         </select>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">Create Role</button>
+                    <div class="form-actions">
+                        <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="UserRoles">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Create role</button>
+                    </div>
                 </form>
             </div>
         </div>

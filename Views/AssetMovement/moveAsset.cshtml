@@ -1,8 +1,6 @@
 ﻿@model EMMS.ViewModels.MoveRequestViewModel;
 @{
-    ViewData["Title"] = "Move Assets";
-    ViewData["moveAsset"] = "active";
-    ViewData["JobMovement"] = "active";
+    ViewData["Title"] = "New Movement";
     //Model.MoveAsset.MovementDate = Model.MoveAsset.MovementDate ?? DateTime.Today;
 }
 
@@ -143,7 +141,10 @@
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit Movement</button>
+                    <div class="form-actions">
+                        <a class="btn btn-outline-secondary" asp-action="Index">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Submit movement</button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -4,8 +4,6 @@
 @model WorkRequestViewModel
 @{
     ViewData["Title"] = "Work Requests";
-    ViewData["workRequest"] = "active";
-    ViewData["JobManagement"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var currentUser = ViewBag._currentUser as User;
@@ -40,7 +38,7 @@
                 </button>
                 <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="workRequestTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Asset Tag</th>
                                 <th>Item Name</th>
@@ -61,7 +59,7 @@
                                 var canEdit = status == WorkStatusNames.Open && request.JobId == null;
                                 var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
                                 var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
-                                <tr>
+                                <tr data-focus-id="@request.WorkRequestId">
                                     <td>@request.Asset?.AssetTagNumber</td>
                                     <td>@request.Asset?.SubCategory?.Name</td>
                                     <td>@request.RequestedByUser?.FirstName</td>
@@ -124,6 +122,7 @@
                                             {
                                                 <button class="btn btn-sm btn-success"
                                                         title="Close Request"
+                                                        data-focus-act="close"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#closeModal"
                                                         data-request-id="@request.WorkRequestId">
@@ -156,7 +155,7 @@
                 </a>
                 <div class="table-responsive">
                     <table class="table fixed-table table-striped table-bordered table-hover" id="infraWorkRequestTable">
-                        <thead class="table-dark">
+                        <thead>
                             <tr>
                                 <th>Request Type</th>
                                 <th>Requested By</th>
@@ -175,7 +174,7 @@
                                 var canEdit = status == WorkStatusNames.Open && request.JobId == null;
                                 var canClose = isMine && status == WorkStatusNames.Completed && request.Job != null;
                                 var canWithdraw = isMine && status == WorkStatusNames.Open && request.JobId == null;
-                                <tr>
+                                <tr data-focus-id="@request.WorkRequestId">
                                     <td>@request.TypeOfRequest?.Name</td>
                                     <td>@request.RequestedByUser?.FirstName</td>
                                     <td>@request.RequestDate.ToString("dd MMM yyyy")</td>
@@ -225,6 +224,7 @@
                                             {
                                                 <button class="btn btn-sm btn-success"
                                                         title="Close Request"
+                                                        data-focus-act="close"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#closeModal"
                                                         data-request-id="@request.WorkRequestId">
@@ -296,14 +296,7 @@
                                             }
                                         </td>
                                         <td width="10%">
-                                            @if (lastMove != null)
-                                            {
-                                                @(lastMove.FunctionalStatus.ToString() ?? "N/A")
-                                            }
-                                            else
-                                            {
-                                                <span>-</span>
-                                            }
+                                            @EMMS.Utility.Format.DisplayFunctionalStatus(asset.Asset.FunctionalStatus)
                                         </td>
                                         @* <td width="10%">@asset.Location</td> // from movement history todo?
                                 <td width="10%">@asset.FunctionalStatus</td> *@

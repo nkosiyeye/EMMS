@@ -4,38 +4,57 @@
 @{
 
     ViewData["Title"] = "Manage Assets";
-    ViewData["asset"] = "active";
     var isAdmin = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Administrator;
     var isBiomed = ViewBag._currrentUserRole.UserType == Enumerators.UserType.Biomed;
     var isDataCollector = ViewBag._currrentUserRole?.UserType == Enumerators.UserType.DataCollector;
+    var filterOptionsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.FilterOptions.ToDictionary(f => f.Key, f => f.Value.Select(o => new { text = o.Text, value = o.Value })));
 }
 
 <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span><strong>Manage Assets</strong></span>
-        <div class="d-flex align-items-center">
-            <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed ? "":"d-none")" asp-controller="AssetManagement" asp-action="registerAsset">
-                <i class="fa fa-plus me-1"></i> New Asset
-            </a>
-            <a class="btn btn-primary btn-sm me-2 @(isAdmin || isBiomed || isDataCollector ? "":"d-none")" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
-                <i class="fa fa-plus me-1"></i> Add Muliple Assets
-            </a>
-            <button type="button" id="clearSelection" class="btn btn-link btn-sm d-none" title="Clear selection">
-                Clear selection
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm d-none" title="Reset all column filters">
+                <i class="fa fa-filter-circle-xmark me-1"></i> Clear Filters
             </button>
-            <button type="button" id="moveSelected" class="btn btn-primary btn-sm me-2 @(isDataCollector ? "d-none" : "")" title="Add the selected assets to the Movement Queue" disabled>
-                <i class="fa fa-arrows-alt me-1"></i> Move Selected (<span class="selected-count">0</span>)
-            </button>
-            <button type="button" id="printSelected" class="btn btn-secondary btn-sm @(isAdmin || isBiomed ? "":"d-none")" title="Print Stickers" disabled>
-                <i class="fa fa-print me-1"></i> Print Stickers for Selected (<span class="selected-count">0</span>)
-            </button>
+            @if (isAdmin || isBiomed)
+            {
+                <a class="btn btn-primary btn-sm" asp-controller="AssetManagement" asp-action="registerAsset">
+                    <i class="fa fa-plus me-1"></i> New Asset
+                </a>
+            }
+            @if (isAdmin || isBiomed || isDataCollector)
+            {
+                <a class="btn btn-primary btn-sm" asp-controller="AssetManagement" asp-action="quickRegisterAsset">
+                    <i class="fa fa-plus me-1"></i> Add Multiple Assets
+                </a>
+            }
         </div>
     </div>
 
     <div class="card-body">
+        @* Shown while assets are ticked; the selection is kept across pages of the table *@
+        <div id="selectionBar" class="selection-bar d-none" aria-live="polite">
+            <span class="me-1"><strong class="selected-count">0</strong> selected</span>
+            @if (!isDataCollector)
+            {
+                <button type="button" id="moveSelected" class="btn btn-primary btn-sm" title="Add the selected assets to the Movement Queue">
+                    <i class="fa fa-arrows-alt me-1"></i> Move
+                </button>
+            }
+            @if (isAdmin || isBiomed)
+            {
+                <button type="button" id="printSelected" class="btn btn-outline-secondary btn-sm bg-white">
+                    <i class="fa fa-print me-1"></i> Print stickers
+                </button>
+            }
+            <button type="button" id="clearSelection" class="btn btn-link btn-sm">Clear</button>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-striped table-bordered table-hover" id="assetTable">
-                <thead class="table-dark">
+                <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAllAssets" title="Select all on this page" /></th>
                         <th>Tag</th>
@@ -52,123 +71,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @* @foreach (var asset in Model.assetViewModels!)
-                    {
-                        var lastMove = asset.LastMovement;
-                        <tr class="@(lastMove?.Reason == Enumerators.MovementReason.StolenorMissing ? "table-danger text-muted" : "")">
-                            <td>
-                                <input type="checkbox" class="asset-checkbox"
-                                value='@Html.Raw(Json.Serialize(new { asset.Asset.AssetTagNumber, asset.Asset.SerialNumber, asset.Asset.Model }))'>
-                            </td>
-                            <td>@asset.Asset.AssetTagNumber</td>
-                            <td>@Format.FormatCategory(asset.Asset?.Category?.Name)</td>
-                            <td>@asset.Asset?.SubCategory?.Name</td>
-                            <td>@(asset.Asset.IsPlacement ? "Yes" : "No")</td>
-                            <td>@(asset.Asset.Vendor?.Name ?? "Unknown")</td>
-                            <td>@(asset.Asset.ServiceProvider?.Name ?? "Unknown")</td>
-                            <td>@Format.DisplayProcurementStatus((ProcurementStatus)asset.Asset.StatusId)</td>
-                            <td>@(lastMove?.Facility?.FacilityName ?? "-")</td>
-                            <td>
-                                @if (lastMove?.ServicePoint?.Name != null)
-                                {
-                                    @lastMove.ServicePoint.Name
-                                }
-                                else
-                                {
-                                    <span class="text-muted fst-italic">Unknown</span>
-                                }
-                            </td>
-                            <td>
-                                @if (lastMove != null)
-                                {
-                                    @if (lastMove.Reason != Enumerators.MovementReason.Decommission)
-                                    {
-                                        @Format.DisplayFunctionalStatus(lastMove.FunctionalStatus)
-                                    }
-                                    else
-                                    {
-                                        @Format.DisplayProcurementStatus(ProcurementStatus.Decommissioned)
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (lastMove?.Reason == Enumerators.MovementReason.StolenorMissing)
-                                {
-
-                                    <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
-                                        <span class="badge bg-danger">
-                                            <i class="fa fa-eye me-1"></i>View Asset
-                                        </span>
-                                    </a>
-                                }
-                                else
-                                {
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            <i class="fa fa-ellipsis-h"></i>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li class="@(lastMove != null ? "d-none" : isAdmin || isBiomed ? "":"d-none")">
-                                                <a class="dropdown-item" asp-controller="AssetManagement" asp-action="edit" asp-route-id="@asset.Asset.AssetId">
-                                                    <i class="fa fa-edit me-1"></i> Edit Asset
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="dropdown-item" asp-controller="AssetManagement" asp-action="detail" asp-route-id="@asset.Asset.AssetId">
-                                                    <i class="fa fa-eye me-1"></i> View Asset
-                                                </a>
-                                            </li>
-                                            @if (!isDataCollector)
-                                            {
-                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                    <a class="dropdown-item" asp-controller="AssetMovement" asp-action="moveAsset" asp-route-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-arrows-alt me-1"></i> Move Asset
-                                                    </a>
-                                                </li>
-                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                    <a class="dropdown-item" asp-controller="JobManagement" asp-action="workRequest" asp-route-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-toolbox me-1"></i> Work Request
-                                                    </a>
-                                                </li>
-
-                                                <li class="@(lastMove?.Reason == Enumerators.MovementReason.Decommission ? "d-none" : "")">
-                                                    <a class="dropdown-item js-service-request" href="#" data-asset-id="@asset.Asset.AssetId">
-                                                        <i class="fa fa-toolbox me-1"></i> Service Request
-                                                    </a>
-                                                </li>
-                                                
-                                            }
-                                            <li>
-                                                <button class="dropdown-item stolen-missing-btn"
-                                                        data-id="@asset.Asset.AssetId"
-                                                        data-tag="@asset.Asset.AssetTagNumber"
-                                                        data-name="@asset.Asset.SubCategory?.Name"
-                                                        data-category="@asset.Asset.Category?.Name"
-                                                        data-serial="@asset.Asset.SerialNumber"
-                                                        data-model="@asset.Asset.Model"
-                                                        data-location="@(lastMove?.Facility.FacilityName ?? " Unknown")"
-                                                        type="button">
-                                                    <i class="fa fa-exclamation-triangle me-1 text-danger"></i> Stolen/Missing Asset
-                                                </button>
-                                            </li>
-
-
-                                            <li class="@((lastMove?.Reason == Enumerators.MovementReason.Decommission && isAdmin) ? "" : "d-none")">
-                                                <a asp-controller="AssetManagement" asp-action="HideAsset" asp-route-id="@asset.Asset.AssetId" class="dropdown-item text-danger" title="Remove From List">
-                                                    <i class="fa fa-eye-slash me-1"></i> Hide Asset
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    
-                                }
-                            </td>
-                        </tr>
-                    } *@
                 </tbody>
             </table>
         </div>
@@ -241,50 +143,48 @@
             // so a facility without a scanner can tick assets and act on them in bulk.
             const selectedAssetTags = new Set();
 
-            //var isTabletOrSmaller = window.innerWidth <= 1024; // adjust breakpoint for tablet
-
-            // $('#assetTable').DataTable({
-            //     pageLength: 10,
-            //     responsive: isTabletOrSmaller
-            // });
-
-                var isTabletOrSmaller = window.innerWidth <= 1024;
-
-                    $('#assetTable').DataTable({
-            serverSide: true,
-            processing: true,
-            ajax: {
-                url: '@Url.Action("GetAssets", "AssetManagement")',
-                type: 'POST',
-                dataSrc: 'data'
-            },
-            pageLength: 10,
-            responsive: isTabletOrSmaller,
-            drawCallback: syncSelection,
-            columns: [
-                { data: "checkbox", orderable: false, searchable: false },
-                { data: "tag" },
-                { data: "category" },
-                { data: "itemName" },
-                { data: "placement" },
-                { data: "vendor" },
-                { data: "serviceProvider" },
-                { data: "procurement" },
-                { data: "facility" },
-                { data: "servicePoint" },
-                { data: "status" },
-                { data: "action", orderable: false, searchable: false }
-            ]
-        });
+            // Full option lists per column name, from the lookup lists / enums (AssetManagementController.GetFilterOptions)
+            const filterOptions = @Html.Raw(filterOptionsJson);
 
             function syncSelection() {
                 const boxes = $('#assetTable tbody .asset-checkbox');
                 boxes.each(function () { this.checked = selectedAssetTags.has(this.value); });
                 $('#selectAllAssets').prop('checked', boxes.length > 0 && boxes.filter(':checked').length === boxes.length);
                 $('.selected-count').text(selectedAssetTags.size);
-                $('#printSelected, #moveSelected').prop('disabled', selectedAssetTags.size === 0);
-                $('#clearSelection').toggleClass('d-none', selectedAssetTags.size === 0);
+                $('#selectionBar').toggleClass('d-none', selectedAssetTags.size === 0);
             }
+
+            const assetColumns = [
+                { data: "checkbox", orderable: false, searchable: false },
+                { data: "tag" },
+                { data: "category", name: "Category" },
+                { data: "itemName", name: "ItemName" },
+                { data: "placement", name: "Placement" },
+                { data: "vendor", name: "Vendor" },
+                { data: "serviceProvider", name: "Service Provider" },
+                { data: "procurement", name: "Procurement" },
+                { data: "facility", name: "Facility" },
+                { data: "servicePoint", name: "ServicePoint" },
+                { data: "status", name: "Status" },
+                { data: "action", orderable: false, searchable: false }
+            ];
+
+            $('#assetTable').DataTable({
+                serverSide: true,
+                processing: true,
+                ajax: {
+                    url: '@Url.Action("GetAssets", "AssetManagement")',
+                    type: 'POST',
+                    dataSrc: 'data'
+                },
+                pageLength: 10,
+                searchDelay: 400,
+                drawCallback: syncSelection,
+                columns: assetColumns,
+                initComplete: function () {
+                    emmsColumnFilters(this.api(), filterOptions, '#clearFilters');
+                }
+            });
 
             $('#assetTable').on('change', '.asset-checkbox', function () {
                 this.checked ? selectedAssetTags.add(this.value) : selectedAssetTags.delete(this.value);
@@ -313,39 +213,16 @@
                 emmsPostTags('/AssetMovement/QueueAddSelected', Array.from(selectedAssetTags));
             });
 
-            // Optional: listen for resize and redraw
-            // $(window).on('resize', function () {
-            //     var newSize = window.innerWidth <= 1024;
-            //     var table = $('#assetTable').DataTable();
-
-            //     if (newSize !== table.responsive.hasResponsive()) {
-            //         table.destroy();
-            //         $('#assetTable').DataTable({
-            //             pageLength: 10,
-            //             responsive: newSize
-            //         });
-            //     }
-            // });
             $(document).on("click", ".stolen-missing-btn", function () {
-            const id = $(this).data("id");
-            const tag = $(this).data("tag");
-            const name = $(this).data("name");
-            const category = $(this).data("category");
-            const serial = $(this).data("serial");
-            const model = $(this).data("model");
-            const location = $(this).data("location");
+                $("#assetId").val($(this).data("id"));
+                $("#assetTag").val($(this).data("tag"));
+                $("#assetName").val($(this).data("name"));
+                $("#assetCategory").val($(this).data("category"));
+                $("#assetSerialModel").val($(this).data("serial") + " / " + $(this).data("model"));
+                $("#assetLocation").val($(this).data("location"));
 
-            $("#assetId").val(id);
-            $("#assetTag").val(tag);
-            $("#assetName").val(name);
-            $("#assetCategory").val(category);
-            $("#assetSerialModel").val(serial + " / " + model);
-            $("#assetLocation").val(location);
-
-            $("#stolenMissingModal").modal("show");
+                $("#stolenMissingModal").modal("show");
+            });
         });
-
-        });
-
     </script>
 }
